@@ -3,12 +3,13 @@ package api
 import (
 	"telegram-emulator/internal/api/handlers"
 	"telegram-emulator/internal/emulator"
+	"telegram-emulator/internal/websocket"
 
 	"github.com/gin-gonic/gin"
 )
 
 // SetupRoutes настраивает маршруты API
-func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatManager *emulator.ChatManager) {
+func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatManager *emulator.ChatManager, messageManager *emulator.MessageManager, wsServer *websocket.Server) {
 	// API группа
 	api := router.Group("/api")
 	{
@@ -33,7 +34,6 @@ func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatMana
 			chats.GET("/:id", chatHandler.GetByID)
 			chats.PUT("/:id", chatHandler.Update)
 			chats.DELETE("/:id", chatHandler.Delete)
-			chats.GET("/:id/messages", chatHandler.GetMessages)
 			chats.POST("/:id/members", chatHandler.AddMember)
 			chats.DELETE("/:id/members/:userID", chatHandler.RemoveMember)
 		}
@@ -41,20 +41,33 @@ func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatMana
 		// Сообщения
 		messages := api.Group("/messages")
 		{
-			messageHandler := handlers.NewMessageHandler(chatManager)
+			messageHandler := handlers.NewMessageHandler(messageManager)
 			messages.GET("/:id", messageHandler.GetByID)
 			messages.PUT("/:id/status", messageHandler.UpdateStatus)
+			messages.DELETE("/:id", messageHandler.DeleteMessage)
 		}
+
+		// Сообщения чатов
+		messageHandler := handlers.NewMessageHandler(messageManager)
+		chats.GET("/:id/messages", messageHandler.GetChatMessages)
+		chats.POST("/:id/messages", messageHandler.SendMessage)
+		chats.PUT("/:id/read", messageHandler.MarkChatAsRead)
+		chats.GET("/:id/search", messageHandler.SearchMessages)
 	}
 
-	// Статические файлы для веб-интерфейса
-	router.Static("/static", "./web/public")
-	router.LoadHTMLGlob("web/templates/*")
-	
-	// Главная страница
-	router.GET("/", func(c *gin.Context) {
-		c.HTML(200, "index.html", gin.H{
-			"title": "Telegram Emulator",
+			// WebSocket endpoint
+		router.GET("/ws", func(c *gin.Context) {
+			wsServer.HandleWebSocket(c.Writer, c.Request)
 		})
-	})
+
+		// Статические файлы для веб-интерфейса
+		router.Static("/static", "./web/public")
+		router.LoadHTMLGlob("web/public/*")
+		
+		// Главная страница
+		router.GET("/", func(c *gin.Context) {
+			c.HTML(200, "index.html", gin.H{
+				"title": "Telegram Emulator",
+			})
+		})
 }

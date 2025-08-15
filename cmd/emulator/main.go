@@ -11,6 +11,7 @@ import (
 	"telegram-emulator/internal/pkg/config"
 	"telegram-emulator/internal/pkg/logger"
 	"telegram-emulator/internal/repository"
+	"telegram-emulator/internal/websocket"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -47,9 +48,14 @@ func main() {
 	messageRepo := repository.NewMessageRepository(db)
 	_ = repository.NewBotRepository(db) // Пока не используем
 
+	// Инициализация WebSocket сервера
+	wsServer := websocket.NewServer()
+	go wsServer.Start()
+
 	// Инициализация менеджеров
 	userManager := emulator.NewUserManager(userRepo)
 	chatManager := emulator.NewChatManager(chatRepo, messageRepo, userRepo)
+	messageManager := emulator.NewMessageManager(messageRepo, chatRepo, userRepo, wsServer)
 
 	// Создание тестовых данных
 	if err := createTestData(userManager, chatManager); err != nil {
@@ -77,7 +83,7 @@ func main() {
 	})
 
 	// Настройка маршрутов
-	api.SetupRoutes(router, userManager, chatManager)
+	api.SetupRoutes(router, userManager, chatManager, messageManager, wsServer)
 
 	// Запуск сервера
 	addr := fmt.Sprintf("%s:%d", cfg.Emulator.Host, cfg.Emulator.Port)
