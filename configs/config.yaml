@@ -1,0 +1,21 @@
+emulator:
+  port: 3001
+  host: localhost
+  debug: true
+
+database:
+  url: sqlite:///data/emulator.db
+  max_connections: 10
+
+websocket:
+  heartbeat_interval: 30s
+  max_connections: 1000
+
+bots:
+  webhook_timeout: 30s
+  max_connections: 100
+
+logging:
+  level: debug
+  format: console
+  file: ""
