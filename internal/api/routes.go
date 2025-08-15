@@ -60,14 +60,12 @@ func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatMana
 			wsServer.HandleWebSocket(c.Writer, c.Request)
 		})
 
-		// Статические файлы для веб-интерфейса
-		router.Static("/static", "./web/public")
-		router.LoadHTMLGlob("web/public/*")
-		
-		// Главная страница
+		// Главная страница - теперь обслуживается Vite dev сервером
 		router.GET("/", func(c *gin.Context) {
-			c.HTML(200, "index.html", gin.H{
-				"title": "Telegram Emulator",
+			c.JSON(200, gin.H{
+				"message": "Telegram Emulator API",
+				"version": "1.0.0",
+				"docs": "/api",
 			})
 		})
 }

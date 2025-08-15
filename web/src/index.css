@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+  
+  body {
+    @apply bg-telegram-bg text-telegram-text font-sans;
+    margin: 0;
+    padding: 0;
+  }
+  
+  #root {
+    @apply h-screen overflow-hidden;
+  }
+}
+
+@layer components {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .message-bubble {
+    @apply max-w-xs lg:max-w-md px-3 py-2 rounded-lg break-words;
+  }
+  
+  .message-bubble.outgoing {
+    @apply bg-telegram-primary text-white;
+  }
+  
+  .message-bubble.incoming {
+    @apply bg-telegram-sidebar text-telegram-text;
+  }
+  
+  .chat-item {
+    @apply flex items-center p-4 border-b border-telegram-border cursor-pointer transition-colors duration-200 hover:bg-telegram-primary;
+  }
+  
+  .chat-item.active {
+    @apply bg-telegram-primary;
+  }
+}
