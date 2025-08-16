@@ -6,14 +6,15 @@ import (
 
 // Bot представляет бота в эмуляторе
 type Bot struct {
-	ID         string    `json:"id" gorm:"primaryKey"`
-	Name       string    `json:"name"`
-	Username   string    `json:"username" gorm:"uniqueIndex"`
-	Token      string    `json:"token"`
-	WebhookURL string    `json:"webhook_url"`
-	IsActive   bool      `json:"is_active"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID                string    `json:"id" gorm:"primaryKey"`
+	Name              string    `json:"name"`
+	Username          string    `json:"username" gorm:"uniqueIndex"`
+	Token             string    `json:"token"`
+	WebhookURL        string    `json:"webhook_url"`
+	IsActive          bool      `json:"is_active"`
+	LastUpdateOffset  int64     `json:"last_update_offset" gorm:"default:0"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 // TableName возвращает имя таблицы для модели Bot

@@ -7,6 +7,7 @@
 import requests
 import time
 import json
+import os
 from typing import Dict, Any
 
 class TelegramEmulatorBot:
@@ -14,7 +15,26 @@ class TelegramEmulatorBot:
         self.token = token
         self.base_url = base_url
         self.api_url = f"{base_url}/bot{token}"
-        self.offset = 0
+        self.offset_file = f"bot_offset_{token.split(':')[0]}.txt"
+        self.offset = self.load_offset()
+        
+    def load_offset(self) -> int:
+        """Загружает сохраненный offset из файла"""
+        try:
+            if os.path.exists(self.offset_file):
+                with open(self.offset_file, 'r') as f:
+                    return int(f.read().strip())
+        except Exception as e:
+            print(f"Ошибка загрузки offset: {e}")
+        return 0
+    
+    def save_offset(self, offset: int) -> None:
+        """Сохраняет offset в файл"""
+        try:
+            with open(self.offset_file, 'w') as f:
+                f.write(str(offset))
+        except Exception as e:
+            print(f"Ошибка сохранения offset: {e}")
         
     def get_me(self) -> Dict[str, Any]:
         """Получает информацию о боте"""
@@ -28,6 +48,7 @@ class TelegramEmulatorBot:
             'timeout': timeout,
             'limit': 100
         }
+        print(f"DEBUG: запрашиваем обновления с offset={self.offset}")
         response = requests.get(f"{self.api_url}/getUpdates", params=params)
         return response.json()
     
@@ -61,9 +82,11 @@ class TelegramEmulatorBot:
     
     def process_updates(self, updates: list) -> None:
         """Обрабатывает полученные обновления"""
+        max_update_id = 0
+        
         for update in updates:
             update_id = update.get('update_id', 0)
-            self.offset = max(self.offset, update_id + 1)
+            max_update_id = max(max_update_id, update_id)
             
             # Обрабатываем сообщения
             if 'message' in update:
@@ -91,6 +114,13 @@ class TelegramEmulatorBot:
                     print(f"Ответ отправлен: {response_text}")
                 else:
                     print(f"Ошибка отправки: {result}")
+        
+        # Обновляем offset до последнего обработанного update_id + 1
+        # Это правильная логика Telegram Bot API
+        if max_update_id > 0:
+            self.offset = max_update_id + 1
+            self.save_offset(self.offset)
+            print(f"DEBUG: offset обновлен до {self.offset} (последний обработанный update_id + 1)")
     
     def run_polling(self) -> None:
         """Запускает бота в режиме polling"""

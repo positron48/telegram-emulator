@@ -65,3 +65,6 @@ temp/
 # Configuration files with sensitive data
 configs/local.yaml
 configs/production.yaml
+
+# Bot storage
+bot_offset_*.txt

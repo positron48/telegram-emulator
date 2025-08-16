@@ -27,7 +27,7 @@ func Init(level string, format string, file string) error {
 	}
 
 	// Создание конфигурации
-	config := zap.NewProductionConfig()
+	config := zap.NewDevelopmentConfig() // Изменено с Production на Development
 	config.Level = zap.NewAtomicLevelAt(zapLevel)
 
 	// Настройка формата вывода

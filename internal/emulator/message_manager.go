@@ -304,6 +304,7 @@ func (m *MessageManager) generateID() (string, error) {
 // notifyBots уведомляет всех активных ботов о новом сообщении
 func (m *MessageManager) notifyBots(message *models.Message) {
 	if m.botManager == nil {
+		m.logger.Error("botManager равен nil - уведомления ботов отключены")
 		return
 	}
 
@@ -317,6 +318,25 @@ func (m *MessageManager) notifyBots(message *models.Message) {
 	// Создаем обновление для каждого бота
 	for _, bot := range bots {
 		if !bot.IsActive {
+			continue
+		}
+
+		// Проверяем, не является ли отправитель сообщения этим ботом
+		// Если да, то не уведомляем бота о его собственном сообщении
+		botUser, err := m.userRepo.GetByUsername(bot.Username)
+		if err != nil {
+			m.logger.Error("Ошибка получения пользователя-бота", 
+				zap.String("bot_id", bot.ID),
+				zap.String("bot_username", bot.Username),
+				zap.Error(err))
+			continue
+		}
+
+		// Если сообщение от этого бота, пропускаем
+		if message.FromID == botUser.ID {
+			m.logger.Debug("Пропускаем уведомление бота о его собственном сообщении", 
+				zap.String("bot_id", bot.ID),
+				zap.String("message_id", message.ID))
 			continue
 		}
 

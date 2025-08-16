@@ -221,16 +221,38 @@ func (m *BotManager) GetBotUpdates(botID string, offset, limit int) ([]models.Up
 		return nil, fmt.Errorf("бот неактивен")
 	}
 
+	// Если offset не указан, используем сохраненный offset бота
+	if offset == 0 {
+		offset = int(bot.LastUpdateOffset)
+	}
+
 	// Получаем обновления из очереди
 	queue, exists := m.updateQueue[botID]
 	if !exists {
 		return []models.Update{}, nil
 	}
 
-	// Фильтруем по offset
+	// Проверяем, есть ли обновления с update_id больше offset
+	maxUpdateID := int64(0)
+	for _, update := range queue {
+		if update.UpdateID > maxUpdateID {
+			maxUpdateID = update.UpdateID
+		}
+	}
+
+	// Если offset больше максимального update_id, возвращаем пустой список
+	if int64(offset) > maxUpdateID && maxUpdateID > 0 {
+		m.logger.Info("Offset больше максимального update_id, возвращаем пустой список", 
+			zap.String("bot_id", botID),
+			zap.Int("offset", offset),
+			zap.Int64("max_update_id", maxUpdateID))
+		return []models.Update{}, nil
+	}
+
+	// Фильтруем по offset - возвращаем обновления с update_id >= offset
 	var filteredUpdates []models.Update
 	for _, update := range queue {
-		if update.UpdateID > int64(offset) {
+		if update.UpdateID >= int64(offset) {
 			filteredUpdates = append(filteredUpdates, update)
 		}
 	}
@@ -240,11 +262,15 @@ func (m *BotManager) GetBotUpdates(botID string, offset, limit int) ([]models.Up
 		filteredUpdates = filteredUpdates[:limit]
 	}
 
+	// НЕ обновляем offset бота автоматически - бот должен сам управлять своим offset
+	// Это стандартное поведение Telegram Bot API
+
 	m.logger.Info("Получены обновления для бота", 
 		zap.String("bot_id", botID),
 		zap.Int("count", len(filteredUpdates)),
 		zap.Int("offset", offset),
-		zap.Int("limit", limit))
+		zap.Int("limit", limit),
+		zap.Int64("last_update_offset", bot.LastUpdateOffset))
 
 	return filteredUpdates, nil
 }
@@ -282,10 +308,14 @@ func (m *BotManager) AddUpdate(botID string, update *models.Update) error {
 	// Получаем бота
 	bot, err := m.GetBot(botID)
 	if err != nil {
+		m.logger.Error("Ошибка получения бота в AddUpdate", 
+			zap.String("bot_id", botID), 
+			zap.Error(err))
 		return err
 	}
 
 	if !bot.IsActive {
+		m.logger.Error("Бот неактивен в AddUpdate", zap.String("bot_id", botID))
 		return fmt.Errorf("бот неактивен")
 	}
 
@@ -314,6 +344,7 @@ func (m *BotManager) AddUpdate(botID string, update *models.Update) error {
 	if m.updateQueue[botID] == nil {
 		m.updateQueue[botID] = []models.Update{}
 	}
+	
 	m.updateQueue[botID] = append(m.updateQueue[botID], *update)
 
 	// Ограничиваем размер очереди (максимум 1000 обновлений)
