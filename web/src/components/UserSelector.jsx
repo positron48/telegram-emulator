@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Settings } from 'lucide-react';
 import UserModal from './UserModal';
+import { t, getCurrentLanguage } from '../locales';
 
 const UserSelector = ({ users, currentUser, onUserSelect, onCreateUser, onDeleteUser }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,7 +18,7 @@ const UserSelector = ({ users, currentUser, onUserSelect, onCreateUser, onDelete
         </div>
         <div className="flex-1 text-left">
           <p className="text-sm font-medium truncate">
-            {currentUser ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : 'Выберите пользователя'}
+            {currentUser ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : t('selectUser', getCurrentLanguage())}
           </p>
           <p className="text-xs text-telegram-text-secondary truncate">
             @{currentUser?.username || 'username'}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, User, Bot } from 'lucide-react';
 import apiService from '../services/api';
 import useStore from '../store';
+import { t, getCurrentLanguage } from '../locales';
 
 const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
   const [formData, setFormData] = useState({
@@ -27,7 +28,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
     e.preventDefault();
     
     if (!formData.username.trim() || !formData.first_name.trim()) {
-      setError('Имя пользователя и имя обязательны');
+      setError(t('usernameAndFirstNameRequired', getCurrentLanguage()));
       return;
     }
 
@@ -51,7 +52,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
       }
     } catch (error) {
       console.error('Failed to create user:', error);
-      setError(error.message || 'Ошибка создания пользователя');
+              setError(error.message || t('userCreationError', getCurrentLanguage()));
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +78,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
         {/* Заголовок */}
         <div className="flex items-center justify-between p-4 border-b border-telegram-border">
           <h2 className="text-lg font-medium text-telegram-text">
-            Создать пользователя
+            {t('createUser', getCurrentLanguage())}
           </h2>
           <button
             onClick={handleClose}
@@ -106,7 +107,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
                   <User className="w-5 h-5 text-telegram-primary mr-2" />
                 )}
                 <span className="text-telegram-text font-medium">
-                  {formData.is_bot ? 'Бот' : 'Пользователь'}
+                  {formData.is_bot ? t('isBot', getCurrentLanguage()) : t('user', getCurrentLanguage())}
                 </span>
               </div>
             </label>
@@ -115,7 +116,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
           {/* Имя пользователя */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Имя пользователя *
+              {t('username', getCurrentLanguage())} *
             </label>
             <input
               type="text"
@@ -131,7 +132,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
           {/* Имя */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Имя *
+              {t('firstName', getCurrentLanguage())} *
             </label>
             <input
               type="text"
@@ -147,7 +148,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
           {/* Фамилия */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Фамилия
+              {t('lastName', getCurrentLanguage())}
             </label>
             <input
               type="text"
@@ -173,14 +174,14 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
               onClick={handleClose}
               className="flex-1 px-4 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary/10 transition-colors"
             >
-              Отмена
+              {t('cancel', getCurrentLanguage())}
             </button>
             <button
               type="submit"
               disabled={isLoading}
               className="flex-1 px-4 py-2 bg-telegram-primary text-white rounded-lg hover:bg-telegram-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Создание...' : 'Создать'}
+              {isLoading ? t('creating', getCurrentLanguage()) : t('create', getCurrentLanguage())}
             </button>
           </div>
         </form>

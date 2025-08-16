@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Trash2, Download, RefreshCw, AlertCircle, Info, MessageCircle, Activity } from 'lucide-react';
 import clsx from 'clsx';
+import { t, getCurrentLanguage } from '../locales';
 
 const DebugPanel = ({ events, statistics, onClose }) => {
   const [activeTab, setActiveTab] = useState('events');
@@ -58,7 +59,7 @@ const DebugPanel = ({ events, statistics, onClose }) => {
     <div className="w-96 bg-telegram-sidebar border-l border-telegram-border flex flex-col">
       {/* Заголовок */}
       <div className="p-4 border-b border-telegram-border bg-telegram-bg flex items-center justify-between">
-        <h2 className="text-lg font-medium text-telegram-text">Отладка</h2>
+        <h2 className="text-lg font-medium text-telegram-text">{t('debug', getCurrentLanguage())}</h2>
         <button
           onClick={onClose}
           className="p-1 text-telegram-secondary hover:text-telegram-text transition-colors"
@@ -78,7 +79,7 @@ const DebugPanel = ({ events, statistics, onClose }) => {
               : 'text-telegram-text-secondary hover:text-telegram-text'
           )}
         >
-          События
+          {t('events', getCurrentLanguage())}
         </button>
         <button
           onClick={() => setActiveTab('statistics')}
@@ -89,7 +90,7 @@ const DebugPanel = ({ events, statistics, onClose }) => {
               : 'text-telegram-text-secondary hover:text-telegram-text'
           )}
         >
-          Статистика
+          {t('statistics', getCurrentLanguage())}
         </button>
       </div>
 

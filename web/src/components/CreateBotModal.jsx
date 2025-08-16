@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Bot } from 'lucide-react';
 import apiService from '../services/api';
 import useStore from '../store';
+import { t, getCurrentLanguage } from '../locales';
 
 const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
   const [formData, setFormData] = useState({
@@ -27,7 +28,7 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
     e.preventDefault();
     
     if (!formData.name.trim() || !formData.username.trim()) {
-      setError('Название и username обязательны');
+      setError(t('nameAndUsernameRequired', getCurrentLanguage()));
       return;
     }
 
@@ -50,7 +51,7 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
       }
     } catch (error) {
       console.error('Failed to create bot:', error);
-      setError(error.message || 'Ошибка создания бота');
+      setError(error.message || t('botCreationError', getCurrentLanguage()));
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +77,7 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
         {/* Заголовок */}
         <div className="flex items-center justify-between p-4 border-b border-telegram-border">
           <h2 className="text-lg font-medium text-telegram-text">
-            Создать бота
+            {t('createBot', getCurrentLanguage())}
           </h2>
           <button
             onClick={handleClose}

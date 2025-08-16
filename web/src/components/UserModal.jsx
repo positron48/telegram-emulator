@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
+import { t, getCurrentLanguage } from '../locales';
 
 const UserModal = ({ isOpen, onClose, users, currentUser, onUserSelect, onCreateUser, onDeleteUser }) => {
   if (!isOpen) return null;
@@ -12,7 +13,8 @@ const UserModal = ({ isOpen, onClose, users, currentUser, onUserSelect, onCreate
 
   const handleDeleteUser = (e, userId) => {
     e.stopPropagation();
-    if (confirm('Вы уверены, что хотите удалить этого пользователя?')) {
+    const language = getCurrentLanguage();
+    if (confirm(t('confirmDeleteUser', language))) {
       onDeleteUser(userId);
     }
   };
@@ -23,7 +25,7 @@ const UserModal = ({ isOpen, onClose, users, currentUser, onUserSelect, onCreate
         {/* Заголовок */}
         <div className="flex items-center justify-between p-4 border-b border-telegram-border">
           <h2 className="text-lg font-medium text-telegram-text">
-            Выберите пользователя
+            {t('selectUser', getCurrentLanguage())}
           </h2>
           <button
             onClick={onClose}
@@ -57,13 +59,13 @@ const UserModal = ({ isOpen, onClose, users, currentUser, onUserSelect, onCreate
               </div>
               {user.is_bot && (
                 <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded">
-                  Бот
+                  {t('isBot', getCurrentLanguage())}
                 </span>
               )}
               <button
                 onClick={(e) => handleDeleteUser(e, user.id)}
                 className="p-1 text-red-500 hover:text-red-600 transition-colors"
-                title="Удалить пользователя"
+                title={t('deleteUser', getCurrentLanguage())}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -81,7 +83,7 @@ const UserModal = ({ isOpen, onClose, users, currentUser, onUserSelect, onCreate
             className="flex items-center justify-center w-full p-3 bg-telegram-primary text-white rounded-lg hover:bg-telegram-primary/80 transition-colors"
           >
             <Plus className="w-4 h-4 mr-2" />
-            <span>Создать нового пользователя</span>
+            <span>{t('createNewUser', getCurrentLanguage())}</span>
           </button>
         </div>
       </div>

@@ -1,14 +1,17 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
 import { Check, CheckCheck } from 'lucide-react';
 import clsx from 'clsx';
+import { t, getCurrentLanguage } from '../locales';
 
 const MessageBubble = ({ message, isOwn, currentUser }) => {
   const formatTime = (timestamp) => {
     try {
+      const language = getCurrentLanguage();
+      const locale = language === 'en' ? enUS : ru;
       const date = new Date(timestamp);
-      return format(date, 'HH:mm', { locale: ru });
+      return format(date, 'HH:mm', { locale });
     } catch (error) {
       return '';
     }
@@ -30,11 +33,13 @@ const MessageBubble = ({ message, isOwn, currentUser }) => {
   };
 
   const getSenderName = () => {
-    if (isOwn) return 'Вы';
-    return message.from?.first_name || message.from?.username || 'Неизвестный';
+    const language = getCurrentLanguage();
+    if (isOwn) return t('you', language);
+    return message.from?.first_name || message.from?.username || t('unknown', language);
   };
 
   const getMessageContent = () => {
+    const language = getCurrentLanguage();
     switch (message.type) {
       case 'text':
         return (
@@ -48,7 +53,7 @@ const MessageBubble = ({ message, isOwn, currentUser }) => {
             <div className="w-8 h-8 bg-telegram-secondary rounded flex items-center justify-center">
               📎
             </div>
-            <span>Файл</span>
+            <span>{t('file', language)}</span>
           </div>
         );
       case 'voice':
@@ -57,7 +62,7 @@ const MessageBubble = ({ message, isOwn, currentUser }) => {
             <div className="w-8 h-8 bg-telegram-secondary rounded flex items-center justify-center">
               🎤
             </div>
-            <span>Голосовое сообщение</span>
+            <span>{t('voiceMessage', language)}</span>
           </div>
         );
       case 'photo':
@@ -66,7 +71,7 @@ const MessageBubble = ({ message, isOwn, currentUser }) => {
             <div className="w-8 h-8 bg-telegram-secondary rounded flex items-center justify-center">
               📷
             </div>
-            <span>Фото</span>
+            <span>{t('photo', language)}</span>
           </div>
         );
       default:

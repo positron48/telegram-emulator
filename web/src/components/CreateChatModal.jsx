@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Users, MessageCircle, Hash } from 'lucide-react';
 import apiService from '../services/api';
 import useStore from '../store';
+import { t, getCurrentLanguage } from '../locales';
 
 const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
   const [formData, setFormData] = useState({
@@ -36,18 +37,19 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    const language = getCurrentLanguage();
     if (!formData.title.trim()) {
-      setError('Название чата обязательно');
+      setError(t('chatTitleRequired', language));
       return;
     }
 
     if (formData.type === 'private' && formData.user_ids.length !== 2) {
-      setError('Приватный чат должен содержать ровно 2 участника');
+      setError(t('privateChatTwoParticipants', language));
       return;
     }
 
     if (formData.type !== 'private' && formData.user_ids.length < 2) {
-      setError('Группа должна содержать минимум 2 участника');
+      setError(t('groupMinTwoParticipants', language));
       return;
     }
 
@@ -71,7 +73,7 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
       }
     } catch (error) {
       console.error('Failed to create chat:', error);
-      setError(error.message || 'Ошибка создания чата');
+      setError(error.message || t('chatCreationError', language));
     } finally {
       setIsLoading(false);
     }
@@ -104,15 +106,16 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
   };
 
   const getChatTypeLabel = (type) => {
+    const language = getCurrentLanguage();
     switch (type) {
       case 'private':
-        return 'Приватный чат';
+        return t('privateChat', language);
       case 'group':
-        return 'Группа';
+        return t('groupChat', language);
       case 'channel':
-        return 'Канал';
+        return t('channelChat', language);
       default:
-        return 'Чат';
+        return t('chat', language);
     }
   };
 
@@ -124,7 +127,7 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
         {/* Заголовок */}
         <div className="flex items-center justify-between p-4 border-b border-telegram-border">
           <h2 className="text-lg font-medium text-telegram-text">
-            Создать чат
+            {t('createChat', getCurrentLanguage())}
           </h2>
           <button
             onClick={handleClose}
@@ -139,7 +142,7 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
           {/* Тип чата */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Тип чата
+              {t('chatType', getCurrentLanguage())}
             </label>
             <div className="grid grid-cols-3 gap-2">
               {['private', 'group', 'channel'].map((type) => (
@@ -165,7 +168,7 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
           {/* Название */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Название *
+              {t('title', getCurrentLanguage())} *
             </label>
             <input
               type="text"
@@ -198,9 +201,9 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
           {/* Описание (для групп и каналов) */}
           {formData.type !== 'private' && (
             <div className="mb-4">
-              <label className="block text-sm font-medium text-telegram-text mb-2">
-                Описание
-              </label>
+                          <label className="block text-sm font-medium text-telegram-text mb-2">
+              {t('description', getCurrentLanguage())}
+            </label>
               <textarea
                 name="description"
                 value={formData.description}
@@ -215,7 +218,7 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
           {/* Выбор участников */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Участники {formData.type === 'private' ? '(выберите 2)' : '(минимум 2)'}
+              {t('participants', getCurrentLanguage())} {formData.type === 'private' ? t('selectTwo', getCurrentLanguage()) : t('minimumTwo', getCurrentLanguage())}
             </label>
             <div className="max-h-48 overflow-y-auto border border-telegram-border rounded-lg">
               {users.map((user) => (
@@ -242,14 +245,14 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
                   </div>
                   {user.is_bot && (
                     <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded">
-                      Бот
+                      {t('isBot', getCurrentLanguage())}
                     </span>
                   )}
                 </label>
               ))}
             </div>
             <p className="text-xs text-telegram-text-secondary mt-1">
-              Выбрано: {formData.user_ids.length} участников
+              {t('selected', getCurrentLanguage())}: {formData.user_ids.length} {t('participants', getCurrentLanguage())}
             </p>
           </div>
 
@@ -267,14 +270,14 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
               onClick={handleClose}
               className="flex-1 px-4 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary/10 transition-colors"
             >
-              Отмена
+              {t('cancel', getCurrentLanguage())}
             </button>
             <button
               type="submit"
               disabled={isLoading}
               className="flex-1 px-4 py-2 bg-telegram-primary text-white rounded-lg hover:bg-telegram-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Создание...' : 'Создать'}
+              {isLoading ? t('creating', getCurrentLanguage()) : t('create', getCurrentLanguage())}
             </button>
           </div>
         </form>

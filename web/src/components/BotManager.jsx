@@ -4,6 +4,7 @@ import apiService from '../services/api';
 import useStore from '../store';
 import CreateBotModal from './CreateBotModal';
 import EditBotModal from './EditBotModal';
+import { t, getCurrentLanguage } from '../locales';
 
 const BotManager = ({ isOpen, onClose }) => {
   const [bots, setBots] = useState([]);
@@ -29,7 +30,7 @@ const BotManager = ({ isOpen, onClose }) => {
       setBots(response.bots || []);
     } catch (error) {
       console.error('Failed to load bots:', error);
-      setError('Ошибка загрузки ботов');
+      setError(t('botsLoadError', getCurrentLanguage()));
     } finally {
       setIsLoading(false);
     }
@@ -41,7 +42,8 @@ const BotManager = ({ isOpen, onClose }) => {
   };
 
   const handleDeleteBot = async (botId) => {
-    if (!confirm('Вы уверены, что хотите удалить этого бота?')) {
+    const language = getCurrentLanguage();
+    if (!confirm(t('confirmDeleteBot', language))) {
       return;
     }
 
@@ -85,7 +87,7 @@ const BotManager = ({ isOpen, onClose }) => {
       }
     } catch (error) {
       console.error('Failed to toggle bot:', error);
-      setError('Ошибка изменения статуса бота');
+      setError(t('botToggleError', getCurrentLanguage()));
     }
   };
 
@@ -107,7 +109,7 @@ const BotManager = ({ isOpen, onClose }) => {
         {/* Заголовок */}
         <div className="flex items-center justify-between p-4 border-b border-telegram-border">
           <h2 className="text-lg font-medium text-telegram-text">
-            Управление ботами
+            {t('botManagement', getCurrentLanguage())}
           </h2>
           <button
             onClick={onClose}
@@ -133,7 +135,7 @@ const BotManager = ({ isOpen, onClose }) => {
               className="flex items-center px-4 py-2 bg-telegram-primary text-white rounded-lg hover:bg-telegram-primary/80 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Создать бота
+              {t('createBot', getCurrentLanguage())}
             </button>
           </div>
 
@@ -141,14 +143,14 @@ const BotManager = ({ isOpen, onClose }) => {
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-telegram-primary mx-auto mb-4"></div>
-              <p className="text-telegram-text-secondary">Загрузка ботов...</p>
+              <p className="text-telegram-text-secondary">{t('loadingBots', getCurrentLanguage())}</p>
             </div>
           ) : bots.length === 0 ? (
             <div className="text-center py-8">
               <Bot className="w-12 h-12 text-telegram-secondary mx-auto mb-3" />
-              <h3 className="text-telegram-text font-medium mb-1">Нет ботов</h3>
+              <h3 className="text-telegram-text font-medium mb-1">{t('noBots', getCurrentLanguage())}</h3>
               <p className="text-telegram-text-secondary text-sm">
-                Создайте первого бота для начала работы
+                {t('createFirstBot', getCurrentLanguage())}
               </p>
             </div>
           ) : (
@@ -181,14 +183,14 @@ const BotManager = ({ isOpen, onClose }) => {
                             ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20'
                             : 'bg-gray-500/10 text-gray-500 hover:bg-gray-500/20'
                         }`}
-                        title={bot.is_active ? 'Деактивировать' : 'Активировать'}
+                        title={bot.is_active ? t('deactivate', getCurrentLanguage()) : t('activate', getCurrentLanguage())}
                       >
                         {bot.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                       </button>
                       <button
                         onClick={() => handleDeleteBot(bot.id)}
                         className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
-                        title="Удалить"
+                        title={t('delete', getCurrentLanguage())}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -198,7 +200,7 @@ const BotManager = ({ isOpen, onClose }) => {
                   {/* Информация о боте */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-telegram-text-secondary mb-1">Токен:</p>
+                      <p className="text-telegram-text-secondary mb-1">{t('token', getCurrentLanguage())}:</p>
                       <div className="flex items-center">
                         <code className="flex-1 bg-telegram-bg px-2 py-1 rounded text-xs font-mono text-telegram-text">
                           {bot.token}
@@ -206,7 +208,7 @@ const BotManager = ({ isOpen, onClose }) => {
                         <button
                           onClick={() => copyToClipboard(bot.token)}
                           className="ml-2 p-1 text-telegram-secondary hover:text-telegram-text transition-colors"
-                          title="Копировать токен"
+                          title={t('copyToken', getCurrentLanguage())}
                         >
                           <Copy className="w-3 h-3" />
                         </button>
@@ -215,7 +217,7 @@ const BotManager = ({ isOpen, onClose }) => {
 
                     {bot.webhook_url && (
                       <div>
-                        <p className="text-telegram-text-secondary mb-1">Webhook URL:</p>
+                        <p className="text-telegram-text-secondary mb-1">{t('webhookUrl', getCurrentLanguage())}:</p>
                         <div className="flex items-center">
                           <code className="flex-1 bg-telegram-bg px-2 py-1 rounded text-xs font-mono text-telegram-text">
                             {bot.webhook_url}
@@ -223,7 +225,7 @@ const BotManager = ({ isOpen, onClose }) => {
                           <button
                             onClick={() => copyToClipboard(bot.webhook_url)}
                             className="ml-2 p-1 text-telegram-secondary hover:text-telegram-text transition-colors"
-                            title="Копировать URL"
+                            title={t('copyUrl', getCurrentLanguage())}
                           >
                             <Copy className="w-3 h-3" />
                           </button>
@@ -241,11 +243,11 @@ const BotManager = ({ isOpen, onClose }) => {
                       <span className={`text-xs ${
                         bot.is_active ? 'text-green-500' : 'text-gray-500'
                       }`}>
-                        {bot.is_active ? 'Активен' : 'Неактивен'}
+                        {bot.is_active ? t('active', getCurrentLanguage()) : t('inactive', getCurrentLanguage())}
                       </span>
                     </div>
                     <span className="text-xs text-telegram-text-secondary">
-                      Создан: {new Date(bot.created_at).toLocaleDateString('ru-RU')}
+                      {t('created', getCurrentLanguage())}: {new Date(bot.created_at).toLocaleDateString(getCurrentLanguage() === 'en' ? 'en-US' : 'ru-RU')}
                     </span>
                   </div>
                 </div>
