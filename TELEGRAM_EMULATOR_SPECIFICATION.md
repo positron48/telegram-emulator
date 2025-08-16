@@ -223,7 +223,7 @@ interface ChatListProps {
 
 interface Chat {
   id: string;
-  type: 'private' | 'group' | 'channel';
+  type: 'private' | 'group';
   title: string;
   username?: string;
   lastMessage?: Message;
@@ -537,7 +537,7 @@ type User struct {
 ```go
 type Chat struct {
     ID          string    `json:"id" gorm:"primaryKey"`
-    Type        string    `json:"type"` // private, group, channel
+    Type        string    `json:"type"` // private, group
     Title       string    `json:"title"`
     Username    string    `json:"username"`
     Description string    `json:"description"`

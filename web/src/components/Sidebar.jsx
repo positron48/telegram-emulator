@@ -56,8 +56,6 @@ const Sidebar = ({
         return '👤';
       case 'group':
         return '👥';
-      case 'channel':
-        return '📢';
       default:
         return '💬';
     }

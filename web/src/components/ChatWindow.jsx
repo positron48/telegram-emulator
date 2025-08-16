@@ -112,8 +112,8 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
           )}
         </div>
         
-        {/* Кнопка управления участниками (только для групп и каналов) */}
-        {chat.type !== 'private' && onShowMembers && (
+        {/* Кнопка управления участниками (только для групп) */}
+        {chat.type === 'group' && onShowMembers && (
           <button
             onClick={onShowMembers}
             className="p-2 text-telegram-secondary hover:text-telegram-text hover:bg-telegram-primary/10 rounded-lg transition-colors"

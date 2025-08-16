@@ -98,8 +98,6 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
         return <MessageCircle className="w-5 h-5 text-telegram-primary" />;
       case 'group':
         return <Users className="w-5 h-5 text-green-500" />;
-      case 'channel':
-        return <Hash className="w-5 h-5 text-blue-500" />;
       default:
         return <MessageCircle className="w-5 h-5" />;
     }
@@ -112,8 +110,6 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
         return t('privateChat', language);
       case 'group':
         return t('groupChat', language);
-      case 'channel':
-        return t('channelChat', language);
       default:
         return t('chat', language);
     }
@@ -144,8 +140,8 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
             <label className="block text-sm font-medium text-telegram-text mb-2">
               {t('chatType', getCurrentLanguage())}
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              {['private', 'group', 'channel'].map((type) => (
+            <div className="grid grid-cols-2 gap-2">
+              {['private', 'group'].map((type) => (
                 <button
                   key={type}
                   type="button"

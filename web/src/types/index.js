@@ -16,8 +16,7 @@ export const MessageType = {
 
 export const ChatType = {
   PRIVATE: 'private',
-  GROUP: 'group',
-  CHANNEL: 'channel'
+  GROUP: 'group'
 };
 
 export const DebugEventType = {

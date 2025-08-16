@@ -7,7 +7,7 @@ import (
 // Chat представляет чат в эмуляторе
 type Chat struct {
 	ID          string    `json:"id" gorm:"primaryKey"`
-	Type        string    `json:"type"` // private, group, channel
+	Type        string    `json:"type"` // private, group
 	Title       string    `json:"title"`
 	Username    string    `json:"username"`
 	Description string    `json:"description"`
@@ -45,10 +45,7 @@ func (c *Chat) IsGroup() bool {
 	return c.Type == "group"
 }
 
-// IsChannel проверяет, является ли чат каналом
-func (c *Chat) IsChannel() bool {
-	return c.Type == "channel"
-}
+
 
 // GetChatIcon возвращает иконку для типа чата
 func (c *Chat) GetChatIcon() string {
@@ -57,8 +54,6 @@ func (c *Chat) GetChatIcon() string {
 		return "👤"
 	case "group":
 		return "👥"
-	case "channel":
-		return "📢"
 	default:
 		return "💬"
 	}
@@ -71,8 +66,6 @@ func (c *Chat) GetChatTypeLabel() string {
 		return "Приватный чат"
 	case "group":
 		return "Группа"
-	case "channel":
-		return "Канал"
 	default:
 		return "Чат"
 	}
@@ -80,12 +73,12 @@ func (c *Chat) GetChatTypeLabel() string {
 
 // CanUserJoin проверяет, может ли пользователь присоединиться к чату
 func (c *Chat) CanUserJoin() bool {
-	return c.Type == "group" || c.Type == "channel"
+	return c.Type == "group"
 }
 
 // CanUserLeave проверяет, может ли пользователь покинуть чат
 func (c *Chat) CanUserLeave() bool {
-	return c.Type == "group" || c.Type == "channel"
+	return c.Type == "group"
 }
 
 // IsUserMember проверяет, является ли пользователь участником чата

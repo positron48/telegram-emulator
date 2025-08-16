@@ -220,7 +220,7 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
                       </div>
                     </div>
                     
-                    {chat.type !== 'private' && (
+                    {chat.type === 'group' && (
                       <button
                         onClick={() => handleRemoveMember(member.id)}
                         disabled={isRemovingMember}
@@ -240,8 +240,8 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
             )}
           </div>
 
-          {/* Добавление участников (только для групп и каналов) */}
-          {chat.type !== 'private' && (
+          {/* Добавление участников (только для групп) */}
+          {chat.type === 'group' && (
             <div>
               <h3 className="text-md font-medium text-telegram-text mb-3">
                 {t('addMembers', language)}

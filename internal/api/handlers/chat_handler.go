@@ -24,7 +24,7 @@ func NewChatHandler(chatManager *emulator.ChatManager) *ChatHandler {
 
 // CreateChatRequest представляет запрос на создание чата
 type CreateChatRequest struct {
-	Type        string   `json:"type" binding:"required"` // private, group, channel
+	Type        string   `json:"type" binding:"required"` // private, group
 	Title       string   `json:"title" binding:"required"`
 	Username    string   `json:"username"`
 	Description string   `json:"description"`
