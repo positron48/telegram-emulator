@@ -99,7 +99,7 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              placeholder="Название бота"
+              placeholder={t('botNamePlaceholder', getCurrentLanguage())}
               className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
               required
             />
@@ -115,7 +115,7 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
               name="username"
               value={formData.username}
               onChange={handleInputChange}
-              placeholder="username"
+              placeholder={t('usernamePlaceholder', getCurrentLanguage())}
               className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
               required
             />
@@ -131,7 +131,7 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
               name="token"
               value={formData.token}
               onChange={handleInputChange}
-              placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+              placeholder={t('tokenPlaceholder', getCurrentLanguage())}
               className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
             />
           </div>
@@ -146,7 +146,7 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
               name="webhook_url"
               value={formData.webhook_url}
               onChange={handleInputChange}
-              placeholder="https://example.com/webhook"
+              placeholder={t('webhookUrlPlaceholder', getCurrentLanguage())}
               className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
             />
           </div>

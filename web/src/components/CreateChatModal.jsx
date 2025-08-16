@@ -175,7 +175,7 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              placeholder="Название чата"
+              placeholder={t('chatTitlePlaceholder', getCurrentLanguage())}
               className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
               required
             />
@@ -192,7 +192,7 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
                 name="username"
                 value={formData.username}
                 onChange={handleInputChange}
-                placeholder="username (необязательно)"
+                placeholder={t('usernameOptionalPlaceholder', getCurrentLanguage())}
                 className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
               />
             </div>
@@ -208,7 +208,7 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                placeholder="Описание чата (необязательно)"
+                placeholder={t('chatDescriptionPlaceholder', getCurrentLanguage())}
                 rows="3"
                 className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary resize-none"
               />

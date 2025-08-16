@@ -172,7 +172,7 @@ const BotManager = ({ isOpen, onClose }) => {
                       <button
                         onClick={() => handleEditBot(bot)}
                         className="p-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors"
-                        title="Редактировать"
+                        title={t('edit', getCurrentLanguage())}
                       >
                         <Edit className="w-4 h-4" />
                       </button>

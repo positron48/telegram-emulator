@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Bot, Save, Copy } from 'lucide-react';
 import apiService from '../services/api';
 import useStore from '../store';
+import { t, getCurrentLanguage } from '../locales';
 
 const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
   const [formData, setFormData] = useState({
@@ -40,7 +41,7 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
     e.preventDefault();
     
     if (!formData.name.trim() || !formData.username.trim()) {
-      setError('Название и username обязательны');
+      setError(t('nameAndUsernameRequired', getCurrentLanguage()));
       return;
     }
 
@@ -63,7 +64,7 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
       }
     } catch (error) {
       console.error('Failed to update bot:', error);
-      setError(error.message || 'Ошибка обновления бота');
+      setError(error.message || t('botUpdateError', getCurrentLanguage()));
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +94,7 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
       <div className="bg-telegram-sidebar rounded-lg shadow-xl max-w-md w-full mx-4">
         <div className="flex items-center justify-between p-4 border-b border-telegram-border">
           <h2 className="text-lg font-medium text-telegram-text">
-            Редактировать бота
+            {t('editBot', getCurrentLanguage())}
           </h2>
           <button
             onClick={handleClose}
@@ -106,14 +107,14 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
         <form onSubmit={handleSubmit} className="p-4">
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Название *
+              {t('title', getCurrentLanguage())} *
             </label>
             <input
               type="text"
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              placeholder="Название бота"
+              placeholder={t('botNamePlaceholder', getCurrentLanguage())}
               className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
               required
             />
@@ -121,14 +122,14 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Username *
+              {t('username', getCurrentLanguage())} *
             </label>
             <input
               type="text"
               name="username"
               value={formData.username}
               onChange={handleInputChange}
-              placeholder="username"
+              placeholder={t('usernamePlaceholder', getCurrentLanguage())}
               className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
               required
             />
@@ -136,7 +137,7 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Токен
+              {t('token', getCurrentLanguage())}
             </label>
             <div className="relative">
               <input
@@ -144,7 +145,7 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
                 name="token"
                 value={formData.token}
                 onChange={handleInputChange}
-                placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+                placeholder={t('tokenPlaceholder', getCurrentLanguage())}
                 className="w-full px-3 py-2 pr-10 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
               />
               {formData.token && (
@@ -161,14 +162,14 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Webhook URL
+              {t('webhookUrl', getCurrentLanguage())}
             </label>
             <input
               type="url"
               name="webhook_url"
               value={formData.webhook_url}
               onChange={handleInputChange}
-              placeholder="https://example.com/webhook"
+              placeholder={t('webhookUrlPlaceholder', getCurrentLanguage())}
               className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
             />
           </div>
@@ -182,7 +183,7 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
                 onChange={handleInputChange}
                 className="mr-2 w-4 h-4 text-telegram-primary bg-telegram-bg border-telegram-border rounded focus:ring-telegram-primary focus:ring-2"
               />
-              <span className="text-sm text-telegram-text">Бот активен</span>
+              <span className="text-sm text-telegram-text">{t('botIsActive', getCurrentLanguage())}</span>
             </label>
           </div>
 
@@ -198,14 +199,14 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
               onClick={handleClose}
               className="flex-1 px-4 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary/10 transition-colors"
             >
-              Отмена
+              {t('cancel', getCurrentLanguage())}
             </button>
             <button
               type="submit"
               disabled={isLoading}
               className="flex-1 px-4 py-2 bg-telegram-primary text-white rounded-lg hover:bg-telegram-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Сохранение...' : 'Сохранить'}
+              {isLoading ? t('saving', getCurrentLanguage()) : t('save', getCurrentLanguage())}
             </button>
           </div>
         </form>

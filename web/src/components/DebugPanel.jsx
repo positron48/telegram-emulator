@@ -148,7 +148,7 @@ const DebugPanel = ({ events, statistics, onClose }) => {
                         {event.data && (
                           <details className="mt-2">
                             <summary className="text-xs text-telegram-text-secondary cursor-pointer">
-                              Детали
+                              {t('details', getCurrentLanguage())}
                             </summary>
                             <pre className="text-xs text-telegram-text-secondary mt-1 p-2 bg-telegram-sidebar rounded overflow-x-auto">
                               {JSON.stringify(event.data, null, 2)}
@@ -173,7 +173,7 @@ const DebugPanel = ({ events, statistics, onClose }) => {
                   {statistics.messages_count || 0}
                 </div>
                 <div className="text-xs text-telegram-text-secondary">
-                  Сообщений
+                  {t('messages', getCurrentLanguage())}
                 </div>
               </div>
               
@@ -182,7 +182,7 @@ const DebugPanel = ({ events, statistics, onClose }) => {
                   {statistics.response_time || 0}ms
                 </div>
                 <div className="text-xs text-telegram-text-secondary">
-                  Время ответа
+                  {t('responseTime', getCurrentLanguage())}
                 </div>
               </div>
               
@@ -191,7 +191,7 @@ const DebugPanel = ({ events, statistics, onClose }) => {
                   {statistics.errors_count || 0}
                 </div>
                 <div className="text-xs text-telegram-text-secondary">
-                  Ошибок
+                  {t('errors', getCurrentLanguage())}
                 </div>
               </div>
               
@@ -200,7 +200,7 @@ const DebugPanel = ({ events, statistics, onClose }) => {
                   {statistics.users_count || 0}
                 </div>
                 <div className="text-xs text-telegram-text-secondary">
-                  Пользователей
+                  {t('users', getCurrentLanguage())}
                 </div>
               </div>
             </div>
@@ -208,19 +208,19 @@ const DebugPanel = ({ events, statistics, onClose }) => {
             {/* Дополнительная информация */}
             <div className="p-3 bg-telegram-bg rounded-lg border border-telegram-border">
               <h3 className="text-sm font-medium text-telegram-text mb-2">
-                Системная информация
+                {t('systemInfo', getCurrentLanguage())}
               </h3>
               <div className="space-y-1 text-xs text-telegram-text-secondary">
                 <div className="flex justify-between">
-                  <span>Версия:</span>
+                  <span>{t('version', getCurrentLanguage())}:</span>
                   <span>1.0.0</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Время работы:</span>
+                  <span>{t('uptime', getCurrentLanguage())}:</span>
                   <span>00:15:30</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Память:</span>
+                  <span>{t('memory', getCurrentLanguage())}:</span>
                   <span>45.2 MB</span>
                 </div>
                 <div className="flex justify-between">
@@ -234,12 +234,12 @@ const DebugPanel = ({ events, statistics, onClose }) => {
             <div className="space-y-2">
               <button className="w-full flex items-center justify-center px-3 py-2 bg-telegram-bg border border-telegram-border rounded text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors">
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Обновить статистику
+                {t('refreshStatistics', getCurrentLanguage())}
               </button>
               
               <button className="w-full flex items-center justify-center px-3 py-2 bg-red-600 border border-red-600 rounded text-white hover:bg-red-700 transition-colors">
                 <Trash2 className="w-4 h-4 mr-2" />
-                Сбросить все данные
+                {t('resetAllData', getCurrentLanguage())}
               </button>
             </div>
           </div>

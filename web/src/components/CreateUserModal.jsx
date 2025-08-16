@@ -123,7 +123,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
               name="username"
               value={formData.username}
               onChange={handleInputChange}
-              placeholder="username"
+              placeholder={t('usernamePlaceholder', getCurrentLanguage())}
               className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
               required
             />
@@ -139,7 +139,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
               name="first_name"
               value={formData.first_name}
               onChange={handleInputChange}
-              placeholder="Имя"
+              placeholder={t('firstNamePlaceholder', getCurrentLanguage())}
               className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
               required
             />
@@ -155,7 +155,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
               name="last_name"
               value={formData.last_name}
               onChange={handleInputChange}
-              placeholder="Фамилия (необязательно)"
+              placeholder={t('lastNamePlaceholder', getCurrentLanguage())}
               className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
             />
           </div>

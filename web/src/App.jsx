@@ -10,10 +10,12 @@ import useStore from './store';
 import apiService from './services/api';
 import wsService from './services/websocket';
 import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
-import { getCurrentLanguage, setLanguage } from './locales';
+import { ru, enUS } from 'date-fns/locale';
+import { getCurrentLanguage, setLanguage, t } from './locales';
 
 function App() {
+  const getCurrentLocale = () => getCurrentLanguage() === 'en' ? enUS : ru;
+  
   const {
     currentUser,
     currentChat,
@@ -211,7 +213,7 @@ function App() {
         id: `reconnect-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'error',
-        description: `Ошибка переподключения (попытка ${data.attempt}): ${data.error.message || 'Неизвестная ошибка'}`
+        description: `${t('reconnectError', getCurrentLanguage())} (${t('attempt', getCurrentLanguage())} ${data.attempt}): ${data.error.message || t('unknownError', getCurrentLanguage())}`
       });
     };
 
@@ -220,7 +222,7 @@ function App() {
         id: `reconnect-failed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'error',
-        description: 'Превышено максимальное количество попыток переподключения'
+        description: t('maxReconnectAttemptsExceeded', getCurrentLanguage())
       });
     };
 
@@ -230,7 +232,7 @@ function App() {
         id: `connect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'info',
-        description: 'WebSocket соединение установлено'
+        description: t('websocketConnected', getCurrentLanguage())
       });
     };
 
@@ -240,7 +242,7 @@ function App() {
         id: `connect-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'error',
-        description: `Ошибка подключения WebSocket: ${data.error?.message || 'Неизвестная ошибка'}`
+        description: `${t('websocketConnectionError', getCurrentLanguage())}: ${data.error?.message || t('unknownError', getCurrentLanguage())}`
       });
     };
 
@@ -306,7 +308,7 @@ function App() {
         id: `init-start-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'info',
-        description: 'Инициализация приложения'
+        description: t('appInitialization', getCurrentLanguage())
       });
 
       // Загружаем пользователей
@@ -353,7 +355,7 @@ function App() {
         id: `app-ready-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'info',
-        description: 'Приложение готово к работе'
+        description: t('appReady', getCurrentLanguage())
       });
 
     } catch (error) {
@@ -363,7 +365,7 @@ function App() {
         id: `init-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'error',
-        description: `Ошибка инициализации: ${error.message}`
+        description: `${t('initializationError', getCurrentLanguage())}: ${error.message}`
       });
     } finally {
       setLoading(false);
@@ -490,7 +492,7 @@ function App() {
         id: `user-deleted-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'warning',
-        description: 'Пользователь удален'
+        description: t('userDeleted', getCurrentLanguage())
       });
     } catch (error) {
       console.error('Failed to delete user:', error);
@@ -520,7 +522,7 @@ function App() {
         id: `chat-deleted-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'warning',
-        description: 'Чат удален'
+        description: t('chatDeleted', getCurrentLanguage())
       });
     } catch (error) {
       console.error('Failed to delete chat:', error);
@@ -539,7 +541,7 @@ function App() {
         id: `manual-reconnect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'info',
-        description: 'Ручное переподключение к WebSocket'
+        description: t('manualWebSocketReconnect', getCurrentLanguage())
       });
 
       await wsService.forceReconnect('ws://localhost:3001/ws', currentUser?.id);
@@ -566,7 +568,7 @@ function App() {
       <div className="flex items-center justify-center h-screen bg-telegram-bg">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-telegram-primary mx-auto mb-4"></div>
-          <p className="text-telegram-text">Загрузка Telegram Emulator...</p>
+          <p className="text-telegram-text">{t('loadingTelegramEmulator', getCurrentLanguage())}</p>
         </div>
       </div>
     );
