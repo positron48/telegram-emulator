@@ -10,10 +10,13 @@
 - **Управление ботами** - создание, редактирование, активация/деактивация
 - **Система чатов** - приватные и групповые чаты
 - **Отправка сообщений** - текстовые сообщения между пользователями
-- **Получение обновлений** - боты получают обновления через polling
+- **Получение обновлений** - боты получают обновления через polling и webhook
+- **Long Polling** - поддержка timeout до 30 секунд
+- **Webhook поддержка** - автоматическая отправка обновлений на сервер бота
 - **Отправка сообщений через ботов** - боты могут отвечать на сообщения
 - **WebSocket поддержка** - real-time обновления интерфейса
 - **База данных SQLite** - хранение всех данных
+- **Интерактивный Python бот** - с выбором режима работы
 
 ### 🔧 Telegram Bot API методы
 
@@ -105,57 +108,27 @@ curl -X POST "http://localhost:3001/bot1234567890:ABCdefGHIjklMNOpqrsTUVwxyz/sen
   -d '{"chat_id": "2773246093156", "text": "Привет!"}'
 ```
 
-### 3. Python бот
+### 3. Интерактивный Python бот
 
-Создайте файл `bot.py`:
+Готовый к использованию бот с выбором режима работы:
 
-```python
-import requests
-import time
-
-class TelegramEmulatorBot:
-    def __init__(self, token):
-        self.token = token
-        self.api_url = f"http://localhost:3001/bot{token}"
-        self.offset = 0
-    
-    def get_updates(self):
-        params = {'offset': self.offset, 'limit': 100}
-        response = requests.get(f"{self.api_url}/getUpdates", params=params)
-        return response.json()
-    
-    def send_message(self, chat_id, text):
-        data = {'chat_id': chat_id, 'text': text}
-        response = requests.post(f"{self.api_url}/sendMessage", json=data)
-        return response.json()
-    
-    def run(self):
-        print("Бот запущен...")
-        while True:
-            updates = self.get_updates()
-            if updates.get('ok') and updates.get('result'):
-                for update in updates['result']:
-                    self.offset = max(self.offset, update['update_id'] + 1)
-                    
-                    if 'message' in update:
-                        message = update['message']
-                        chat_id = message['chat']['id']
-                        text = message.get('text', '')
-                        
-                        print(f"Получено: {text}")
-                        
-                        # Простая логика бота
-                        if text == '/start':
-                            self.send_message(chat_id, "Привет! Я бот в эмуляторе.")
-                        else:
-                            self.send_message(chat_id, f"Вы написали: {text}")
-            
-            time.sleep(1)
-
-# Запуск бота
-bot = TelegramEmulatorBot("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
-bot.run()
+```bash
+cd examples
+python simple_bot.py
 ```
+
+#### Режимы работы:
+- **Polling** - обычный режим с запросами каждую секунду
+- **Long Polling** - эффективный режим с timeout 30 секунд
+- **Webhook** - режим с встроенным Flask сервером
+
+#### Особенности:
+- Автоматическое сохранение состояния между запусками
+- Встроенный webhook сервер с автоматической настройкой
+- Поддержка всех режимов Telegram Bot API
+- Graceful shutdown с очисткой webhook
+
+Подробнее см. [examples/README.md](examples/README.md)
 
 ### 4. Тестирование полного цикла
 
@@ -231,8 +204,9 @@ make test
 
 ### Тестирование API
 ```bash
-# Тест Telegram Bot API
-python examples/simple_bot.py
+# Тест интерактивного бота
+cd examples
+python simple_bot.py
 
 # Тест веб-интерфейса
 open http://localhost:3001

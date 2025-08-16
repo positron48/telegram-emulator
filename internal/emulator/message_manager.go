@@ -1,8 +1,12 @@
 package emulator
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
+	"io"
+	"net/http"
 	"time"
 
 	"telegram-emulator/internal/models"
@@ -351,9 +355,66 @@ func (m *MessageManager) notifyBots(message *models.Message) {
 				zap.String("bot_id", bot.ID), 
 				zap.Error(err))
 		}
+
+		// Если у бота есть webhook URL, отправляем обновление в webhook
+		if bot.WebhookURL != "" {
+			go m.sendWebhookUpdate(&bot, update)
+		}
 	}
 
 	m.logger.Info("Боты уведомлены о новом сообщении", 
 		zap.String("message_id", message.ID),
 		zap.Int("bots_count", len(bots)))
+}
+
+// sendWebhookUpdate отправляет обновление в webhook бота
+func (m *MessageManager) sendWebhookUpdate(bot *models.Bot, update *models.Update) {
+	// Конвертируем обновление в формат Telegram Bot API
+	webhookUpdate := map[string]interface{}{
+		"update_id": update.UpdateID,
+	}
+
+	if update.Message != nil {
+		webhookUpdate["message"] = update.Message.ToTelegramMessage()
+	}
+	if update.EditedMessage != nil {
+		webhookUpdate["edited_message"] = update.EditedMessage.ToTelegramMessage()
+	}
+	if update.CallbackQuery != nil {
+		webhookUpdate["callback_query"] = update.CallbackQuery
+	}
+
+	// Отправляем POST запрос в webhook
+	jsonData, err := json.Marshal(webhookUpdate)
+	if err != nil {
+		m.logger.Error("Ошибка сериализации webhook обновления", 
+			zap.String("bot_id", bot.ID),
+			zap.Error(err))
+		return
+	}
+
+	resp, err := http.Post(bot.WebhookURL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		m.logger.Error("Ошибка отправки webhook", 
+			zap.String("bot_id", bot.ID),
+			zap.String("webhook_url", bot.WebhookURL),
+			zap.Error(err))
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		m.logger.Error("Webhook вернул ошибку", 
+			zap.String("bot_id", bot.ID),
+			zap.String("webhook_url", bot.WebhookURL),
+			zap.Int("status_code", resp.StatusCode),
+			zap.String("response", string(body)))
+		return
+	}
+
+	m.logger.Info("Webhook обновление отправлено", 
+		zap.String("bot_id", bot.ID),
+		zap.String("webhook_url", bot.WebhookURL),
+		zap.Int64("update_id", update.UpdateID))
 }

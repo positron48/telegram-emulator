@@ -366,6 +366,11 @@ func (m *BotManager) ClearUpdates(botID string) error {
 	return nil
 }
 
+// GetLogger возвращает логгер
+func (m *BotManager) GetLogger() *zap.Logger {
+	return m.logger
+}
+
 // generateID генерирует уникальный ID
 func (m *BotManager) generateID() (string, error) {
 	bytes := make([]byte, 16)

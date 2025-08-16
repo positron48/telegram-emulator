@@ -80,6 +80,76 @@ class TelegramEmulatorBot:
         response = requests.get(f"{self.api_url}/getWebhookInfo")
         return response.json()
     
+    def run_webhook_server(self, port: int = 8080) -> None:
+        """Запускает webhook сервер"""
+        from flask import Flask, request, jsonify
+        
+        app = Flask(__name__)
+        
+        @app.route('/webhook', methods=['POST'])
+        def webhook():
+            try:
+                data = request.get_json()
+                if data:
+                    # Обрабатываем обновление
+                    self.process_webhook_update(data)
+                return jsonify({"ok": True})
+            except Exception as e:
+                print(f"Ошибка обработки webhook: {e}")
+                return jsonify({"ok": False, "error": str(e)}), 500
+        
+        @app.route('/health', methods=['GET'])
+        def health():
+            return jsonify({"status": "ok"})
+        
+        webhook_url = f"http://localhost:{port}/webhook"
+        print(f"Webhook сервер запущен на {webhook_url}")
+        
+        # Устанавливаем webhook в эмуляторе
+        result = self.set_webhook(webhook_url)
+        if result.get('ok'):
+            print(f"Webhook установлен: {webhook_url}")
+        else:
+            print(f"Ошибка установки webhook: {result}")
+        
+        try:
+            app.run(host='0.0.0.0', port=port, debug=False)
+        except KeyboardInterrupt:
+            print("\nWebhook сервер остановлен")
+            # Удаляем webhook при остановке
+            self.delete_webhook()
+    
+    def process_webhook_update(self, update: Dict[str, Any]) -> None:
+        """Обрабатывает обновление из webhook"""
+        print(f"Получено webhook обновление: {update}")
+        
+        # Обрабатываем сообщения
+        if 'message' in update:
+            message = update['message']
+            chat_id = message['chat']['id']
+            text = message.get('text', '')
+            user = message.get('from', {})
+            
+            print(f"Получено сообщение от {user.get('first_name', 'Unknown')}: {text}")
+            
+            # Простая логика бота
+            if text.lower() == '/start':
+                response_text = f"Привет! Я бот в эмуляторе Telegram. Ваш ID: {user.get('id')}"
+            elif text.lower() == '/help':
+                response_text = "Доступные команды:\n/start - Начать\n/help - Помощь\n/echo <текст> - Эхо"
+            elif text.lower().startswith('/echo '):
+                echo_text = text[6:]  # Убираем '/echo '
+                response_text = f"Эхо: {echo_text}"
+            else:
+                response_text = f"Вы написали: {text}"
+            
+            # Отправляем ответ
+            result = self.send_message(str(chat_id), response_text)
+            if result.get('ok'):
+                print(f"Ответ отправлен: {response_text}")
+            else:
+                print(f"Ошибка отправки: {result}")
+    
     def process_updates(self, updates: list) -> None:
         """Обрабатывает полученные обновления"""
         max_update_id = 0
@@ -122,9 +192,10 @@ class TelegramEmulatorBot:
             self.save_offset(self.offset)
             print(f"DEBUG: offset обновлен до {self.offset} (последний обработанный update_id + 1)")
     
-    def run_polling(self) -> None:
+    def run_polling(self, long_polling: bool = True) -> None:
         """Запускает бота в режиме polling"""
-        print("Бот запущен в режиме polling...")
+        mode = "long polling (30s)" if long_polling else "polling"
+        print(f"Бот запущен в режиме {mode}...")
         print(f"API URL: {self.api_url}")
         
         # Получаем информацию о боте
@@ -139,7 +210,8 @@ class TelegramEmulatorBot:
         while True:
             try:
                 # Получаем обновления
-                updates_response = self.get_updates(timeout=30)
+                timeout = 30 if long_polling else 0
+                updates_response = self.get_updates(timeout=timeout)
                 
                 if updates_response.get('ok'):
                     updates = updates_response.get('result', [])
@@ -151,7 +223,9 @@ class TelegramEmulatorBot:
                 else:
                     print(f"Ошибка получения обновлений: {updates_response}")
                 
-                time.sleep(1)  # Небольшая пауза между запросами
+                # Пауза только для обычного polling
+                if not long_polling:
+                    time.sleep(1)
                 
             except KeyboardInterrupt:
                 print("\nБот остановлен")
@@ -167,8 +241,50 @@ def main():
     # Создаем экземпляр бота
     bot = TelegramEmulatorBot(TOKEN)
     
-    # Запускаем бота
-    bot.run_polling()
+    print("🤖 Telegram Emulator Bot")
+    print("=" * 40)
+    print("Выберите режим работы бота:")
+    print("1. Polling (обычный)")
+    print("2. Long Polling (30s)")
+    print("3. Webhook")
+    print("4. Выход")
+    
+    while True:
+        try:
+            choice = input("\nВведите номер режима (1-4): ").strip()
+            
+            if choice == "1":
+                print("\n🚀 Запуск в режиме Polling...")
+                bot.run_polling(long_polling=False)
+                break
+            elif choice == "2":
+                print("\n🚀 Запуск в режиме Long Polling...")
+                bot.run_polling(long_polling=True)
+                break
+            elif choice == "3":
+                print("\n🚀 Запуск в режиме Webhook...")
+                port = input("Введите порт для webhook сервера (по умолчанию 8080): ").strip()
+                if not port:
+                    port = 8080
+                else:
+                    port = int(port)
+                bot.run_webhook_server(port=port)
+                break
+            elif choice == "4":
+                print("👋 До свидания!")
+                break
+            else:
+                print("❌ Неверный выбор. Введите число от 1 до 4.")
+                
+        except KeyboardInterrupt:
+            print("\n👋 До свидания!")
+            break
+        except ValueError:
+            print("❌ Неверный формат порта. Используется порт по умолчанию 8080.")
+            bot.run_webhook_server(port=8080)
+            break
+        except Exception as e:
+            print(f"❌ Ошибка: {e}")
 
 if __name__ == "__main__":
     main()

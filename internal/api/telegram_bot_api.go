@@ -3,11 +3,13 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"telegram-emulator/internal/emulator"
 	"telegram-emulator/internal/models"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // TelegramBotAPI представляет API совместимый с Telegram Bot API
@@ -16,6 +18,7 @@ type TelegramBotAPI struct {
 	userManager    *emulator.UserManager
 	chatManager    *emulator.ChatManager
 	messageManager *emulator.MessageManager
+	logger         *zap.Logger
 }
 
 // NewTelegramBotAPI создает новый экземпляр TelegramBotAPI
@@ -25,6 +28,7 @@ func NewTelegramBotAPI(botManager *emulator.BotManager, userManager *emulator.Us
 		userManager:    userManager,
 		chatManager:    chatManager,
 		messageManager: messageManager,
+		logger:         botManager.GetLogger(),
 	}
 }
 
@@ -102,11 +106,46 @@ func (api *TelegramBotAPI) GetUpdates(c *gin.Context) {
 		}
 	}
 
+	timeout := 0
+	if timeoutStr := c.Query("timeout"); timeoutStr != "" {
+		if parsed, err := strconv.Atoi(timeoutStr); err == nil && parsed >= 0 && parsed <= 50 {
+			timeout = parsed
+		}
+	}
+
 	// Получаем обновления
 	updates, err := api.botManager.GetBotUpdates(bot.ID, offset, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Internal Server Error"})
 		return
+	}
+
+	// Если нет обновлений и указан timeout, ждем новые обновления
+	if len(updates) == 0 && timeout > 0 {
+		api.logger.Info("Long polling: ожидаем новые обновления", 
+			zap.String("bot_id", bot.ID),
+			zap.Int("timeout", timeout))
+		
+		// Ждем новые обновления в течение timeout секунд
+		startTime := time.Now()
+		for time.Since(startTime) < time.Duration(timeout)*time.Second {
+			// Проверяем новые обновления каждые 100ms
+			time.Sleep(100 * time.Millisecond)
+			
+			updates, err = api.botManager.GetBotUpdates(bot.ID, offset, limit)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Internal Server Error"})
+				return
+			}
+			
+			if len(updates) > 0 {
+				api.logger.Info("Long polling: получены новые обновления", 
+					zap.String("bot_id", bot.ID),
+					zap.Int("count", len(updates)),
+					zap.Duration("wait_time", time.Since(startTime)))
+				break
+			}
+		}
 	}
 
 	// Конвертируем в формат Telegram Bot API
