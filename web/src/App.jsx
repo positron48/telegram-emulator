@@ -6,6 +6,7 @@ import CreateUserModal from './components/CreateUserModal';
 import CreateChatModal from './components/CreateChatModal';
 import BotManager from './components/BotManager';
 import SettingsPanel from './components/SettingsPanel';
+import ChatMembersModal from './components/ChatMembersModal';
 import useStore from './store';
 import apiService from './services/api';
 import wsService from './services/websocket';
@@ -47,6 +48,7 @@ function App() {
   const [showCreateChatModal, setShowCreateChatModal] = useState(false);
   const [showBotManager, setShowBotManager] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [showChatMembersModal, setShowChatMembersModal] = useState(false);
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isWebSocketSetup, setIsWebSocketSetup] = useState(false);
@@ -620,6 +622,7 @@ function App() {
           messages={currentChat ? messages[currentChat.id] || [] : []}
           currentUser={currentUser}
           onSendMessage={handleSendMessage}
+          onShowMembers={() => setShowChatMembersModal(true)}
         />
       </div>
 
@@ -659,6 +662,12 @@ function App() {
       <SettingsPanel
         isOpen={showSettingsPanel}
         onClose={() => setShowSettingsPanel(false)}
+      />
+
+      <ChatMembersModal
+        isOpen={showChatMembersModal}
+        onClose={() => setShowChatMembersModal(false)}
+        chat={currentChat}
       />
     </div>
   );

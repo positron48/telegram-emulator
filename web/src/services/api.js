@@ -126,6 +126,10 @@ class ApiService {
     });
   }
 
+  async getChatMembers(chatId) {
+    return this.request(`/chats/${chatId}/members`);
+  }
+
   // Messages API
   async sendMessage(chatId, messageData) {
     return this.request(`/chats/${chatId}/messages`, {

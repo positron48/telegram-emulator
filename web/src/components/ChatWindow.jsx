@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Mic, Smile } from 'lucide-react';
+import { Send, Paperclip, Mic, Smile, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import clsx from 'clsx';
 import MessageBubble from './MessageBubble';
 import { t, getCurrentLanguage } from '../locales';
 
-const ChatWindow = ({ chat, messages, currentUser, onSendMessage }) => {
+const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers }) => {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
@@ -111,6 +111,17 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage }) => {
             </p>
           )}
         </div>
+        
+        {/* Кнопка управления участниками (только для групп и каналов) */}
+        {chat.type !== 'private' && onShowMembers && (
+          <button
+            onClick={onShowMembers}
+            className="p-2 text-telegram-secondary hover:text-telegram-text hover:bg-telegram-primary/10 rounded-lg transition-colors"
+            title={t('manageMembers', getCurrentLanguage())}
+          >
+            <Users className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Область сообщений */}

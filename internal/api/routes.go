@@ -34,6 +34,7 @@ func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatMana
 			chats.GET("/:id", chatHandler.GetByID)
 			chats.PUT("/:id", chatHandler.Update)
 			chats.DELETE("/:id", chatHandler.Delete)
+			chats.GET("/:id/members", chatHandler.GetMembers)
 			chats.POST("/:id/members", chatHandler.AddMember)
 			chats.DELETE("/:id/members/:userID", chatHandler.RemoveMember)
 		}

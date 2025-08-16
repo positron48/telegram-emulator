@@ -191,6 +191,11 @@ func (m *ChatManager) GetChatMembers(chatID string) ([]models.User, error) {
 	return members, nil
 }
 
+// GetMembers алиас для GetChatMembers
+func (m *ChatManager) GetMembers(chatID string) ([]models.User, error) {
+	return m.GetChatMembers(chatID)
+}
+
 // UpdateUnreadCount обновляет количество непрочитанных сообщений
 func (m *ChatManager) UpdateUnreadCount(chatID string) error {
 	count, err := m.messageRepo.GetUnreadCount(chatID)

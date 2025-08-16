@@ -226,6 +226,26 @@ func (h *ChatHandler) AddMember(c *gin.Context) {
 	})
 }
 
+// GetMembers получает участников чата
+func (h *ChatHandler) GetMembers(c *gin.Context) {
+	chatID := c.Param("id")
+	if chatID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+		return
+	}
+
+	members, err := h.chatManager.GetMembers(chatID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"members": members,
+		"count":   len(members),
+	})
+}
+
 // RemoveMember удаляет участника из чата
 func (h *ChatHandler) RemoveMember(c *gin.Context) {
 	chatID := c.Param("id")
