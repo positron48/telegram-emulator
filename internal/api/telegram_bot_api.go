@@ -167,10 +167,45 @@ func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
 		return
 	}
 
-	// Отправляем сообщение
-	message, err := api.botManager.SendBotMessage(bot.ID, request.ChatID, request.Text, request.ParseMode)
+	// Получаем пользователя-бота
+	botUser, err := api.userManager.GetUserByUsername(bot.Username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Internal Server Error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Bot user not found: " + err.Error()})
+		return
+	}
+
+	// Конвертируем Telegram chat_id в внутренний chat_id
+	internalChatID := request.ChatID
+	if telegramChatID, err := strconv.ParseInt(request.ChatID, 10, 64); err == nil {
+		// Это Telegram chat_id, нужно найти внутренний chat_id
+		chats, err := api.chatManager.GetAllChats()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Failed to get chats"})
+			return
+		}
+		
+		for _, chat := range chats {
+			// Конвертируем внутренний chat_id в Telegram chat_id
+			chatTelegramID := int64(0)
+			if len(chat.ID) > 0 {
+				for i, char := range chat.ID {
+					if i < 8 { // Ограничиваем длину
+						chatTelegramID = chatTelegramID*31 + int64(char)
+					}
+				}
+			}
+			
+			if chatTelegramID == telegramChatID {
+				internalChatID = chat.ID
+				break
+			}
+		}
+	}
+
+	// Отправляем сообщение через обычный API
+	message, err := api.messageManager.SendMessage(internalChatID, botUser.ID, request.Text, "text")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Failed to send message: " + err.Error()})
 		return
 	}
 

@@ -170,9 +170,10 @@ func (m *BotManager) SendBotMessage(botID, chatID, text, parseMode string) (*mod
 	}
 
 	// Получаем пользователя-бота
-	botUserID := fmt.Sprintf("bot_%s", botID)
-	botUser, err := m.userRepo.GetByID(botUserID)
+	botUser, err := m.userRepo.GetByUsername(bot.Username)
 	if err != nil {
+		m.logger.Error("Ошибка получения пользователя-бота по username", 
+			zap.String("username", bot.Username), zap.Error(err))
 		return nil, fmt.Errorf("пользователь-бот не найден")
 	}
 
