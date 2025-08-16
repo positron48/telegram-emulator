@@ -217,18 +217,17 @@ func (m *MessageManager) broadcastMessage(message *models.Message) {
 			return
 		}
 
+		// Отправляем всем участникам чата, включая отправителя
 		for _, member := range chat.Members {
-			if member.ID != message.FromID { // Не отправляем отправителю
-				m.wsServer.BroadcastToUser(member.ID, "message", map[string]interface{}{
-					"id":        message.ID,
-					"chat_id":   message.ChatID,
-					"from":      message.From,
-					"text":      message.Text,
-					"type":      message.Type,
-					"timestamp": message.Timestamp,
-					"status":    message.Status,
-				})
-			}
+			m.wsServer.BroadcastToUser(member.ID, "message", map[string]interface{}{
+				"id":        message.ID,
+				"chat_id":   message.ChatID,
+				"from":      message.From,
+				"text":      message.Text,
+				"type":      message.Type,
+				"timestamp": message.Timestamp,
+				"status":    message.Status,
+			})
 		}
 	}
 }

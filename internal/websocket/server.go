@@ -3,6 +3,7 @@ package websocket
 import (
 	"encoding/json"
 	"net/http"
+	"reflect"
 	"sync"
 	"time"
 
@@ -20,6 +21,7 @@ type Server struct {
 	unregister chan *Client
 	mutex      sync.RWMutex
 	logger     *zap.Logger
+	messageManager interface{} // MessageManager для обработки сообщений
 }
 
 // Client представляет WebSocket клиента
@@ -46,6 +48,11 @@ func NewServer() *Server {
 		unregister: make(chan *Client),
 		logger:     logger.GetLogger(),
 	}
+}
+
+// SetMessageManager устанавливает MessageManager для обработки сообщений
+func (s *Server) SetMessageManager(messageManager interface{}) {
+	s.messageManager = messageManager
 }
 
 // Start запускает WebSocket сервер
@@ -242,6 +249,8 @@ func (c *Client) handleMessage(message []byte) {
 		c.handleTyping(msg.Data)
 	case "ping":
 		c.handlePing()
+	case "send_message":
+		c.handleSendMessage(msg.Data)
 	default:
 		c.logger.Warn("Неизвестный тип сообщения", zap.String("type", msg.Type))
 	}
@@ -291,6 +300,76 @@ func (c *Client) handlePing() {
 	case c.send <- c.server.serializeMessage(response):
 	default:
 		c.logger.Warn("Не удалось отправить pong")
+	}
+}
+
+// handleSendMessage обрабатывает отправку сообщений
+func (c *Client) handleSendMessage(data interface{}) {
+	// Преобразуем data в map для извлечения параметров
+	dataMap, ok := data.(map[string]interface{})
+	if !ok {
+		c.logger.Error("Неверный формат данных для send_message")
+		return
+	}
+
+	chatID, ok := dataMap["chat_id"].(string)
+	if !ok {
+		c.logger.Error("Отсутствует chat_id в send_message")
+		return
+	}
+
+	text, ok := dataMap["text"].(string)
+	if !ok {
+		c.logger.Error("Отсутствует text в send_message")
+		return
+	}
+
+	fromUserID, ok := dataMap["from_user_id"].(string)
+	if !ok {
+		c.logger.Error("Отсутствует from_user_id в send_message")
+		return
+	}
+
+	// Проверяем, что отправитель совпадает с текущим пользователем
+	if fromUserID != c.userID {
+		c.logger.Warn("Попытка отправить сообщение от имени другого пользователя", 
+			zap.String("from_user_id", fromUserID), 
+			zap.String("current_user_id", c.userID))
+		return
+	}
+
+	// Используем MessageManager для отправки сообщения
+	if c.server.messageManager != nil {
+		// Вызываем метод SendMessage из MessageManager через reflection
+		// Это не идеально, но позволяет избежать циклических зависимостей
+		messageManagerValue := reflect.ValueOf(c.server.messageManager)
+		sendMessageMethod := messageManagerValue.MethodByName("SendMessage")
+		
+		if sendMessageMethod.IsValid() {
+			args := []reflect.Value{
+				reflect.ValueOf(chatID),
+				reflect.ValueOf(fromUserID),
+				reflect.ValueOf(text),
+				reflect.ValueOf("text"),
+			}
+			
+			results := sendMessageMethod.Call(args)
+			
+			if len(results) > 0 && !results[0].IsNil() {
+				_ = results[0].Interface() // Игнорируем возвращаемое сообщение
+				c.logger.Info("Сообщение успешно отправлено", 
+					zap.String("chat_id", chatID),
+					zap.String("from_user_id", fromUserID),
+					zap.String("text", text))
+			} else if len(results) > 1 && !results[1].IsNil() {
+				err := results[1].Interface().(error)
+				c.logger.Error("Ошибка отправки сообщения", zap.Error(err))
+			}
+		} else {
+			c.logger.Error("Метод SendMessage не найден в MessageManager")
+		}
+	} else {
+		c.logger.Error("MessageManager не установлен")
 	}
 }
 

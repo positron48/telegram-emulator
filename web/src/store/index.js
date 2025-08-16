@@ -60,6 +60,17 @@ const useStore = create(
         }
       })),
       
+      updateMessageStatus: (messageId, status) => set((state) => ({
+        messages: Object.fromEntries(
+          Object.entries(state.messages).map(([chatId, messages]) => [
+            chatId,
+            messages.map(message =>
+              message.id === messageId ? { ...message, status } : message
+            )
+          ])
+        )
+      })),
+      
       setUsers: (users) => set({ users }),
       
       addUser: (user) => set((state) => ({

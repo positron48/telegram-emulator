@@ -50,12 +50,16 @@ func main() {
 
 	// Инициализация WebSocket сервера
 	wsServer := websocket.NewServer()
-	go wsServer.Start()
-
+	
 	// Инициализация менеджеров
 	userManager := emulator.NewUserManager(userRepo)
 	chatManager := emulator.NewChatManager(chatRepo, messageRepo, userRepo)
 	messageManager := emulator.NewMessageManager(messageRepo, chatRepo, userRepo, wsServer)
+	
+	// Устанавливаем MessageManager в WebSocket сервер
+	wsServer.SetMessageManager(messageManager)
+	
+	go wsServer.Start()
 
 	// Создание тестовых данных
 	if err := createTestData(userManager, chatManager); err != nil {

@@ -10,6 +10,7 @@ import {
   Plus,
   User
 } from 'lucide-react';
+import UserSelector from './UserSelector';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import clsx from 'clsx';
@@ -18,9 +19,12 @@ const Sidebar = ({
   chats, 
   currentChat, 
   currentUser, 
+  users,
   isConnected, 
   onChatSelect, 
-  onToggleDebug 
+  onToggleDebug,
+  onUserSelect,
+  onCreateUser
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -182,24 +186,15 @@ const Sidebar = ({
           </button>
         </div>
 
-        {/* Информация о пользователе */}
-        {currentUser && (
-          <div className="mt-3 p-3 bg-telegram-sidebar rounded-lg">
-            <div className="flex items-center">
-              <div className="w-8 h-8 rounded-full bg-telegram-primary flex items-center justify-center text-white font-medium mr-2">
-                {currentUser.first_name?.charAt(0).toUpperCase() || 'U'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-telegram-text truncate">
-                  {currentUser.first_name} {currentUser.last_name || ''}
-                </p>
-                <p className="text-xs text-telegram-text-secondary truncate">
-                  @{currentUser.username}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Выбор пользователя */}
+        <div className="mt-3">
+          <UserSelector
+            users={users}
+            currentUser={currentUser}
+            onUserSelect={onUserSelect}
+            onCreateUser={onCreateUser}
+          />
+        </div>
       </div>
     </div>
   );

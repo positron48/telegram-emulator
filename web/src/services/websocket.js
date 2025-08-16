@@ -1,5 +1,3 @@
-import { io } from 'socket.io-client';
-
 class WebSocketService {
   constructor() {
     this.socket = null;
@@ -8,86 +6,99 @@ class WebSocketService {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 1000;
     this.eventHandlers = new Map();
+    this.reconnectTimer = null;
+    this.currentUserId = null; // Сохраняем текущий userId
   }
 
-  connect(url = 'ws://localhost:3001/ws') {
+  connect(url = 'ws://localhost:3001/ws', userId = null) {
     if (this.socket && this.isConnected) {
       return Promise.resolve();
     }
 
+    // Сохраняем userId для переподключения
+    if (userId) {
+      this.currentUserId = userId;
+    }
+
+    // Добавляем user_id к URL если он передан
+    const wsUrl = this.currentUserId ? `${url}?user_id=${this.currentUserId}` : url;
+
     return new Promise((resolve, reject) => {
       try {
-        this.socket = io(url, {
-          transports: ['websocket'],
-          timeout: 5000,
-          reconnection: true,
-          reconnectionAttempts: this.maxReconnectAttempts,
-          reconnectionDelay: this.reconnectDelay,
-        });
+        this.socket = new WebSocket(wsUrl);
 
-        this.socket.on('connect', () => {
+        this.socket.onopen = () => {
           console.log('WebSocket connected');
           this.isConnected = true;
           this.reconnectAttempts = 0;
-          this.emit('subscribe', {
-            events: ['message', 'user_update', 'chat_update', 'bot_update']
-          });
+          this.triggerEvent('connect');
           resolve();
-        });
+        };
 
-        this.socket.on('disconnect', (reason) => {
-          console.log('WebSocket disconnected:', reason);
+        this.socket.onclose = (event) => {
+          console.log('WebSocket disconnected:', event.code, event.reason);
           this.isConnected = false;
-          this.triggerEvent('disconnect', { reason });
-        });
+          this.triggerEvent('disconnect', { code: event.code, reason: event.reason });
+          
+          // Автоматическое переподключение
+          if (this.reconnectAttempts < this.maxReconnectAttempts) {
+            this.reconnectAttempts++;
+            console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+            this.reconnectTimer = setTimeout(() => {
+              this.connect(url, this.currentUserId);
+            }, this.reconnectDelay * this.reconnectAttempts);
+          } else {
+            this.triggerEvent('reconnect_failed');
+          }
+        };
 
-        this.socket.on('connect_error', (error) => {
+        this.socket.onerror = (error) => {
           console.error('WebSocket connection error:', error);
           this.isConnected = false;
           this.triggerEvent('connect_error', { error });
           reject(error);
-        });
+        };
 
-        this.socket.on('reconnect', (attemptNumber) => {
-          console.log('WebSocket reconnected after', attemptNumber, 'attempts');
-          this.isConnected = true;
-          this.triggerEvent('reconnect', { attemptNumber });
-        });
-
-        this.socket.on('reconnect_error', (error) => {
-          console.error('WebSocket reconnection error:', error);
-          this.triggerEvent('reconnect_error', { error });
-        });
-
-        this.socket.on('reconnect_failed', () => {
-          console.error('WebSocket reconnection failed');
-          this.triggerEvent('reconnect_failed');
-        });
-
-        // Обработка событий эмулятора
-        this.socket.on('message', (data) => {
-          this.triggerEvent('message', data);
-        });
-
-        this.socket.on('user_update', (data) => {
-          this.triggerEvent('user_update', data);
-        });
-
-        this.socket.on('chat_update', (data) => {
-          this.triggerEvent('chat_update', data);
-        });
-
-        this.socket.on('bot_update', (data) => {
-          this.triggerEvent('bot_update', data);
-        });
-
-        this.socket.on('debug_event', (data) => {
-          this.triggerEvent('debug_event', data);
-        });
-
-        this.socket.on('statistics_update', (data) => {
-          this.triggerEvent('statistics_update', data);
-        });
+        this.socket.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            
+            // Обработка событий эмулятора
+            switch (message.type) {
+              case 'message':
+                this.triggerEvent('message', message.data);
+                break;
+              case 'message_status_update':
+                this.triggerEvent('message_status_update', message.data);
+                break;
+              case 'message_delete':
+                this.triggerEvent('message_delete', message.data);
+                break;
+              case 'chat_read':
+                this.triggerEvent('chat_read', message.data);
+                break;
+              case 'user_update':
+                this.triggerEvent('user_update', message.data);
+                break;
+              case 'chat_update':
+                this.triggerEvent('chat_update', message.data);
+                break;
+              case 'bot_update':
+                this.triggerEvent('bot_update', message.data);
+                break;
+              case 'debug_event':
+                this.triggerEvent('debug_event', message.data);
+                break;
+              case 'statistics_update':
+                this.triggerEvent('statistics_update', message.data);
+                break;
+              default:
+                console.log('Unknown message type:', message.type);
+            }
+          } catch (error) {
+            console.error('Failed to parse WebSocket message:', error);
+          }
+        };
 
       } catch (error) {
         console.error('Failed to create WebSocket connection:', error);
@@ -98,7 +109,11 @@ class WebSocketService {
 
   disconnect() {
     if (this.socket) {
-      this.socket.disconnect();
+      if (this.reconnectTimer) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
+      this.socket.close();
       this.socket = null;
       this.isConnected = false;
     }
@@ -106,7 +121,11 @@ class WebSocketService {
 
   emit(event, data) {
     if (this.socket && this.isConnected) {
-      this.socket.emit(event, data);
+      const message = {
+        type: event,
+        data: data
+      };
+      this.socket.send(JSON.stringify(message));
     } else {
       console.warn('WebSocket not connected, cannot emit event:', event);
     }

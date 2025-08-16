@@ -25,6 +25,8 @@ function App() {
     setUsers,
     setMessages,
     addMessage,
+    updateMessage,
+    updateMessageStatus,
     updateChat,
     addDebugEvent,
     setStatistics,
@@ -35,19 +37,162 @@ function App() {
 
   const [showDebugPanel, setShowDebugPanel] = useState(false);
 
-  useEffect(() => {
-    initializeApp();
-  }, []);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isWebSocketSetup, setIsWebSocketSetup] = useState(false);
 
+  // Единый useEffect для инициализации
   useEffect(() => {
-    setupWebSocket();
-  }, []);
+    const init = async () => {
+      if (isInitialized) return;
+      
+      try {
+        await initializeApp();
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+      }
+    };
+
+    init();
+  }, []); // Пустой массив зависимостей
+
+  // WebSocket подключение при инициализации и смене пользователя
+  useEffect(() => {
+    if (!isInitialized || !currentUser) return;
+
+    const setup = async () => {
+      try {
+        // Отключаем предыдущее соединение если есть
+        if (wsService.connected) {
+          wsService.disconnect();
+        }
+        
+        await setupWebSocket();
+        setIsWebSocketSetup(true);
+      } catch (error) {
+        console.error('Failed to setup WebSocket:', error);
+      }
+    };
+
+    setup();
+  }, [isInitialized, currentUser?.id]); // Добавляем currentUser.id в зависимости
+
+  // Обработчики WebSocket событий
+  useEffect(() => {
+    if (!isConnected) return;
+
+    // Подписываемся на события
+    const handleMessage = (data) => {
+      // Проверяем, есть ли уже временное сообщение с таким же текстом
+      const existingMessages = messages[data.chat_id] || [];
+      const tempMessageIndex = existingMessages.findIndex(msg => 
+        msg.id.startsWith('temp-') && msg.text === data.text
+      );
+
+      if (tempMessageIndex !== -1) {
+        // Заменяем временное сообщение на реальное
+        const updatedMessages = [...existingMessages];
+        updatedMessages[tempMessageIndex] = data;
+        setMessages(data.chat_id, updatedMessages);
+        
+        addDebugEvent({
+          id: `message-replace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+          type: 'info',
+          description: `Временное сообщение заменено на реальное: ${data.id}`
+        });
+      } else {
+        // Добавляем новое сообщение
+        addMessage(data.chat_id, data);
+        
+        addDebugEvent({
+          id: `message-new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+          type: 'message',
+          description: `Новое сообщение в чате ${data.chat_id}`
+        });
+      }
+    };
+
+    const handleChatUpdate = (data) => {
+      updateChat(data.id, data);
+      addDebugEvent({
+        id: `chat-update-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'info',
+        description: `Обновление чата: ${data.title}`
+      });
+    };
+
+    const handleUserUpdate = (data) => {
+      addDebugEvent({
+        id: `user-update-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'info',
+        description: `Обновление пользователя: ${data.username}`
+      });
+    };
+
+    const handleDebugEvent = (data) => {
+      addDebugEvent({
+        id: `debug-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: data.type,
+        description: data.description,
+        data: data.data
+      });
+    };
+
+    const handleMessageStatusUpdate = (data) => {
+      updateMessageStatus(data.message_id, data.status);
+      addDebugEvent({
+        id: `status-update-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'info',
+        description: `Обновление статуса сообщения: ${data.message_id} -> ${data.status}`
+      });
+    };
+
+    const handleStatisticsUpdate = (data) => {
+      setStatistics(data);
+    };
+
+    const handleDisconnect = () => {
+      setConnected(false);
+      addDebugEvent({
+        id: `disconnect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'error',
+        description: 'WebSocket соединение разорвано'
+      });
+    };
+
+    // Регистрируем обработчики
+    wsService.on('message', handleMessage);
+    wsService.on('message_status_update', handleMessageStatusUpdate);
+    wsService.on('chat_update', handleChatUpdate);
+    wsService.on('user_update', handleUserUpdate);
+    wsService.on('debug_event', handleDebugEvent);
+    wsService.on('statistics_update', handleStatisticsUpdate);
+    wsService.on('disconnect', handleDisconnect);
+
+    // Очистка обработчиков
+    return () => {
+      wsService.off('message', handleMessage);
+      wsService.off('message_status_update', handleMessageStatusUpdate);
+      wsService.off('chat_update', handleChatUpdate);
+      wsService.off('user_update', handleUserUpdate);
+      wsService.off('debug_event', handleDebugEvent);
+      wsService.off('statistics_update', handleStatisticsUpdate);
+      wsService.off('disconnect', handleDisconnect);
+    };
+  }, [isConnected, currentUser?.id]); // Добавляем currentUser.id в зависимости
 
   const initializeApp = async () => {
     try {
       setLoading(true);
       addDebugEvent({
-        id: Date.now().toString(),
+        id: `init-start-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'info',
         description: 'Инициализация приложения'
@@ -60,7 +205,7 @@ function App() {
       if (usersResponse.users && usersResponse.users.length > 0) {
         setCurrentUser(usersResponse.users[0]);
         addDebugEvent({
-          id: (Date.now() + 1).toString(),
+          id: `user-select-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
           type: 'info',
           description: `Выбран пользователь: ${usersResponse.users[0].username}`
@@ -72,7 +217,7 @@ function App() {
       setChats(chatsResponse.chats || []);
       
       addDebugEvent({
-        id: (Date.now() + 2).toString(),
+        id: `chats-loaded-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'info',
         description: `Загружено чатов: ${chatsResponse.chats?.length || 0}`
@@ -83,7 +228,10 @@ function App() {
         for (const chat of chatsResponse.chats) {
           try {
             const messagesResponse = await apiService.getChatMessages(chat.id);
-            setMessages(chat.id, messagesResponse.messages || []);
+            const sortedMessages = (messagesResponse.messages || []).sort((a, b) => 
+              new Date(a.timestamp) - new Date(b.timestamp)
+            );
+            setMessages(chat.id, sortedMessages);
           } catch (error) {
             console.error(`Failed to load messages for chat ${chat.id}:`, error);
           }
@@ -91,7 +239,7 @@ function App() {
       }
 
       addDebugEvent({
-        id: (Date.now() + 3).toString(),
+        id: `app-ready-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'info',
         description: 'Приложение готово к работе'
@@ -101,7 +249,7 @@ function App() {
       console.error('Failed to initialize app:', error);
       setError(error.message);
       addDebugEvent({
-        id: (Date.now() + 4).toString(),
+        id: `init-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'error',
         description: `Ошибка инициализации: ${error.message}`
@@ -113,75 +261,23 @@ function App() {
 
   const setupWebSocket = async () => {
     try {
-      await wsService.connect();
+      // Подключаемся к WebSocket с user_id текущего пользователя
+      const userId = currentUser?.id || 'anonymous';
+      await wsService.connect('ws://localhost:3001/ws', userId);
       setConnected(true);
       
       addDebugEvent({
-        id: (Date.now() + 5).toString(),
+        id: `ws-connect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'info',
-        description: 'WebSocket соединение установлено'
-      });
-
-      // Подписываемся на события
-      wsService.on('message', (data) => {
-        addMessage(data.chat_id, data);
-        addDebugEvent({
-          id: Date.now().toString(),
-          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-          type: 'message',
-          description: `Новое сообщение в чате ${data.chat_id}`
-        });
-      });
-
-      wsService.on('chat_update', (data) => {
-        updateChat(data.id, data);
-        addDebugEvent({
-          id: Date.now().toString(),
-          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-          type: 'info',
-          description: `Обновление чата: ${data.title}`
-        });
-      });
-
-      wsService.on('user_update', (data) => {
-        addDebugEvent({
-          id: Date.now().toString(),
-          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-          type: 'info',
-          description: `Обновление пользователя: ${data.username}`
-        });
-      });
-
-      wsService.on('debug_event', (data) => {
-        addDebugEvent({
-          id: Date.now().toString(),
-          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-          type: data.type,
-          description: data.description,
-          data: data.data
-        });
-      });
-
-      wsService.on('statistics_update', (data) => {
-        setStatistics(data);
-      });
-
-      wsService.on('disconnect', () => {
-        setConnected(false);
-        addDebugEvent({
-          id: Date.now().toString(),
-          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-          type: 'error',
-          description: 'WebSocket соединение разорвано'
-        });
+        description: `WebSocket соединение установлено для пользователя ${currentUser?.username || 'anonymous'}`
       });
 
     } catch (error) {
       console.error('Failed to setup WebSocket:', error);
       setConnected(false);
       addDebugEvent({
-        id: Date.now().toString(),
+        id: `ws-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'error',
         description: `Ошибка WebSocket: ${error.message}`
@@ -193,28 +289,65 @@ function App() {
     if (!currentChat || !currentUser || !text.trim()) return;
 
     try {
-      const messageData = {
+      // Создаем временное сообщение для оптимистичного обновления UI
+      const tempMessage = {
+        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        chat_id: currentChat.id,
+        from: currentUser,
+        from_id: currentUser.id, // Добавляем from_id для правильного определения isOwn
         text: text.trim(),
-        from_user_id: currentUser.id,
-        type: 'text'
+        type: 'text',
+        status: 'sending',
+        timestamp: new Date(),
+        is_outgoing: true
       };
 
-      const response = await apiService.sendMessage(currentChat.id, messageData);
-      
-      if (response.message) {
-        addMessage(currentChat.id, response.message);
+      // Добавляем сообщение в локальное состояние сразу
+      addMessage(currentChat.id, tempMessage);
+
+      // Fallback: если через 1 секунду сообщение не заменилось, обновляем статус вручную
+      setTimeout(() => {
+        const currentState = useStore.getState();
+        const currentMessages = currentState.messages[currentChat.id] || [];
+        const tempMsgIndex = currentMessages.findIndex(msg => msg.id === tempMessage.id);
         
+        if (tempMsgIndex !== -1 && currentMessages[tempMsgIndex].status === 'sending') {
+          const updatedMessages = [...currentMessages];
+          updatedMessages[tempMsgIndex] = { ...currentMessages[tempMsgIndex], status: 'sent' };
+          setMessages(currentChat.id, updatedMessages);
+          
+          addDebugEvent({
+            id: `fallback-status-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+            type: 'warning',
+            description: `Fallback: статус сообщения обновлен на 'sent'`
+          });
+        }
+      }, 1000);
+      
+      addDebugEvent({
+        id: `send-message-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'message',
+        description: `Отправлено сообщение через WebSocket: "${text.trim()}"`
+      });
+
+      // Отправляем сообщение через WebSocket
+      if (wsService.connected) {
+        wsService.sendMessage(currentChat.id, text.trim(), currentUser.id);
+      } else {
         addDebugEvent({
-          id: Date.now().toString(),
+          id: `ws-not-connected-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-          type: 'message',
-          description: `Отправлено сообщение: "${text.trim()}"`
+          type: 'error',
+          description: 'WebSocket не подключен, сообщение не отправлено'
         });
       }
+      
     } catch (error) {
       console.error('Failed to send message:', error);
       addDebugEvent({
-        id: Date.now().toString(),
+        id: `send-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
         type: 'error',
         description: `Ошибка отправки сообщения: ${error.message}`
@@ -258,9 +391,15 @@ function App() {
         chats={chats}
         currentChat={currentChat}
         currentUser={currentUser}
+        users={users}
         isConnected={isConnected}
         onChatSelect={(chat) => useStore.getState().setCurrentChat(chat)}
         onToggleDebug={() => setShowDebugPanel(!showDebugPanel)}
+        onUserSelect={(user) => setCurrentUser(user)}
+        onCreateUser={() => {
+          // TODO: Добавить модальное окно для создания пользователя
+          console.log('Создание пользователя');
+        }}
       />
 
       {/* Основная область чата */}

@@ -125,9 +125,9 @@ const DebugPanel = ({ events, statistics, onClose }) => {
                   </p>
                 </div>
               ) : (
-                events.map((event) => (
+                events.map((event, index) => (
                   <div
-                    key={event.id}
+                    key={`${event.id}-${index}`}
                     className="p-3 bg-telegram-bg rounded-lg border border-telegram-border"
                   >
                     <div className="flex items-start space-x-2">

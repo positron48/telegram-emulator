@@ -89,7 +89,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage }) => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-telegram-bg">
+    <div className="flex-1 flex flex-col bg-telegram-bg h-full">
       {/* Заголовок чата */}
       <div className="flex items-center p-4 border-b border-telegram-border bg-telegram-sidebar">
         <div className="w-10 h-10 rounded-full bg-telegram-primary flex items-center justify-center text-white font-medium mr-3">
@@ -112,7 +112,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage }) => {
       </div>
 
       {/* Область сообщений */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ height: 'calc(100vh - 200px)' }}>
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
@@ -190,12 +190,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage }) => {
           </div>
         </div>
 
-        {/* Индикатор печати */}
-        {isTyping && (
-          <div className="mt-2 text-xs text-telegram-text-secondary">
-            Печатает...
-          </div>
-        )}
+        {/* Индикатор печати убран - не нужен для отправителя */}
       </div>
     </div>
   );
