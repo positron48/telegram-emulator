@@ -131,7 +131,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage }) => {
               <MessageBubble
                 key={message.id}
                 message={message}
-                isOwn={message.from_id === currentUser?.id}
+                isOwn={message.from?.id === currentUser?.id || message.from_id === currentUser?.id || message.is_outgoing}
                 currentUser={currentUser}
               />
             ))}

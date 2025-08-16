@@ -30,7 +30,8 @@ const Sidebar = ({
   onDeleteUser,
   onCreateChat,
   onDeleteChat,
-  onShowBotManager
+  onShowBotManager,
+  onReconnect
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -206,6 +207,17 @@ const Sidebar = ({
               {isConnected ? 'Подключено' : 'Отключено'}
             </span>
           </div>
+          
+          {/* Кнопка переподключения */}
+          {!isConnected && onReconnect && (
+            <button
+              onClick={onReconnect}
+              className="px-2 py-1 text-xs bg-telegram-primary text-white rounded hover:bg-telegram-primary/80 transition-colors"
+              title="Переподключиться"
+            >
+              Переподключиться
+            </button>
+          )}
         </div>
 
         {/* Кнопки действий */}

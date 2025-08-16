@@ -85,10 +85,14 @@ function App() {
 
   // Обработчики WebSocket событий
   useEffect(() => {
-    if (!isConnected) return;
+    // Регистрируем обработчики независимо от состояния подключения
+    // чтобы они работали при переподключении
 
     // Подписываемся на события
     const handleMessage = (data) => {
+      // Проверяем, является ли сообщение от текущего пользователя
+      const isOwnMessage = data.from?.id === currentUser?.id;
+      
       // Проверяем, есть ли уже временное сообщение с таким же текстом
       const existingMessages = messages[data.chat_id] || [];
       const tempMessageIndex = existingMessages.findIndex(msg => 
@@ -98,7 +102,10 @@ function App() {
       if (tempMessageIndex !== -1) {
         // Заменяем временное сообщение на реальное
         const updatedMessages = [...existingMessages];
-        updatedMessages[tempMessageIndex] = data;
+        updatedMessages[tempMessageIndex] = {
+          ...data,
+          is_outgoing: true // Помечаем как исходящее
+        };
         setMessages(data.chat_id, updatedMessages);
         
         addDebugEvent({
@@ -107,15 +114,26 @@ function App() {
           type: 'info',
           description: `Временное сообщение заменено на реальное: ${data.id}`
         });
-      } else {
-        // Добавляем новое сообщение
-        addMessage(data.chat_id, data);
+      } else if (!isOwnMessage) {
+        // Добавляем новое сообщение только если оно не от текущего пользователя
+        addMessage(data.chat_id, {
+          ...data,
+          is_outgoing: false // Помечаем как входящее
+        });
         
         addDebugEvent({
           id: `message-new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
           type: 'message',
-          description: `Новое сообщение в чате ${data.chat_id}`
+          description: `Новое сообщение от ${data.from?.username} в чате ${data.chat_id}`
+        });
+      } else {
+        // Игнорируем собственные сообщения, которые приходят через WebSocket
+        addDebugEvent({
+          id: `message-ignored-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+          type: 'info',
+          description: `Игнорировано собственное сообщение: ${data.id}`
         });
       }
     };
@@ -173,7 +191,56 @@ function App() {
       });
     };
 
+    const handleReconnecting = (data) => {
+      addDebugEvent({
+        id: `reconnecting-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'warning',
+        description: `Попытка переподключения ${data.attempt}/${data.maxAttempts}`
+      });
+    };
+
+    const handleReconnectError = (data) => {
+      addDebugEvent({
+        id: `reconnect-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'error',
+        description: `Ошибка переподключения (попытка ${data.attempt}): ${data.error.message || 'Неизвестная ошибка'}`
+      });
+    };
+
+    const handleReconnectFailed = () => {
+      addDebugEvent({
+        id: `reconnect-failed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'error',
+        description: 'Превышено максимальное количество попыток переподключения'
+      });
+    };
+
+    const handleConnect = () => {
+      setConnected(true);
+      addDebugEvent({
+        id: `connect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'info',
+        description: 'WebSocket соединение установлено'
+      });
+    };
+
+    const handleConnectError = (data) => {
+      setConnected(false);
+      addDebugEvent({
+        id: `connect-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'error',
+        description: `Ошибка подключения WebSocket: ${data.error?.message || 'Неизвестная ошибка'}`
+      });
+    };
+
     // Регистрируем обработчики
+    wsService.on('connect', handleConnect);
+    wsService.on('connect_error', handleConnectError);
     wsService.on('message', handleMessage);
     wsService.on('message_status_update', handleMessageStatusUpdate);
     wsService.on('chat_update', handleChatUpdate);
@@ -181,9 +248,14 @@ function App() {
     wsService.on('debug_event', handleDebugEvent);
     wsService.on('statistics_update', handleStatisticsUpdate);
     wsService.on('disconnect', handleDisconnect);
+    wsService.on('reconnecting', handleReconnecting);
+    wsService.on('reconnect_error', handleReconnectError);
+    wsService.on('reconnect_failed', handleReconnectFailed);
 
     // Очистка обработчиков
     return () => {
+      wsService.off('connect', handleConnect);
+      wsService.off('connect_error', handleConnectError);
       wsService.off('message', handleMessage);
       wsService.off('message_status_update', handleMessageStatusUpdate);
       wsService.off('chat_update', handleChatUpdate);
@@ -191,8 +263,11 @@ function App() {
       wsService.off('debug_event', handleDebugEvent);
       wsService.off('statistics_update', handleStatisticsUpdate);
       wsService.off('disconnect', handleDisconnect);
+      wsService.off('reconnecting', handleReconnecting);
+      wsService.off('reconnect_error', handleReconnectError);
+      wsService.off('reconnect_failed', handleReconnectFailed);
     };
-  }, [isConnected, currentUser?.id]); // Добавляем currentUser.id в зависимости
+      }, [currentUser?.id]); // Убираем isConnected из зависимостей, чтобы обработчики работали при переподключении
 
   const initializeApp = async () => {
     try {
@@ -428,6 +503,34 @@ function App() {
     }
   };
 
+  const handleReconnect = async () => {
+    try {
+      addDebugEvent({
+        id: `manual-reconnect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'info',
+        description: 'Ручное переподключение к WebSocket'
+      });
+
+      await wsService.forceReconnect('ws://localhost:3001/ws', currentUser?.id);
+      
+      addDebugEvent({
+        id: `manual-reconnect-success-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'info',
+        description: 'WebSocket успешно переподключен'
+      });
+    } catch (error) {
+      console.error('Manual reconnection failed:', error);
+      addDebugEvent({
+        id: `manual-reconnect-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'error',
+        description: `Ошибка ручного переподключения: ${error.message}`
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-telegram-bg">
@@ -474,6 +577,7 @@ function App() {
         onCreateChat={() => setShowCreateChatModal(true)}
         onDeleteChat={handleDeleteChat}
         onShowBotManager={() => setShowBotManager(true)}
+        onReconnect={handleReconnect}
       />
 
       {/* Основная область чата */}

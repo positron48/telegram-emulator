@@ -11,13 +11,19 @@ class WebSocketService {
   }
 
   connect(url = 'ws://localhost:3001/ws', userId = null) {
-    if (this.socket && this.isConnected) {
-      return Promise.resolve();
-    }
-
     // Сохраняем userId для переподключения
     if (userId) {
       this.currentUserId = userId;
+    }
+
+    // Очищаем старый socket если он есть
+    if (this.socket) {
+      this.socket.onclose = null; // Убираем обработчик onclose чтобы избежать рекурсии
+      this.socket.onerror = null;
+      this.socket.onmessage = null;
+      this.socket.onopen = null;
+      this.socket.close();
+      this.socket = null;
     }
 
     // Добавляем user_id к URL если он передан
@@ -40,14 +46,24 @@ class WebSocketService {
           this.isConnected = false;
           this.triggerEvent('disconnect', { code: event.code, reason: event.reason });
           
-          // Автоматическое переподключение
-          if (this.reconnectAttempts < this.maxReconnectAttempts) {
+          // Очищаем socket
+          this.socket = null;
+          
+          // Автоматическое переподключение только если это не было намеренное отключение
+          if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
             console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+            this.triggerEvent('reconnecting', { attempt: this.reconnectAttempts, maxAttempts: this.maxReconnectAttempts });
+            
             this.reconnectTimer = setTimeout(() => {
-              this.connect(url, this.currentUserId);
-            }, this.reconnectDelay * this.reconnectAttempts);
-          } else {
+              console.log(`Starting reconnection attempt ${this.reconnectAttempts}...`);
+              this.connect(url, this.currentUserId).catch(error => {
+                console.error('Reconnection failed:', error);
+                this.triggerEvent('reconnect_error', { error, attempt: this.reconnectAttempts });
+              });
+            }, this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1)); // Экспоненциальная задержка
+          } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.log('Max reconnection attempts reached');
             this.triggerEvent('reconnect_failed');
           }
         };
@@ -108,15 +124,60 @@ class WebSocketService {
   }
 
   disconnect() {
+    console.log('Disconnecting WebSocket...');
+    
+    // Очищаем таймер переподключения
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    
+    // Сбрасываем счетчик попыток
+    this.reconnectAttempts = 0;
+    
     if (this.socket) {
-      if (this.reconnectTimer) {
-        clearTimeout(this.reconnectTimer);
-        this.reconnectTimer = null;
-      }
-      this.socket.close();
+      // Убираем обработчики чтобы избежать рекурсии
+      this.socket.onclose = null;
+      this.socket.onerror = null;
+      this.socket.onmessage = null;
+      this.socket.onopen = null;
+      
+      this.socket.close(1000); // Намеренное отключение
       this.socket = null;
       this.isConnected = false;
+      
+      console.log('WebSocket disconnected');
     }
+  }
+
+  resetReconnectAttempts() {
+    console.log('Resetting reconnection attempts');
+    this.reconnectAttempts = 0;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+  }
+
+  forceReconnect(url = 'ws://localhost:3001/ws', userId = null) {
+    console.log('Force reconnecting WebSocket...');
+    
+    // Сбрасываем состояние
+    this.resetReconnectAttempts();
+    this.isConnected = false;
+    
+    // Очищаем старый socket
+    if (this.socket) {
+      this.socket.onclose = null;
+      this.socket.onerror = null;
+      this.socket.onmessage = null;
+      this.socket.onopen = null;
+      this.socket.close();
+      this.socket = null;
+    }
+    
+    // Подключаемся заново
+    return this.connect(url, userId);
   }
 
   emit(event, data) {
