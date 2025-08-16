@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Settings } from 'lucide-react';
 import UserModal from './UserModal';
 
-const UserSelector = ({ users, currentUser, onUserSelect, onCreateUser }) => {
+const UserSelector = ({ users, currentUser, onUserSelect, onCreateUser, onDeleteUser }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
@@ -34,6 +34,7 @@ const UserSelector = ({ users, currentUser, onUserSelect, onCreateUser }) => {
         currentUser={currentUser}
         onUserSelect={onUserSelect}
         onCreateUser={onCreateUser}
+        onDeleteUser={onDeleteUser}
       />
     </>
   );

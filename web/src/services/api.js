@@ -58,6 +58,23 @@ class ApiService {
     });
   }
 
+  async getUserById(userId) {
+    return this.request(`/users/${userId}`);
+  }
+
+  async updateUser(userId, userData) {
+    return this.request(`/users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async deleteUser(userId) {
+    return this.request(`/users/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getUserChats(userId) {
     return this.request(`/users/${userId}/chats`);
   }

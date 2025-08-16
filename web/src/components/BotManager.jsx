@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { X, Bot, Plus, Settings, Play, Pause, Trash2, Copy } from 'lucide-react';
+import { X, Bot, Plus, Settings, Play, Pause, Trash2, Copy, Edit } from 'lucide-react';
 import apiService from '../services/api';
 import useStore from '../store';
 import CreateBotModal from './CreateBotModal';
+import EditBotModal from './EditBotModal';
 
 const BotManager = ({ isOpen, onClose }) => {
   const [bots, setBots] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedBot, setSelectedBot] = useState(null);
 
   const { addDebugEvent } = useStore();
 
@@ -20,6 +23,7 @@ const BotManager = ({ isOpen, onClose }) => {
 
   const loadBots = async () => {
     setIsLoading(true);
+    setError('');
     try {
       const response = await apiService.getBots();
       setBots(response.bots || []);
@@ -29,6 +33,40 @@ const BotManager = ({ isOpen, onClose }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEditBot = (bot) => {
+    setSelectedBot(bot);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteBot = async (botId) => {
+    if (!confirm('Вы уверены, что хотите удалить этого бота?')) {
+      return;
+    }
+
+    try {
+      await apiService.deleteBot(botId);
+      addDebugEvent({
+        id: `bot-deleted-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toLocaleTimeString('ru-RU'),
+        type: 'warning',
+        description: 'Бот удален'
+      });
+      loadBots(); // Перезагружаем список
+    } catch (error) {
+      console.error('Failed to delete bot:', error);
+      addDebugEvent({
+        id: `bot-delete-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toLocaleTimeString('ru-RU'),
+        type: 'error',
+        description: `Ошибка удаления бота: ${error.message}`
+      });
+    }
+  };
+
+  const handleBotUpdated = (updatedBot) => {
+    setBots(prev => prev.map(bot => bot.id === updatedBot.id ? updatedBot : bot));
   };
 
   const handleToggleBot = async (botId, isActive) => {
@@ -130,6 +168,13 @@ const BotManager = ({ isOpen, onClose }) => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <button
+                        onClick={() => handleEditBot(bot)}
+                        className="p-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors"
+                        title="Редактировать"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => handleToggleBot(bot.id, bot.is_active)}
                         className={`p-2 rounded-lg transition-colors ${
                           bot.is_active
@@ -139,6 +184,13 @@ const BotManager = ({ isOpen, onClose }) => {
                         title={bot.is_active ? 'Деактивировать' : 'Активировать'}
                       >
                         {bot.is_active ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBot(bot.id)}
+                        className="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                        title="Удалить"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -210,6 +262,14 @@ const BotManager = ({ isOpen, onClose }) => {
             setBots(prev => [...prev, bot]);
             setShowCreateModal(false);
           }}
+        />
+
+        {/* Модальное окно редактирования бота */}
+        <EditBotModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          bot={selectedBot}
+          onBotUpdated={handleBotUpdated}
         />
       </div>
     </div>

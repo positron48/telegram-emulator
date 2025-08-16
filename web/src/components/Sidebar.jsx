@@ -9,7 +9,8 @@ import {
   WifiOff,
   Plus,
   User,
-  Bot
+  Bot,
+  Trash2
 } from 'lucide-react';
 import UserSelector from './UserSelector';
 import { format } from 'date-fns';
@@ -26,7 +27,9 @@ const Sidebar = ({
   onToggleDebug,
   onUserSelect,
   onCreateUser,
+  onDeleteUser,
   onCreateChat,
+  onDeleteChat,
   onShowBotManager
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -126,12 +129,15 @@ const Sidebar = ({
             {filteredChats.map((chat) => (
               <div
                 key={chat.id}
-                onClick={() => onChatSelect(chat)}
                 className={clsx(
-                  'chat-item',
+                  'chat-item relative group',
                   currentChat?.id === chat.id && 'active'
                 )}
               >
+                <div
+                  onClick={() => onChatSelect(chat)}
+                  className="flex items-center p-3 hover:bg-telegram-primary/10 transition-colors cursor-pointer"
+                >
                 {/* Аватар */}
                 <div className="w-12 h-12 rounded-full bg-telegram-primary flex items-center justify-center text-white font-medium mr-3 flex-shrink-0">
                   {chat.type === 'private' ? getChatAvatar(chat) : getChatIcon(chat)}
@@ -161,6 +167,22 @@ const Sidebar = ({
                     )}
                   </div>
                 </div>
+
+                </div>
+
+                {/* Кнопка удаления чата */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Вы уверены, что хотите удалить чат "${getChatTitle(chat)}"?`)) {
+                      onDeleteChat(chat.id);
+                    }
+                  }}
+                  className="absolute top-2 right-2 p-1 text-red-500 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Удалить чат"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             ))}
           </div>
@@ -227,6 +249,7 @@ const Sidebar = ({
             currentUser={currentUser}
             onUserSelect={onUserSelect}
             onCreateUser={onCreateUser}
+            onDeleteUser={onDeleteUser}
           />
         </div>
       </div>

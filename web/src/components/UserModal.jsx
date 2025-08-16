@@ -1,13 +1,20 @@
 import React from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 
-const UserModal = ({ isOpen, onClose, users, currentUser, onUserSelect, onCreateUser }) => {
+const UserModal = ({ isOpen, onClose, users, currentUser, onUserSelect, onCreateUser, onDeleteUser }) => {
   if (!isOpen) return null;
 
   const handleUserSelect = (user) => {
     onUserSelect(user);
     onClose();
+  };
+
+  const handleDeleteUser = (e, userId) => {
+    e.stopPropagation();
+    if (confirm('Вы уверены, что хотите удалить этого пользователя?')) {
+      onDeleteUser(userId);
+    }
   };
 
   return (
@@ -53,6 +60,13 @@ const UserModal = ({ isOpen, onClose, users, currentUser, onUserSelect, onCreate
                   Бот
                 </span>
               )}
+              <button
+                onClick={(e) => handleDeleteUser(e, user.id)}
+                className="p-1 text-red-500 hover:text-red-600 transition-colors"
+                title="Удалить пользователя"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </button>
           ))}
         </div>

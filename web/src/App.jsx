@@ -361,6 +361,73 @@ function App() {
     }
   };
 
+  const handleDeleteUser = async (userId) => {
+    try {
+      await apiService.deleteUser(userId);
+      // Обновляем список пользователей
+      const usersResponse = await apiService.getUsers();
+      setUsers(usersResponse.users || []);
+      
+      // Если удаленный пользователь был текущим, выбираем первого доступного
+      if (currentUser?.id === userId) {
+        const remainingUsers = usersResponse.users.filter(u => u.id !== userId);
+        if (remainingUsers.length > 0) {
+          setCurrentUser(remainingUsers[0]);
+          const chatsResponse = await apiService.getChats(remainingUsers[0].id);
+          setChats(chatsResponse.chats || []);
+        } else {
+          setCurrentUser(null);
+          setChats([]);
+        }
+      }
+      
+      addDebugEvent({
+        id: `user-deleted-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'warning',
+        description: 'Пользователь удален'
+      });
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      addDebugEvent({
+        id: `user-delete-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'error',
+        description: `Ошибка удаления пользователя: ${error.message}`
+      });
+    }
+  };
+
+  const handleDeleteChat = async (chatId) => {
+    try {
+      await apiService.deleteChat(chatId);
+      
+      // Обновляем список чатов
+      const chatsResponse = await apiService.getChats(currentUser?.id);
+      setChats(chatsResponse.chats || []);
+      
+      // Если удаленный чат был текущим, очищаем выбор
+      if (currentChat?.id === chatId) {
+        useStore.getState().setCurrentChat(null);
+      }
+      
+      addDebugEvent({
+        id: `chat-deleted-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'warning',
+        description: 'Чат удален'
+      });
+    } catch (error) {
+      console.error('Failed to delete chat:', error);
+      addDebugEvent({
+        id: `chat-delete-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        type: 'error',
+        description: `Ошибка удаления чата: ${error.message}`
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-telegram-bg">
@@ -403,7 +470,9 @@ function App() {
         onToggleDebug={() => setShowDebugPanel(!showDebugPanel)}
         onUserSelect={(user) => setCurrentUser(user)}
         onCreateUser={() => setShowCreateUserModal(true)}
+        onDeleteUser={handleDeleteUser}
         onCreateChat={() => setShowCreateChatModal(true)}
+        onDeleteChat={handleDeleteChat}
         onShowBotManager={() => setShowBotManager(true)}
       />
 
