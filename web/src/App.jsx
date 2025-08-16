@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatWindow from './components/ChatWindow';
 import DebugPanel from './components/DebugPanel';
+import CreateUserModal from './components/CreateUserModal';
+import CreateChatModal from './components/CreateChatModal';
+import BotManager from './components/BotManager';
 import useStore from './store';
 import apiService from './services/api';
 import wsService from './services/websocket';
@@ -36,6 +39,9 @@ function App() {
   } = useStore();
 
   const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [showCreateChatModal, setShowCreateChatModal] = useState(false);
+  const [showBotManager, setShowBotManager] = useState(false);
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isWebSocketSetup, setIsWebSocketSetup] = useState(false);
@@ -213,7 +219,7 @@ function App() {
       }
 
       // Загружаем чаты
-      const chatsResponse = await apiService.getChats();
+      const chatsResponse = await apiService.getChats(usersResponse.users[0]?.id);
       setChats(chatsResponse.chats || []);
       
       addDebugEvent({
@@ -396,10 +402,9 @@ function App() {
         onChatSelect={(chat) => useStore.getState().setCurrentChat(chat)}
         onToggleDebug={() => setShowDebugPanel(!showDebugPanel)}
         onUserSelect={(user) => setCurrentUser(user)}
-        onCreateUser={() => {
-          // TODO: Добавить модальное окно для создания пользователя
-          console.log('Создание пользователя');
-        }}
+        onCreateUser={() => setShowCreateUserModal(true)}
+        onCreateChat={() => setShowCreateChatModal(true)}
+        onShowBotManager={() => setShowBotManager(true)}
       />
 
       {/* Основная область чата */}
@@ -420,6 +425,30 @@ function App() {
           onClose={() => setShowDebugPanel(false)}
         />
       )}
+
+      {/* Модальные окна */}
+      <CreateUserModal
+        isOpen={showCreateUserModal}
+        onClose={() => setShowCreateUserModal(false)}
+        onUserCreated={(user) => {
+          setCurrentUser(user);
+          setShowCreateUserModal(false);
+        }}
+      />
+
+      <CreateChatModal
+        isOpen={showCreateChatModal}
+        onClose={() => setShowCreateChatModal(false)}
+        onChatCreated={(chat) => {
+          useStore.getState().setCurrentChat(chat);
+          setShowCreateChatModal(false);
+        }}
+      />
+
+      <BotManager
+        isOpen={showBotManager}
+        onClose={() => setShowBotManager(false)}
+      />
     </div>
   );
 }

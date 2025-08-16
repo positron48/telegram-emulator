@@ -46,15 +46,16 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	chatRepo := repository.NewChatRepository(db)
 	messageRepo := repository.NewMessageRepository(db)
-	_ = repository.NewBotRepository(db) // Пока не используем
+	botRepo := repository.NewBotRepository(db)
 
 	// Инициализация WebSocket сервера
 	wsServer := websocket.NewServer()
 	
 	// Инициализация менеджеров
-	userManager := emulator.NewUserManager(userRepo)
+	userManager := emulator.NewUserManager(userRepo, botRepo)
 	chatManager := emulator.NewChatManager(chatRepo, messageRepo, userRepo)
 	messageManager := emulator.NewMessageManager(messageRepo, chatRepo, userRepo, wsServer)
+	botManager := emulator.NewBotManager(botRepo, userRepo, messageRepo, chatRepo)
 	
 	// Устанавливаем MessageManager в WebSocket сервер
 	wsServer.SetMessageManager(messageManager)
@@ -87,7 +88,7 @@ func main() {
 	})
 
 	// Настройка маршрутов
-	api.SetupRoutes(router, userManager, chatManager, messageManager, wsServer)
+	api.SetupRoutes(router, userManager, chatManager, messageManager, botManager, wsServer)
 
 	// Запуск сервера
 	addr := fmt.Sprintf("%s:%d", cfg.Emulator.Host, cfg.Emulator.Port)

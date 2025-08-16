@@ -50,6 +50,54 @@ func (c *Chat) IsChannel() bool {
 	return c.Type == "channel"
 }
 
+// GetChatIcon возвращает иконку для типа чата
+func (c *Chat) GetChatIcon() string {
+	switch c.Type {
+	case "private":
+		return "👤"
+	case "group":
+		return "👥"
+	case "channel":
+		return "📢"
+	default:
+		return "💬"
+	}
+}
+
+// GetChatTypeLabel возвращает человекочитаемое название типа чата
+func (c *Chat) GetChatTypeLabel() string {
+	switch c.Type {
+	case "private":
+		return "Приватный чат"
+	case "group":
+		return "Группа"
+	case "channel":
+		return "Канал"
+	default:
+		return "Чат"
+	}
+}
+
+// CanUserJoin проверяет, может ли пользователь присоединиться к чату
+func (c *Chat) CanUserJoin() bool {
+	return c.Type == "group" || c.Type == "channel"
+}
+
+// CanUserLeave проверяет, может ли пользователь покинуть чат
+func (c *Chat) CanUserLeave() bool {
+	return c.Type == "group" || c.Type == "channel"
+}
+
+// IsUserMember проверяет, является ли пользователь участником чата
+func (c *Chat) IsUserMember(userID string) bool {
+	for _, member := range c.Members {
+		if member.ID == userID {
+			return true
+		}
+	}
+	return false
+}
+
 // AddMember добавляет пользователя в чат
 func (c *Chat) AddMember(user User) {
 	// Проверяем, не добавлен ли уже пользователь

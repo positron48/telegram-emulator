@@ -15,13 +15,15 @@ import (
 // UserManager управляет пользователями в эмуляторе
 type UserManager struct {
 	userRepo *repository.UserRepository
+	botRepo  *repository.BotRepository
 	logger   *zap.Logger
 }
 
 // NewUserManager создает новый экземпляр UserManager
-func NewUserManager(userRepo *repository.UserRepository) *UserManager {
+func NewUserManager(userRepo *repository.UserRepository, botRepo *repository.BotRepository) *UserManager {
 	return &UserManager{
 		userRepo: userRepo,
+		botRepo:  botRepo,
 		logger:   logger.GetLogger(),
 	}
 }
@@ -49,6 +51,29 @@ func (m *UserManager) CreateUser(username, firstName, lastName string, isBot boo
 	if err := m.userRepo.Create(user); err != nil {
 		m.logger.Error("Ошибка создания пользователя", zap.Error(err))
 		return nil, err
+	}
+
+	// Если пользователь является ботом, создаем запись в таблице ботов
+	if user.IsBot {
+		bot := &models.Bot{
+			ID:         user.ID,
+			Name:       user.GetFullName(),
+			Username:   user.Username,
+			Token:      "", // Токен можно будет установить позже
+			WebhookURL: "",
+			IsActive:   true,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		}
+
+		if err := m.botRepo.Create(bot); err != nil {
+			m.logger.Error("Ошибка создания записи бота", zap.Error(err))
+			// Не удаляем пользователя, просто логируем ошибку
+		} else {
+			m.logger.Info("Создана запись бота", 
+				zap.String("bot_id", bot.ID),
+				zap.String("username", bot.Username))
+		}
 	}
 
 	m.logger.Info("Создан новый пользователь", 
@@ -103,6 +128,23 @@ func (m *UserManager) UpdateUser(user *models.User) error {
 
 // DeleteUser удаляет пользователя
 func (m *UserManager) DeleteUser(id string) error {
+	// Получаем пользователя перед удалением
+	user, err := m.userRepo.GetByID(id)
+	if err != nil {
+		m.logger.Error("Ошибка получения пользователя для удаления", zap.String("id", id), zap.Error(err))
+		return err
+	}
+
+	// Если пользователь является ботом, удаляем запись бота
+	if user.IsBot {
+		if err := m.botRepo.Delete(id); err != nil {
+			m.logger.Error("Ошибка удаления записи бота", zap.String("id", id), zap.Error(err))
+			// Не прерываем удаление пользователя, просто логируем ошибку
+		} else {
+			m.logger.Info("Запись бота удалена", zap.String("id", id))
+		}
+	}
+
 	if err := m.userRepo.Delete(id); err != nil {
 		m.logger.Error("Ошибка удаления пользователя", zap.String("id", id), zap.Error(err))
 		return err

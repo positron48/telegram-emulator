@@ -8,7 +8,8 @@ import {
   Wifi, 
   WifiOff,
   Plus,
-  User
+  User,
+  Bot
 } from 'lucide-react';
 import UserSelector from './UserSelector';
 import { format } from 'date-fns';
@@ -24,7 +25,9 @@ const Sidebar = ({
   onChatSelect, 
   onToggleDebug,
   onUserSelect,
-  onCreateUser
+  onCreateUser,
+  onCreateChat,
+  onShowBotManager
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -39,6 +42,19 @@ const Sidebar = ({
       return member.first_name?.charAt(0).toUpperCase() || '?';
     }
     return chat.title?.charAt(0).toUpperCase() || '?';
+  };
+
+  const getChatIcon = (chat) => {
+    switch (chat.type) {
+      case 'private':
+        return '👤';
+      case 'group':
+        return '👥';
+      case 'channel':
+        return '📢';
+      default:
+        return '💬';
+    }
   };
 
   const getChatTitle = (chat) => {
@@ -118,7 +134,7 @@ const Sidebar = ({
               >
                 {/* Аватар */}
                 <div className="w-12 h-12 rounded-full bg-telegram-primary flex items-center justify-center text-white font-medium mr-3 flex-shrink-0">
-                  {getChatAvatar(chat)}
+                  {chat.type === 'private' ? getChatAvatar(chat) : getChatIcon(chat)}
                 </div>
 
                 {/* Информация о чате */}
@@ -171,16 +187,34 @@ const Sidebar = ({
         </div>
 
         {/* Кнопки действий */}
-        <div className="flex space-x-2">
+        <div className="grid grid-cols-2 gap-2 mb-2">
           <button
             onClick={onToggleDebug}
-            className="flex-1 flex items-center justify-center px-3 py-2 bg-telegram-sidebar border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors"
+            className="flex items-center justify-center px-3 py-2 bg-telegram-sidebar border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors"
           >
             <Bug className="w-4 h-4 mr-2" />
             Отладка
           </button>
           
-          <button className="flex-1 flex items-center justify-center px-3 py-2 bg-telegram-sidebar border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors">
+          <button
+            onClick={onShowBotManager}
+            className="flex items-center justify-center px-3 py-2 bg-telegram-sidebar border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors"
+          >
+            <Bot className="w-4 h-4 mr-2" />
+            Боты
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <button
+            onClick={onCreateChat}
+            className="flex items-center justify-center px-3 py-2 bg-telegram-sidebar border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Новый чат
+          </button>
+          
+          <button className="flex items-center justify-center px-3 py-2 bg-telegram-sidebar border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors">
             <Settings className="w-4 h-4 mr-2" />
             Настройки
           </button>

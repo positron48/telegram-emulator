@@ -1,4 +1,4 @@
-const API_BASE_URL = '/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
 class ApiService {
   constructor() {
@@ -63,8 +63,9 @@ class ApiService {
   }
 
   // Chats API
-  async getChats() {
-    return this.request('/chats');
+  async getChats(userId = null) {
+    const url = userId ? `/chats?user_id=${userId}` : '/chats';
+    return this.request(url);
   }
 
   async createChat(chatData) {

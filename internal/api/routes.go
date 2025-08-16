@@ -9,7 +9,7 @@ import (
 )
 
 // SetupRoutes настраивает маршруты API
-func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatManager *emulator.ChatManager, messageManager *emulator.MessageManager, wsServer *websocket.Server) {
+func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatManager *emulator.ChatManager, messageManager *emulator.MessageManager, botManager *emulator.BotManager, wsServer *websocket.Server) {
 	// API группа
 	api := router.Group("/api")
 	{
@@ -54,6 +54,20 @@ func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatMana
 		chats.PUT("/:id/read", messageHandler.MarkChatAsRead)
 		chats.GET("/:id/search", messageHandler.SearchMessages)
 	}
+
+		// Боты
+		bots := api.Group("/bots")
+		{
+			botHandler := handlers.NewBotHandler(botManager)
+			bots.GET("", botHandler.GetAll)
+			bots.POST("", botHandler.Create)
+			bots.GET("/:id", botHandler.GetByID)
+			bots.PUT("/:id", botHandler.Update)
+			bots.DELETE("/:id", botHandler.Delete)
+			bots.POST("/:id/sendMessage", botHandler.SendMessage)
+			bots.GET("/:id/updates", botHandler.GetUpdates)
+			bots.POST("/:id/webhook", botHandler.Webhook)
+		}
 
 			// WebSocket endpoint
 		router.GET("/ws", func(c *gin.Context) {

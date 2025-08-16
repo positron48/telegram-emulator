@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// BotRepository представляет репозиторий для работы с ботами
+// BotRepository управляет операциями с ботами в базе данных
 type BotRepository struct {
 	db *gorm.DB
 }
@@ -41,16 +41,6 @@ func (r *BotRepository) GetByUsername(username string) (*models.Bot, error) {
 	return &bot, nil
 }
 
-// GetByToken получает бота по токену
-func (r *BotRepository) GetByToken(token string) (*models.Bot, error) {
-	var bot models.Bot
-	err := r.db.Where("token = ?", token).First(&bot).Error
-	if err != nil {
-		return nil, err
-	}
-	return &bot, nil
-}
-
 // GetAll получает всех ботов
 func (r *BotRepository) GetAll() ([]models.Bot, error) {
 	var bots []models.Bot
@@ -75,18 +65,13 @@ func (r *BotRepository) Delete(id string) error {
 	return r.db.Where("id = ?", id).Delete(&models.Bot{}).Error
 }
 
-// Activate активирует бота
-func (r *BotRepository) Activate(id string) error {
-	return r.db.Model(&models.Bot{}).Where("id = ?", id).Update("is_active", true).Error
+// SetActiveStatus устанавливает статус активности бота
+func (r *BotRepository) SetActiveStatus(id string, isActive bool) error {
+	return r.db.Model(&models.Bot{}).Where("id = ?", id).Update("is_active", isActive).Error
 }
 
-// Deactivate деактивирует бота
-func (r *BotRepository) Deactivate(id string) error {
-	return r.db.Model(&models.Bot{}).Where("id = ?", id).Update("is_active", false).Error
-}
-
-// UpdateWebhook обновляет webhook URL бота
-func (r *BotRepository) UpdateWebhook(id, webhookURL string) error {
+// SetWebhookURL устанавливает webhook URL для бота
+func (r *BotRepository) SetWebhookURL(id, webhookURL string) error {
 	return r.db.Model(&models.Bot{}).Where("id = ?", id).Update("webhook_url", webhookURL).Error
 }
 

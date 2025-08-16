@@ -48,6 +48,32 @@ func (m *MessageManager) SendMessage(chatID, fromUserID, text, messageType strin
 		return nil, err
 	}
 
+	// Проверяем, является ли пользователь участником чата
+	chat, err := m.chatRepo.GetByID(chatID)
+	if err != nil {
+		m.logger.Error("Ошибка получения чата", zap.String("chat_id", chatID), zap.Error(err))
+		return nil, err
+	}
+
+	// Проверяем, является ли пользователь участником
+	isMember := false
+	for _, member := range chat.Members {
+		if member.ID == fromUserID {
+			isMember = true
+			break
+		}
+	}
+
+	// Если пользователь не участник, добавляем его (кроме приватных чатов)
+	if !isMember && chat.Type != "private" {
+		if err := m.chatRepo.AddMember(chatID, fromUserID); err != nil {
+			m.logger.Error("Ошибка добавления пользователя в чат", zap.String("chat_id", chatID), zap.String("user_id", fromUserID), zap.Error(err))
+			// Не прерываем отправку сообщения, просто логируем ошибку
+		} else {
+			m.logger.Info("Пользователь автоматически добавлен в чат", zap.String("chat_id", chatID), zap.String("user_id", fromUserID))
+		}
+	}
+
 	// Создаем сообщение
 	message := &models.Message{
 		ID:        id,

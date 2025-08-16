@@ -40,7 +40,20 @@ type UpdateChatRequest struct {
 
 // GetAll получает все чаты
 func (h *ChatHandler) GetAll(c *gin.Context) {
-	chats, err := h.chatManager.GetAllChats()
+	// Получаем user_id из query параметра
+	userID := c.Query("user_id")
+	
+	var chats []models.Chat
+	var err error
+	
+	if userID != "" {
+		// Возвращаем только чаты пользователя
+		chats, err = h.chatManager.GetUserChats(userID)
+	} else {
+		// Возвращаем все чаты (для совместимости)
+		chats, err = h.chatManager.GetAllChats()
+	}
+	
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
