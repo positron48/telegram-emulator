@@ -14,8 +14,9 @@ import {
 } from 'lucide-react';
 import UserSelector from './UserSelector';
 import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
 import clsx from 'clsx';
+import { t, getCurrentLanguage } from '../locales';
 
 const Sidebar = ({ 
   chats, 
@@ -31,6 +32,7 @@ const Sidebar = ({
   onCreateChat,
   onDeleteChat,
   onShowBotManager,
+  onShowSettings,
   onReconnect
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -70,7 +72,8 @@ const Sidebar = ({
   };
 
   const getLastMessageText = (chat) => {
-    if (!chat.last_message) return 'Нет сообщений';
+    const language = getCurrentLanguage();
+    if (!chat.last_message) return t('noMessages', language);
     
     const text = chat.last_message.text;
     return text.length > 30 ? `${text.substring(0, 30)}...` : text;
@@ -78,16 +81,18 @@ const Sidebar = ({
 
   const formatTime = (timestamp) => {
     try {
+      const language = getCurrentLanguage();
+      const locale = language === 'en' ? enUS : ru;
       const date = new Date(timestamp);
       const now = new Date();
       const diffInHours = (now - date) / (1000 * 60 * 60);
       
       if (diffInHours < 24) {
-        return format(date, 'HH:mm', { locale: ru });
+        return format(date, 'HH:mm', { locale });
       } else if (diffInHours < 168) { // 7 days
-        return format(date, 'EEE', { locale: ru });
+        return format(date, 'EEE', { locale });
       } else {
-        return format(date, 'dd.MM.yy', { locale: ru });
+        return format(date, 'dd.MM.yy', { locale });
       }
     } catch (error) {
       return '';
@@ -107,7 +112,7 @@ const Sidebar = ({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-telegram-secondary w-4 h-4" />
           <input
             type="text"
-            placeholder="Поиск чатов..."
+            placeholder={t('searchChats', getCurrentLanguage())}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-telegram-sidebar border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary"
@@ -120,9 +125,9 @@ const Sidebar = ({
         {filteredChats.length === 0 ? (
           <div className="p-8 text-center">
             <MessageCircle className="w-12 h-12 text-telegram-secondary mx-auto mb-3" />
-            <h3 className="text-telegram-text font-medium mb-1">Нет чатов</h3>
+            <h3 className="text-telegram-text font-medium mb-1">{t('noChats', getCurrentLanguage())}</h3>
             <p className="text-telegram-text-secondary text-sm">
-              {searchQuery ? 'По вашему запросу ничего не найдено' : 'Создайте чат для начала общения'}
+              {searchQuery ? t('noSearchResults', getCurrentLanguage()) : t('createChatToStart', getCurrentLanguage())}
             </p>
           </div>
         ) : (
@@ -180,12 +185,13 @@ const Sidebar = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm(`Вы уверены, что хотите удалить чат "${getChatTitle(chat)}"?`)) {
+                    const language = getCurrentLanguage();
+                    if (confirm(`${t('confirmDelete', language)} "${getChatTitle(chat)}"?`)) {
                       onDeleteChat(chat.id);
                     }
                   }}
                   className="absolute top-2 right-2 p-1 text-red-500 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Удалить чат"
+                  title={t('deleteChat', getCurrentLanguage())}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -209,7 +215,7 @@ const Sidebar = ({
               'text-sm',
               isConnected ? 'text-green-500' : 'text-red-500'
             )}>
-              {isConnected ? 'Подключено' : 'Отключено'}
+              {isConnected ? t('connected', getCurrentLanguage()) : t('disconnected', getCurrentLanguage())}
             </span>
           </div>
           
@@ -218,9 +224,9 @@ const Sidebar = ({
             <button
               onClick={onReconnect}
               className="px-2 py-1 text-xs bg-telegram-primary text-white rounded hover:bg-telegram-primary/80 transition-colors"
-              title="Переподключиться"
+              title={t('reconnect', getCurrentLanguage())}
             >
-              Переподключиться
+              {t('reconnect', getCurrentLanguage())}
             </button>
           )}
         </div>
@@ -232,7 +238,7 @@ const Sidebar = ({
             className="flex items-center justify-center px-3 py-2 bg-telegram-sidebar border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors"
           >
             <Bug className="w-4 h-4 mr-2" />
-            Отладка
+            {t('debug', getCurrentLanguage())}
           </button>
           
           <button
@@ -240,7 +246,7 @@ const Sidebar = ({
             className="flex items-center justify-center px-3 py-2 bg-telegram-sidebar border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors"
           >
             <Bot className="w-4 h-4 mr-2" />
-            Боты
+            {t('bots', getCurrentLanguage())}
           </button>
         </div>
 
@@ -250,12 +256,15 @@ const Sidebar = ({
             className="flex items-center justify-center px-3 py-2 bg-telegram-sidebar border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Новый чат
+            {t('newChat', getCurrentLanguage())}
           </button>
           
-          <button className="flex items-center justify-center px-3 py-2 bg-telegram-sidebar border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors">
+          <button
+            onClick={onShowSettings}
+            className="flex items-center justify-center px-3 py-2 bg-telegram-sidebar border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors"
+          >
             <Settings className="w-4 h-4 mr-2" />
-            Настройки
+            {t('settings', getCurrentLanguage())}
           </button>
         </div>
 

@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Mic, Smile } from 'lucide-react';
 import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
 import clsx from 'clsx';
 import MessageBubble from './MessageBubble';
+import { t, getCurrentLanguage } from '../locales';
 
 const ChatWindow = ({ chat, messages, currentUser, onSendMessage }) => {
   const [inputText, setInputText] = useState('');
@@ -73,15 +74,16 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage }) => {
   };
 
   if (!chat) {
+    const language = getCurrentLanguage();
     return (
       <div className="flex-1 flex items-center justify-center bg-telegram-bg">
         <div className="text-center">
           <div className="text-6xl mb-4">💬</div>
           <h2 className="text-xl font-medium text-telegram-text mb-2">
-            Выберите чат
+            {t('selectChat', language)}
           </h2>
           <p className="text-telegram-text-secondary">
-            Выберите чат из списка слева для начала общения
+            {t('selectChatFromList', language)}
           </p>
         </div>
       </div>
@@ -118,10 +120,10 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage }) => {
             <div className="text-center">
               <div className="text-4xl mb-3">📱</div>
               <h3 className="text-telegram-text font-medium mb-1">
-                Нет сообщений
+                {t('noMessages', getCurrentLanguage())}
               </h3>
               <p className="text-telegram-text-secondary text-sm">
-                Начните общение, отправив первое сообщение
+                {t('startConversation', getCurrentLanguage())}
               </p>
             </div>
           </div>
@@ -160,7 +162,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage }) => {
               value={inputText}
               onChange={handleInputChange}
               onKeyPress={handleKeyPress}
-              placeholder="Введите сообщение..."
+              placeholder={t('messagePlaceholder', getCurrentLanguage())}
               rows="1"
               className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text placeholder-telegram-secondary focus:outline-none focus:border-telegram-primary resize-none max-h-32"
               style={{

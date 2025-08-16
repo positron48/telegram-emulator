@@ -37,7 +37,8 @@
   }
   
   .message-bubble.incoming {
-    @apply bg-telegram-sidebar text-telegram-text;
+    background-color: var(--telegram-message-bg) !important;
+    color: var(--telegram-text) !important;
   }
   
   .chat-item {
@@ -46,5 +47,66 @@
   
   .chat-item.active {
     @apply bg-telegram-primary/20 border-l-4 border-l-telegram-primary;
+  }
+
+  /* Компактный режим */
+  .compact-mode .chat-item {
+    @apply p-2;
+  }
+
+  .compact-mode .message-bubble {
+    @apply px-2 py-1;
+  }
+
+  .compact-mode .w-80 {
+    @apply w-64;
+  }
+
+  /* Светлая тема (по умолчанию) */
+  :root {
+    --telegram-bg: #ffffff;
+    --telegram-sidebar: #f8f9fa;
+    --telegram-message-bg: #f1f3f4;
+    --telegram-primary: #0088cc;
+    --telegram-text: #000000;
+    --telegram-text-secondary: #6c757d;
+    --telegram-border: #dee2e6;
+  }
+
+  /* Темная тема */
+  .dark {
+    --telegram-bg: #0f1419;
+    --telegram-sidebar: #1a1f2e;
+    --telegram-message-bg: #1a1f2e;
+    --telegram-primary: #2b5278;
+    --telegram-text: #e8eaed;
+    --telegram-text-secondary: #9aa0a6;
+    --telegram-border: #3c4043;
+  }
+
+  /* Применение переменных для всех элементов */
+  .bg-telegram-bg,
+  .dark .bg-telegram-bg {
+    background-color: var(--telegram-bg) !important;
+  }
+
+  .bg-telegram-sidebar,
+  .dark .bg-telegram-sidebar {
+    background-color: var(--telegram-sidebar) !important;
+  }
+
+  .text-telegram-text,
+  .dark .text-telegram-text {
+    color: var(--telegram-text) !important;
+  }
+
+  .text-telegram-text-secondary,
+  .dark .text-telegram-text-secondary {
+    color: var(--telegram-text-secondary) !important;
+  }
+
+  .border-telegram-border,
+  .dark .border-telegram-border {
+    border-color: var(--telegram-border) !important;
   }
 }

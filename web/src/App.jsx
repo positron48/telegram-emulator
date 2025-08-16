@@ -5,11 +5,13 @@ import DebugPanel from './components/DebugPanel';
 import CreateUserModal from './components/CreateUserModal';
 import CreateChatModal from './components/CreateChatModal';
 import BotManager from './components/BotManager';
+import SettingsPanel from './components/SettingsPanel';
 import useStore from './store';
 import apiService from './services/api';
 import wsService from './services/websocket';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { getCurrentLanguage, setLanguage } from './locales';
 
 function App() {
   const {
@@ -42,6 +44,7 @@ function App() {
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showCreateChatModal, setShowCreateChatModal] = useState(false);
   const [showBotManager, setShowBotManager] = useState(false);
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isWebSocketSetup, setIsWebSocketSetup] = useState(false);
@@ -52,6 +55,9 @@ function App() {
       if (isInitialized) return;
       
       try {
+        // Инициализируем тему и язык
+        initializeThemeAndLanguage();
+        
         await initializeApp();
         setIsInitialized(true);
       } catch (error) {
@@ -268,6 +274,30 @@ function App() {
       wsService.off('reconnect_failed', handleReconnectFailed);
     };
       }, [currentUser?.id]); // Убираем isConnected из зависимостей, чтобы обработчики работали при переподключении
+
+  const initializeThemeAndLanguage = () => {
+    try {
+      // Загружаем настройки из localStorage
+      const savedSettings = localStorage.getItem('telegram-emulator-settings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        
+        // Применяем тему
+        if (settings.theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+        
+        // Применяем язык
+        if (settings.language) {
+          setLanguage(settings.language);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to initialize theme and language:', error);
+    }
+  };
 
   const initializeApp = async () => {
     try {
@@ -577,6 +607,7 @@ function App() {
         onCreateChat={() => setShowCreateChatModal(true)}
         onDeleteChat={handleDeleteChat}
         onShowBotManager={() => setShowBotManager(true)}
+        onShowSettings={() => setShowSettingsPanel(true)}
         onReconnect={handleReconnect}
       />
 
@@ -621,6 +652,11 @@ function App() {
       <BotManager
         isOpen={showBotManager}
         onClose={() => setShowBotManager(false)}
+      />
+
+      <SettingsPanel
+        isOpen={showSettingsPanel}
+        onClose={() => setShowSettingsPanel(false)}
       />
     </div>
   );

@@ -1,18 +1,34 @@
-import React, { useState } from 'react';
-import { X, Save, RefreshCw, Download, Upload, Moon, Sun, Monitor } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Save, Moon, Sun } from 'lucide-react';
 import useStore from '../store';
+import { t, setLanguage, getCurrentLanguage } from '../locales';
 
 const SettingsPanel = ({ isOpen, onClose }) => {
   const [settings, setSettings] = useState({
-    theme: 'system',
-    language: 'ru',
-    notifications: true,
-    sound: true,
-    autoScroll: true,
-    debugMode: false
+    theme: 'light',
+    language: 'ru'
   });
 
   const { addDebugEvent } = useStore();
+
+  // Загружаем настройки из localStorage при открытии
+  useEffect(() => {
+    if (isOpen) {
+      const savedSettings = localStorage.getItem('telegram-emulator-settings');
+      if (savedSettings) {
+        try {
+          const parsed = JSON.parse(savedSettings);
+          setSettings(prev => ({ ...prev, ...parsed }));
+        } catch (error) {
+          console.error('Failed to parse saved settings:', error);
+        }
+      }
+      
+      // Загружаем язык из localStorage
+      const currentLanguage = getCurrentLanguage();
+      setSettings(prev => ({ ...prev, language: currentLanguage }));
+    }
+  }, [isOpen]);
 
   const handleSettingChange = (key, value) => {
     setSettings(prev => ({
@@ -28,6 +44,46 @@ const SettingsPanel = ({ isOpen, onClose }) => {
     });
   };
 
+  const handleSaveSettings = () => {
+    try {
+      localStorage.setItem('telegram-emulator-settings', JSON.stringify(settings));
+      
+      addDebugEvent({
+        id: `settings-saved-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toLocaleTimeString('ru-RU'),
+        type: 'success',
+        description: 'Настройки сохранены'
+      });
+
+      // Применяем настройки
+      applySettings(settings);
+      
+      onClose();
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      addDebugEvent({
+        id: `settings-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toLocaleTimeString('ru-RU'),
+        type: 'error',
+        description: `Ошибка сохранения настроек: ${error.message}`
+      });
+    }
+  };
+
+  const applySettings = (newSettings) => {
+    // Применяем тему
+    if (newSettings.theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
+    // Применяем язык
+    setLanguage(newSettings.language);
+  };
+
+
+
   if (!isOpen) return null;
 
   return (
@@ -36,7 +92,7 @@ const SettingsPanel = ({ isOpen, onClose }) => {
         {/* Заголовок */}
         <div className="flex items-center justify-between p-4 border-b border-telegram-border">
           <h2 className="text-lg font-medium text-telegram-text">
-            Настройки
+            {t('settings', settings.language)}
           </h2>
           <button
             onClick={onClose}
@@ -51,12 +107,11 @@ const SettingsPanel = ({ isOpen, onClose }) => {
           <div className="space-y-6">
             {/* Тема */}
             <div>
-              <h3 className="text-md font-medium text-telegram-text mb-3">Тема оформления</h3>
-              <div className="grid grid-cols-3 gap-3">
+              <h3 className="text-md font-medium text-telegram-text mb-3">{t('theme', settings.language)}</h3>
+              <div className="grid grid-cols-2 gap-3">
                 {[
-                  { value: 'light', label: 'Светлая', icon: Sun },
-                  { value: 'dark', label: 'Темная', icon: Moon },
-                  { value: 'system', label: 'Системная', icon: Monitor }
+                  { value: 'light', label: t('lightTheme', settings.language), icon: Sun },
+                  { value: 'dark', label: t('darkTheme', settings.language), icon: Moon }
                 ].map((theme) => {
                   const Icon = theme.icon;
                   return (
@@ -80,66 +135,16 @@ const SettingsPanel = ({ isOpen, onClose }) => {
             {/* Язык */}
             <div>
               <label className="block text-sm font-medium text-telegram-text mb-2">
-                Язык интерфейса
+                {t('language', settings.language)}
               </label>
               <select
                 value={settings.language}
                 onChange={(e) => handleSettingChange('language', e.target.value)}
                 className="w-full px-3 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text focus:outline-none focus:border-telegram-primary"
               >
-                <option value="ru">Русский</option>
-                <option value="en">English</option>
+                <option value="ru">{t('russian', settings.language)}</option>
+                <option value="en">{t('english', settings.language)}</option>
               </select>
-            </div>
-
-            {/* Уведомления */}
-            <div>
-              <h3 className="text-md font-medium text-telegram-text mb-3">Уведомления</h3>
-              <div className="space-y-3">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={settings.notifications}
-                    onChange={(e) => handleSettingChange('notifications', e.target.checked)}
-                    className="mr-3"
-                  />
-                  <span className="text-sm text-telegram-text">Включить уведомления</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={settings.sound}
-                    onChange={(e) => handleSettingChange('sound', e.target.checked)}
-                    className="mr-3"
-                  />
-                  <span className="text-sm text-telegram-text">Звуковые уведомления</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Дополнительно */}
-            <div>
-              <h3 className="text-md font-medium text-telegram-text mb-3">Дополнительно</h3>
-              <div className="space-y-3">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={settings.autoScroll}
-                    onChange={(e) => handleSettingChange('autoScroll', e.target.checked)}
-                    className="mr-3"
-                  />
-                  <span className="text-sm text-telegram-text">Автоматическая прокрутка к новым сообщениям</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={settings.debugMode}
-                    onChange={(e) => handleSettingChange('debugMode', e.target.checked)}
-                    className="mr-3"
-                  />
-                  <span className="text-sm text-telegram-text">Режим отладки</span>
-                </label>
-              </div>
             </div>
           </div>
         </div>
@@ -154,14 +159,14 @@ const SettingsPanel = ({ isOpen, onClose }) => {
               onClick={onClose}
               className="px-4 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary/10 transition-colors"
             >
-              Отмена
+              {t('cancel', settings.language)}
             </button>
             <button
-              onClick={onClose}
+              onClick={handleSaveSettings}
               className="flex items-center px-4 py-2 bg-telegram-primary text-white rounded-lg hover:bg-telegram-primary/80 transition-colors"
             >
               <Save className="w-4 h-4 mr-2" />
-              Сохранить
+              {t('save', settings.language)}
             </button>
           </div>
         </div>
