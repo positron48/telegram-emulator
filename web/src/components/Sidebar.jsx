@@ -137,17 +137,17 @@ const Sidebar = ({
               >
                 <div
                   onClick={() => onChatSelect(chat)}
-                  className="flex items-center p-3 hover:bg-telegram-primary/10 transition-colors cursor-pointer"
+                  className="flex items-center p-2 hover:bg-telegram-primary/10 transition-colors cursor-pointer"
                 >
                 {/* Аватар */}
-                <div className="w-12 h-12 rounded-full bg-telegram-primary flex items-center justify-center text-white font-medium mr-3 flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-telegram-primary to-blue-600 flex items-center justify-center text-white font-medium mr-3 flex-shrink-0 shadow-sm">
                   {chat.type === 'private' ? getChatAvatar(chat) : getChatIcon(chat)}
                 </div>
 
                 {/* Информация о чате */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-telegram-text font-medium truncate">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-telegram-text font-medium truncate text-sm">
                       {getChatTitle(chat)}
                     </h3>
                     {chat.last_message && (
@@ -157,12 +157,17 @@ const Sidebar = ({
                     )}
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-telegram-text-secondary truncate">
+                  <div className="flex items-center justify-between mt-0.5">
+                    <p className="text-xs text-telegram-text-secondary truncate">
                       {getLastMessageText(chat)}
                     </p>
                     {chat.unread_count > 0 && (
-                      <span className="bg-telegram-primary text-white text-xs px-2 py-1 rounded-full min-w-[20px] text-center flex-shrink-0 ml-2">
+                      <span className={clsx(
+                        "text-white text-xs px-1.5 py-0.5 rounded-full min-w-[16px] text-center flex-shrink-0 ml-2 shadow-sm font-medium",
+                        currentChat?.id === chat.id 
+                          ? "bg-red-600 shadow-md" 
+                          : "bg-red-500"
+                      )}>
                         {chat.unread_count > 99 ? '99+' : chat.unread_count}
                       </span>
                     )}

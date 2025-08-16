@@ -12,7 +12,7 @@ const UserSelector = ({ users, currentUser, onUserSelect, onCreateUser, onDelete
         onClick={() => setIsModalOpen(true)}
         className="flex items-center p-3 bg-telegram-sidebar rounded-lg text-telegram-text hover:bg-telegram-primary transition-colors w-full"
       >
-        <div className="w-8 h-8 rounded-full bg-telegram-primary flex items-center justify-center text-white font-medium mr-3">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-telegram-primary to-blue-600 flex items-center justify-center text-white font-medium mr-3 shadow-sm">
           {currentUser?.first_name?.charAt(0).toUpperCase() || 'U'}
         </div>
         <div className="flex-1 text-left">

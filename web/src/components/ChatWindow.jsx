@@ -92,7 +92,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage }) => {
     <div className="flex-1 flex flex-col bg-telegram-bg h-full">
       {/* Заголовок чата */}
       <div className="flex items-center p-4 border-b border-telegram-border bg-telegram-sidebar">
-        <div className="w-10 h-10 rounded-full bg-telegram-primary flex items-center justify-center text-white font-medium mr-3">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-telegram-primary to-blue-600 flex items-center justify-center text-white font-medium mr-3 shadow-sm">
           {getChatAvatar()}
         </div>
         

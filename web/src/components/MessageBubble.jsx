@@ -118,7 +118,7 @@ const MessageBubble = ({ message, isOwn, currentUser }) => {
       {/* Аватар (только для чужих сообщений) */}
       {!isOwn && (
         <div className={clsx(
-          'w-8 h-8 rounded-full bg-telegram-primary flex items-center justify-center text-white text-sm font-medium ml-2 order-2 flex-shrink-0',
+          'w-8 h-8 rounded-full bg-gradient-to-br from-telegram-primary to-blue-600 flex items-center justify-center text-white text-sm font-medium ml-2 order-2 flex-shrink-0 shadow-sm',
           'self-end mb-1'
         )}>
           {message.from?.first_name?.charAt(0).toUpperCase() || '?'}

@@ -44,7 +44,7 @@ const UserModal = ({ isOpen, onClose, users, currentUser, onUserSelect, onCreate
                 currentUser?.id === user.id && 'bg-telegram-primary'
               )}
             >
-              <div className="w-10 h-10 rounded-full bg-telegram-primary flex items-center justify-center text-white font-medium mr-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-telegram-primary to-blue-600 flex items-center justify-center text-white font-medium mr-3 shadow-sm">
                 {user.first_name?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div className="flex-1 text-left">

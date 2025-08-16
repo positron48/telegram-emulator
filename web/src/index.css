@@ -41,10 +41,10 @@
   }
   
   .chat-item {
-    @apply flex items-center p-4 border-b border-telegram-border cursor-pointer transition-colors duration-200 hover:bg-telegram-primary;
+    @apply flex items-center p-4 border-b border-telegram-border cursor-pointer transition-colors duration-200 hover:bg-telegram-primary/10;
   }
   
   .chat-item.active {
-    @apply bg-telegram-primary;
+    @apply bg-telegram-primary/20 border-l-4 border-l-telegram-primary;
   }
 }
