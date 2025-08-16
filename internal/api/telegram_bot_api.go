@@ -1,0 +1,313 @@
+package api
+
+import (
+	"net/http"
+	"strconv"
+
+	"telegram-emulator/internal/emulator"
+	"telegram-emulator/internal/models"
+
+	"github.com/gin-gonic/gin"
+)
+
+// TelegramBotAPI представляет API совместимый с Telegram Bot API
+type TelegramBotAPI struct {
+	botManager     *emulator.BotManager
+	userManager    *emulator.UserManager
+	chatManager    *emulator.ChatManager
+	messageManager *emulator.MessageManager
+}
+
+// NewTelegramBotAPI создает новый экземпляр TelegramBotAPI
+func NewTelegramBotAPI(botManager *emulator.BotManager, userManager *emulator.UserManager, chatManager *emulator.ChatManager, messageManager *emulator.MessageManager) *TelegramBotAPI {
+	return &TelegramBotAPI{
+		botManager:     botManager,
+		userManager:    userManager,
+		chatManager:    chatManager,
+		messageManager: messageManager,
+	}
+}
+
+// SetupTelegramBotRoutes настраивает маршруты Telegram Bot API
+func (api *TelegramBotAPI) SetupTelegramBotRoutes(router *gin.Engine) {
+	// Telegram Bot API маршруты
+	botAPI := router.Group("/bot:token")
+	{
+		// Основные методы
+		botAPI.GET("/getMe", api.GetMe)
+		botAPI.GET("/getUpdates", api.GetUpdates)
+		botAPI.POST("/sendMessage", api.SendMessage)
+		botAPI.POST("/setWebhook", api.SetWebhook)
+		botAPI.GET("/deleteWebhook", api.DeleteWebhook)
+		botAPI.GET("/getWebhookInfo", api.GetWebhookInfo)
+	}
+}
+
+// GetMe возвращает информацию о боте
+func (api *TelegramBotAPI) GetMe(c *gin.Context) {
+	token := c.Param("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
+		return
+	}
+
+	// Находим бота по токену
+	bot, err := api.findBotByToken(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "error_code": 401, "description": "Unauthorized"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok": true,
+		"result": gin.H{
+			"id":         bot.ID,
+			"is_bot":     true,
+			"first_name": bot.Name,
+			"username":   bot.Username,
+			"can_join_groups": true,
+			"can_read_all_group_messages": false,
+			"supports_inline_queries": false,
+		},
+	})
+}
+
+// GetUpdates возвращает обновления для бота
+func (api *TelegramBotAPI) GetUpdates(c *gin.Context) {
+	token := c.Param("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
+		return
+	}
+
+	// Находим бота по токену
+	bot, err := api.findBotByToken(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "error_code": 401, "description": "Unauthorized"})
+		return
+	}
+
+	// Получаем параметры запроса
+	offset := 0
+	if offsetStr := c.Query("offset"); offsetStr != "" {
+		if parsed, err := strconv.Atoi(offsetStr); err == nil {
+			offset = parsed
+		}
+	}
+
+	limit := 100
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 && parsed <= 100 {
+			limit = parsed
+		}
+	}
+
+	// Получаем обновления
+	updates, err := api.botManager.GetBotUpdates(bot.ID, offset, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Internal Server Error"})
+		return
+	}
+
+	// Конвертируем в формат Telegram Bot API
+	var telegramUpdates []gin.H
+	for _, update := range updates {
+		telegramUpdate := gin.H{
+			"update_id": update.UpdateID,
+		}
+
+		if update.Message != nil {
+			telegramUpdate["message"] = update.Message.ToTelegramMessage()
+		}
+		if update.EditedMessage != nil {
+			telegramUpdate["edited_message"] = update.EditedMessage.ToTelegramMessage()
+		}
+		if update.CallbackQuery != nil {
+			telegramUpdate["callback_query"] = update.CallbackQuery
+		}
+
+		telegramUpdates = append(telegramUpdates, telegramUpdate)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok":     true,
+		"result": telegramUpdates,
+	})
+}
+
+// SendMessage отправляет сообщение
+func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
+	token := c.Param("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
+		return
+	}
+
+	// Находим бота по токену
+	bot, err := api.findBotByToken(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "error_code": 401, "description": "Unauthorized"})
+		return
+	}
+
+	var request struct {
+		ChatID                string `json:"chat_id" binding:"required"`
+		Text                  string `json:"text" binding:"required"`
+		ParseMode             string `json:"parse_mode"`
+		DisableWebPagePreview bool   `json:"disable_web_page_preview"`
+		DisableNotification   bool   `json:"disable_notification"`
+		ProtectContent        bool   `json:"protect_content"`
+		ReplyToMessageID      int64  `json:"reply_to_message_id"`
+		AllowSendingWithoutReply bool `json:"allow_sending_without_reply"`
+		ReplyMarkup           interface{} `json:"reply_markup"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: " + err.Error()})
+		return
+	}
+
+	// Отправляем сообщение
+	message, err := api.botManager.SendBotMessage(bot.ID, request.ChatID, request.Text, request.ParseMode)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Internal Server Error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok":     true,
+		"result": message.ToTelegramMessage(),
+	})
+}
+
+// SetWebhook устанавливает webhook для бота
+func (api *TelegramBotAPI) SetWebhook(c *gin.Context) {
+	token := c.Param("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
+		return
+	}
+
+	// Находим бота по токену
+	bot, err := api.findBotByToken(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "error_code": 401, "description": "Unauthorized"})
+		return
+	}
+
+	var request struct {
+		URL                string   `json:"url" binding:"required"`
+		Certificate        string   `json:"certificate"`
+		IPAddress          string   `json:"ip_address"`
+		MaxConnections     int      `json:"max_connections"`
+		AllowedUpdates     []string `json:"allowed_updates"`
+		DropPendingUpdates bool     `json:"drop_pending_updates"`
+		SecretToken        string   `json:"secret_token"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: " + err.Error()})
+		return
+	}
+
+	// Обновляем webhook URL
+	bot.WebhookURL = request.URL
+	if err := api.botManager.UpdateBot(bot); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Internal Server Error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok":     true,
+		"result": true,
+	})
+}
+
+// DeleteWebhook удаляет webhook
+func (api *TelegramBotAPI) DeleteWebhook(c *gin.Context) {
+	token := c.Param("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
+		return
+	}
+
+	// Находим бота по токену
+	bot, err := api.findBotByToken(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "error_code": 401, "description": "Unauthorized"})
+		return
+	}
+
+	// Удаляем webhook URL
+	bot.WebhookURL = ""
+	if err := api.botManager.UpdateBot(bot); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Internal Server Error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok":     true,
+		"result": true,
+	})
+}
+
+// GetWebhookInfo возвращает информацию о webhook
+func (api *TelegramBotAPI) GetWebhookInfo(c *gin.Context) {
+	token := c.Param("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
+		return
+	}
+
+	// Находим бота по токену
+	bot, err := api.findBotByToken(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "error_code": 401, "description": "Unauthorized"})
+		return
+	}
+
+	webhookInfo := gin.H{
+		"url": bot.WebhookURL,
+	}
+
+	if bot.WebhookURL == "" {
+		webhookInfo["url"] = ""
+		webhookInfo["has_custom_certificate"] = false
+		webhookInfo["pending_update_count"] = 0
+		webhookInfo["max_connections"] = 40
+		webhookInfo["last_error_date"] = nil
+		webhookInfo["last_error_message"] = nil
+		webhookInfo["last_synchronization_error_date"] = nil
+		webhookInfo["allowed_updates"] = []string{}
+	} else {
+		webhookInfo["has_custom_certificate"] = false
+		webhookInfo["pending_update_count"] = 0
+		webhookInfo["max_connections"] = 40
+		webhookInfo["last_error_date"] = nil
+		webhookInfo["last_error_message"] = nil
+		webhookInfo["last_synchronization_error_date"] = nil
+		webhookInfo["allowed_updates"] = []string{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok":     true,
+		"result": webhookInfo,
+	})
+}
+
+// findBotByToken находит бота по токену
+func (api *TelegramBotAPI) findBotByToken(token string) (*models.Bot, error) {
+	// Получаем всех ботов и ищем по токену
+	bots, err := api.botManager.GetAllBots()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, bot := range bots {
+		if bot.Token == token {
+			return &bot, nil
+		}
+	}
+
+	return nil, &models.BotNotFoundError{}
+}

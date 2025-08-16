@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"time"
 
 	"telegram-emulator/internal/models"
@@ -20,6 +21,9 @@ type BotManager struct {
 	messageRepo  *repository.MessageRepository
 	chatRepo     *repository.ChatRepository
 	logger       *zap.Logger
+	updateQueue  map[string][]models.Update // Очередь обновлений для каждого бота
+	updateID     int64                      // Глобальный счетчик update_id
+	chatIDMap    map[int64]string           // Маппинг Telegram chat_id -> внутренний chat_id
 }
 
 // NewBotManager создает новый экземпляр BotManager
@@ -30,6 +34,9 @@ func NewBotManager(botRepo *repository.BotRepository, userRepo *repository.UserR
 		messageRepo: messageRepo,
 		chatRepo:    chatRepo,
 		logger:      logger.GetLogger(),
+		updateQueue: make(map[string][]models.Update),
+		updateID:    1,
+		chatIDMap:   make(map[int64]string),
 	}
 }
 
@@ -145,6 +152,23 @@ func (m *BotManager) SendBotMessage(botID, chatID, text, parseMode string) (*mod
 		return nil, fmt.Errorf("бот неактивен")
 	}
 
+	// Проверяем, является ли chatID Telegram chat_id (число)
+	// Если да, то конвертируем в внутренний chat_id
+	internalChatID := chatID
+	if telegramChatID, err := strconv.ParseInt(chatID, 10, 64); err == nil {
+		// Это Telegram chat_id, ищем внутренний chat_id
+		if internalID, exists := m.chatIDMap[telegramChatID]; exists {
+			internalChatID = internalID
+			m.logger.Info("Найден маппинг chat_id", 
+				zap.Int64("telegram_chat_id", telegramChatID),
+				zap.String("internal_chat_id", internalID))
+		} else {
+			m.logger.Error("Маппинг chat_id не найден", 
+				zap.Int64("telegram_chat_id", telegramChatID))
+			return nil, fmt.Errorf("чат с Telegram ID %d не найден", telegramChatID)
+		}
+	}
+
 	// Получаем пользователя-бота
 	botUserID := fmt.Sprintf("bot_%s", botID)
 	botUser, err := m.userRepo.GetByID(botUserID)
@@ -160,7 +184,7 @@ func (m *BotManager) SendBotMessage(botID, chatID, text, parseMode string) (*mod
 
 	message := &models.Message{
 		ID:        messageID,
-		ChatID:    chatID,
+		ChatID:    internalChatID,
 		FromID:    botUser.ID,
 		From:      *botUser,
 		Text:      text,
@@ -178,7 +202,7 @@ func (m *BotManager) SendBotMessage(botID, chatID, text, parseMode string) (*mod
 
 	m.logger.Info("Сообщение бота отправлено", 
 		zap.String("bot_id", botID),
-		zap.String("chat_id", chatID),
+		zap.String("chat_id", internalChatID),
 		zap.String("message_id", messageID))
 
 	return message, nil
@@ -196,15 +220,32 @@ func (m *BotManager) GetBotUpdates(botID string, offset, limit int) ([]models.Up
 		return nil, fmt.Errorf("бот неактивен")
 	}
 
-	// Получаем сообщения для бота (пока просто возвращаем пустой массив)
-	// TODO: Реализовать получение обновлений из очереди сообщений
-	updates := []models.Update{}
+	// Получаем обновления из очереди
+	queue, exists := m.updateQueue[botID]
+	if !exists {
+		return []models.Update{}, nil
+	}
+
+	// Фильтруем по offset
+	var filteredUpdates []models.Update
+	for _, update := range queue {
+		if update.UpdateID > int64(offset) {
+			filteredUpdates = append(filteredUpdates, update)
+		}
+	}
+
+	// Ограничиваем по limit
+	if len(filteredUpdates) > limit {
+		filteredUpdates = filteredUpdates[:limit]
+	}
 
 	m.logger.Info("Получены обновления для бота", 
 		zap.String("bot_id", botID),
-		zap.Int("count", len(updates)))
+		zap.Int("count", len(filteredUpdates)),
+		zap.Int("offset", offset),
+		zap.Int("limit", limit))
 
-	return updates, nil
+	return filteredUpdates, nil
 }
 
 // ProcessWebhook обрабатывает webhook от бота
@@ -232,6 +273,64 @@ func (m *BotManager) ProcessWebhook(botID string, update *models.Update) error {
 			zap.String("message_id", update.Message.ID))
 	}
 
+	return nil
+}
+
+// AddUpdate добавляет обновление в очередь для бота
+func (m *BotManager) AddUpdate(botID string, update *models.Update) error {
+	// Получаем бота
+	bot, err := m.GetBot(botID)
+	if err != nil {
+		return err
+	}
+
+	if !bot.IsActive {
+		return fmt.Errorf("бот неактивен")
+	}
+
+	// Устанавливаем update_id
+	update.UpdateID = m.updateID
+	m.updateID++
+
+	// Устанавливаем timestamp
+	update.Timestamp = time.Now()
+
+	// Сохраняем маппинг chat_id если есть сообщение
+	if update.Message != nil {
+		// Конвертируем строковый chat_id в int64 для Telegram API
+		telegramChatID := int64(0)
+		if len(update.Message.ChatID) > 0 {
+			for i, char := range update.Message.ChatID {
+				if i < 8 { // Ограничиваем длину
+					telegramChatID = telegramChatID*31 + int64(char)
+				}
+			}
+		}
+		m.chatIDMap[telegramChatID] = update.Message.ChatID
+	}
+
+	// Добавляем в очередь
+	if m.updateQueue[botID] == nil {
+		m.updateQueue[botID] = []models.Update{}
+	}
+	m.updateQueue[botID] = append(m.updateQueue[botID], *update)
+
+	// Ограничиваем размер очереди (максимум 1000 обновлений)
+	if len(m.updateQueue[botID]) > 1000 {
+		m.updateQueue[botID] = m.updateQueue[botID][len(m.updateQueue[botID])-1000:]
+	}
+
+	m.logger.Info("Обновление добавлено в очередь", 
+		zap.String("bot_id", botID),
+		zap.Int64("update_id", update.UpdateID))
+
+	return nil
+}
+
+// ClearUpdates очищает очередь обновлений для бота
+func (m *BotManager) ClearUpdates(botID string) error {
+	delete(m.updateQueue, botID)
+	m.logger.Info("Очередь обновлений очищена", zap.String("bot_id", botID))
 	return nil
 }
 

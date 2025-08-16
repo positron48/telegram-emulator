@@ -18,16 +18,18 @@ type MessageManager struct {
 	messageRepo *repository.MessageRepository
 	chatRepo    *repository.ChatRepository
 	userRepo    *repository.UserRepository
+	botManager  *BotManager
 	wsServer    *websocket.Server
 	logger      *zap.Logger
 }
 
 // NewMessageManager создает новый экземпляр MessageManager
-func NewMessageManager(messageRepo *repository.MessageRepository, chatRepo *repository.ChatRepository, userRepo *repository.UserRepository, wsServer *websocket.Server) *MessageManager {
+func NewMessageManager(messageRepo *repository.MessageRepository, chatRepo *repository.ChatRepository, userRepo *repository.UserRepository, botManager *BotManager, wsServer *websocket.Server) *MessageManager {
 	return &MessageManager{
 		messageRepo: messageRepo,
 		chatRepo:    chatRepo,
 		userRepo:    userRepo,
+		botManager:  botManager,
 		wsServer:    wsServer,
 		logger:      logger.GetLogger(),
 	}
@@ -110,6 +112,9 @@ func (m *MessageManager) SendMessage(chatID, fromUserID, text, messageType strin
 
 	// Эмулируем доставку сообщения
 	go m.simulateMessageDelivery(message)
+
+	// Уведомляем ботов о новом сообщении
+	m.notifyBots(message)
 
 	m.logger.Info("Сообщение отправлено", 
 		zap.String("message_id", message.ID),
@@ -294,4 +299,41 @@ func (m *MessageManager) generateID() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(bytes), nil
+}
+
+// notifyBots уведомляет всех активных ботов о новом сообщении
+func (m *MessageManager) notifyBots(message *models.Message) {
+	if m.botManager == nil {
+		return
+	}
+
+	// Получаем всех активных ботов
+	bots, err := m.botManager.GetAllBots()
+	if err != nil {
+		m.logger.Error("Ошибка получения ботов для уведомления", zap.Error(err))
+		return
+	}
+
+	// Создаем обновление для каждого бота
+	for _, bot := range bots {
+		if !bot.IsActive {
+			continue
+		}
+
+		// Создаем обновление
+		update := &models.Update{
+			Message: message,
+		}
+
+		// Добавляем в очередь обновлений бота
+		if err := m.botManager.AddUpdate(bot.ID, update); err != nil {
+			m.logger.Error("Ошибка добавления обновления для бота", 
+				zap.String("bot_id", bot.ID), 
+				zap.Error(err))
+		}
+	}
+
+	m.logger.Info("Боты уведомлены о новом сообщении", 
+		zap.String("message_id", message.ID),
+		zap.Int("bots_count", len(bots)))
 }

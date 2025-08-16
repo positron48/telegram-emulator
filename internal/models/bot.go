@@ -40,3 +40,10 @@ func (b *Bot) SetWebhook(url string) {
 func (b *Bot) UpdateToken(token string) {
 	b.Token = token
 }
+
+// BotNotFoundError представляет ошибку "бот не найден"
+type BotNotFoundError struct{}
+
+func (e *BotNotFoundError) Error() string {
+	return "бот не найден"
+}

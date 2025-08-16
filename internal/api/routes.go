@@ -10,6 +10,9 @@ import (
 
 // SetupRoutes настраивает маршруты API
 func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatManager *emulator.ChatManager, messageManager *emulator.MessageManager, botManager *emulator.BotManager, wsServer *websocket.Server) {
+	// Telegram Bot API
+	telegramAPI := NewTelegramBotAPI(botManager, userManager, chatManager, messageManager)
+	telegramAPI.SetupTelegramBotRoutes(router)
 	// API группа
 	api := router.Group("/api")
 	{
