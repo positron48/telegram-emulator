@@ -24,7 +24,6 @@ function App() {
     messages,
     users,
     debugEvents,
-    statistics,
     isLoading,
     error,
     isConnected,
@@ -37,7 +36,6 @@ function App() {
     updateMessageStatus,
     updateChat,
     addDebugEvent,
-    setStatistics,
     setLoading,
     setError,
     setConnected
@@ -187,9 +185,7 @@ function App() {
       });
     };
 
-    const handleStatisticsUpdate = (data) => {
-      setStatistics(data);
-    };
+
 
     const handleDisconnect = () => {
       setConnected(false);
@@ -256,7 +252,7 @@ function App() {
     wsService.on('chat_update', handleChatUpdate);
     wsService.on('user_update', handleUserUpdate);
     wsService.on('debug_event', handleDebugEvent);
-    wsService.on('statistics_update', handleStatisticsUpdate);
+
     wsService.on('disconnect', handleDisconnect);
     wsService.on('reconnecting', handleReconnecting);
     wsService.on('reconnect_error', handleReconnectError);
@@ -271,7 +267,7 @@ function App() {
       wsService.off('chat_update', handleChatUpdate);
       wsService.off('user_update', handleUserUpdate);
       wsService.off('debug_event', handleDebugEvent);
-      wsService.off('statistics_update', handleStatisticsUpdate);
+
       wsService.off('disconnect', handleDisconnect);
       wsService.off('reconnecting', handleReconnecting);
       wsService.off('reconnect_error', handleReconnectError);
@@ -630,7 +626,6 @@ function App() {
       {showDebugPanel && (
         <DebugPanel
           events={debugEvents}
-          statistics={statistics}
           onClose={() => setShowDebugPanel(false)}
         />
       )}

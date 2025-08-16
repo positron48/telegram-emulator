@@ -12,13 +12,6 @@ const useStore = create(
       users: [],
       bots: [],
       debugEvents: [],
-      statistics: {
-        messages_count: 0,
-        response_time: 0,
-        errors_count: 0,
-        users_count: 0,
-        chats_count: 0
-      },
       isLoading: false,
       error: null,
       isConnected: false,
@@ -101,11 +94,7 @@ const useStore = create(
       
       clearDebugEvents: () => set({ debugEvents: [] }),
       
-      setStatistics: (statistics) => set({ statistics }),
-      
-      updateStatistics: (updates) => set((state) => ({
-        statistics: { ...state.statistics, ...updates }
-      })),
+
       
       setLoading: (isLoading) => set({ isLoading }),
       
@@ -143,13 +132,6 @@ const useStore = create(
         users: [],
         bots: [],
         debugEvents: [],
-        statistics: {
-          messages_count: 0,
-          response_time: 0,
-          errors_count: 0,
-          users_count: 0,
-          chats_count: 0
-        },
         isLoading: false,
         error: null,
         isConnected: false

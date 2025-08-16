@@ -88,11 +88,4 @@ export const DebugEventType = {
  * @property {any} data - Дополнительные данные
  */
 
-/**
- * @typedef {Object} Statistics
- * @property {number} messages_count - Количество сообщений
- * @property {number} response_time - Время ответа в мс
- * @property {number} errors_count - Количество ошибок
- * @property {number} users_count - Количество пользователей
- * @property {number} chats_count - Количество чатов
- */
+

@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-import { X, Trash2, Download, RefreshCw, AlertCircle, Info, MessageCircle, Activity } from 'lucide-react';
+import React from 'react';
+import { X, Trash2, Download, AlertCircle, Info, MessageCircle, Activity } from 'lucide-react';
 import clsx from 'clsx';
 import { t, getCurrentLanguage } from '../locales';
 
-const DebugPanel = ({ events, statistics, onClose }) => {
-  const [activeTab, setActiveTab] = useState('events');
+const DebugPanel = ({ events, onClose }) => {
 
   const getEventIcon = (type) => {
     switch (type) {
@@ -35,8 +34,7 @@ const DebugPanel = ({ events, statistics, onClose }) => {
   const exportLogs = () => {
     const logData = {
       timestamp: new Date().toISOString(),
-      events: events,
-      statistics: statistics
+      events: events
     };
 
     const blob = new Blob([JSON.stringify(logData, null, 2)], { type: 'application/json' });
@@ -68,36 +66,11 @@ const DebugPanel = ({ events, statistics, onClose }) => {
         </button>
       </div>
 
-      {/* Табы */}
-      <div className="flex border-b border-telegram-border">
-        <button
-          onClick={() => setActiveTab('events')}
-          className={clsx(
-            'flex-1 px-4 py-2 text-sm font-medium transition-colors',
-            activeTab === 'events'
-              ? 'text-telegram-text border-b-2 border-telegram-primary'
-              : 'text-telegram-text-secondary hover:text-telegram-text'
-          )}
-        >
-          {t('events', getCurrentLanguage())}
-        </button>
-        <button
-          onClick={() => setActiveTab('statistics')}
-          className={clsx(
-            'flex-1 px-4 py-2 text-sm font-medium transition-colors',
-            activeTab === 'statistics'
-              ? 'text-telegram-text border-b-2 border-telegram-primary'
-              : 'text-telegram-text-secondary hover:text-telegram-text'
-          )}
-        >
-          {t('statistics', getCurrentLanguage())}
-        </button>
-      </div>
+
 
       {/* Контент */}
       <div className="flex-1 overflow-hidden">
-        {activeTab === 'events' && (
-          <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col">
             {/* Панель действий */}
             <div className="p-3 border-b border-telegram-border flex space-x-2">
               <button
@@ -162,88 +135,6 @@ const DebugPanel = ({ events, statistics, onClose }) => {
               )}
             </div>
           </div>
-        )}
-
-        {activeTab === 'statistics' && (
-          <div className="p-4 space-y-4">
-            {/* Основная статистика */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-telegram-bg rounded-lg border border-telegram-border">
-                <div className="text-2xl font-bold text-telegram-text">
-                  {statistics.messages_count || 0}
-                </div>
-                <div className="text-xs text-telegram-text-secondary">
-                  {t('messages', getCurrentLanguage())}
-                </div>
-              </div>
-              
-              <div className="p-3 bg-telegram-bg rounded-lg border border-telegram-border">
-                <div className="text-2xl font-bold text-telegram-text">
-                  {statistics.response_time || 0}ms
-                </div>
-                <div className="text-xs text-telegram-text-secondary">
-                  {t('responseTime', getCurrentLanguage())}
-                </div>
-              </div>
-              
-              <div className="p-3 bg-telegram-bg rounded-lg border border-telegram-border">
-                <div className="text-2xl font-bold text-red-500">
-                  {statistics.errors_count || 0}
-                </div>
-                <div className="text-xs text-telegram-text-secondary">
-                  {t('errors', getCurrentLanguage())}
-                </div>
-              </div>
-              
-              <div className="p-3 bg-telegram-bg rounded-lg border border-telegram-border">
-                <div className="text-2xl font-bold text-telegram-text">
-                  {statistics.users_count || 0}
-                </div>
-                <div className="text-xs text-telegram-text-secondary">
-                  {t('users', getCurrentLanguage())}
-                </div>
-              </div>
-            </div>
-
-            {/* Дополнительная информация */}
-            <div className="p-3 bg-telegram-bg rounded-lg border border-telegram-border">
-              <h3 className="text-sm font-medium text-telegram-text mb-2">
-                {t('systemInfo', getCurrentLanguage())}
-              </h3>
-              <div className="space-y-1 text-xs text-telegram-text-secondary">
-                <div className="flex justify-between">
-                  <span>{t('version', getCurrentLanguage())}:</span>
-                  <span>1.0.0</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>{t('uptime', getCurrentLanguage())}:</span>
-                  <span>00:15:30</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>{t('memory', getCurrentLanguage())}:</span>
-                  <span>45.2 MB</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>CPU:</span>
-                  <span>2.3%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Действия */}
-            <div className="space-y-2">
-              <button className="w-full flex items-center justify-center px-3 py-2 bg-telegram-bg border border-telegram-border rounded text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                {t('refreshStatistics', getCurrentLanguage())}
-              </button>
-              
-              <button className="w-full flex items-center justify-center px-3 py-2 bg-red-600 border border-red-600 rounded text-white hover:bg-red-700 transition-colors">
-                <Trash2 className="w-4 h-4 mr-2" />
-                {t('resetAllData', getCurrentLanguage())}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

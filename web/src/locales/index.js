@@ -123,15 +123,7 @@ export const locales = {
     usernameOptionalPlaceholder: 'username (необязательно)',
     chatDescriptionPlaceholder: 'Описание чата (необязательно)',
     details: 'Детали',
-    messages: 'Сообщений',
-    responseTime: 'Время ответа',
-    errors: 'Ошибок',
-    systemInfo: 'Системная информация',
-    version: 'Версия',
-    uptime: 'Время работы',
-    memory: 'Память',
-    refreshStatistics: 'Обновить статистику',
-    resetAllData: 'Сбросить все данные',
+
     reconnectError: 'Ошибка переподключения',
     attempt: 'попытка',
     maxReconnectAttemptsExceeded: 'Превышено максимальное количество попыток переподключения',
@@ -163,7 +155,7 @@ export const locales = {
     member: 'Участник',
     creator: 'Создатель',
     events: 'События',
-    statistics: 'Статистика',
+
     
     // Статусы
     connected: 'Подключено',
@@ -315,15 +307,7 @@ export const locales = {
     usernameOptionalPlaceholder: 'username (optional)',
     chatDescriptionPlaceholder: 'Chat description (optional)',
     details: 'Details',
-    messages: 'Messages',
-    responseTime: 'Response time',
-    errors: 'Errors',
-    systemInfo: 'System information',
-    version: 'Version',
-    uptime: 'Uptime',
-    memory: 'Memory',
-    refreshStatistics: 'Refresh statistics',
-    resetAllData: 'Reset all data',
+
     reconnectError: 'Reconnection error',
     attempt: 'attempt',
     maxReconnectAttemptsExceeded: 'Maximum reconnection attempts exceeded',
@@ -355,7 +339,7 @@ export const locales = {
     member: 'Member',
     creator: 'Creator',
     events: 'Events',
-    statistics: 'Statistics',
+
     
     // Status
     connected: 'Connected',

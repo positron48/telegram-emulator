@@ -105,9 +105,7 @@ class WebSocketService {
               case 'debug_event':
                 this.triggerEvent('debug_event', message.data);
                 break;
-              case 'statistics_update':
-                this.triggerEvent('statistics_update', message.data);
-                break;
+
               default:
                 console.log('Unknown message type:', message.type);
             }
