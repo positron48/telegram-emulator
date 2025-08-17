@@ -100,13 +100,13 @@ const Sidebar = ({
 
   return (
     <div className="w-80 bg-telegram-sidebar border-r border-telegram-border flex flex-col">
-      {/* Заголовок */}
+      {/* Header */}
       <div className="p-4 border-b border-telegram-border bg-telegram-bg">
         <h1 className="text-lg font-medium text-telegram-text mb-3">
           Telegram Emulator
         </h1>
         
-        {/* Поиск */}
+        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-telegram-secondary w-4 h-4" />
           <input
@@ -119,7 +119,7 @@ const Sidebar = ({
         </div>
       </div>
 
-      {/* Список чатов */}
+      {/* Chats list */}
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         {filteredChats.length === 0 ? (
           <div className="p-8 text-center">
@@ -143,12 +143,12 @@ const Sidebar = ({
                   onClick={() => onChatSelect(chat)}
                   className="flex items-center p-2 hover:bg-telegram-primary/10 transition-colors cursor-pointer"
                 >
-                {/* Аватар */}
+                {/* Avatar */}
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-telegram-primary to-blue-600 flex items-center justify-center text-white font-medium mr-3 flex-shrink-0 shadow-sm">
                   {chat.type === 'private' ? getChatAvatar(chat) : getChatIcon(chat)}
                 </div>
 
-                {/* Информация о чате */}
+                {/* Chat information */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <h3 className="text-telegram-text font-medium truncate text-sm">
@@ -180,7 +180,7 @@ const Sidebar = ({
 
                 </div>
 
-                {/* Кнопка удаления чата */}
+                {/* Delete chat button */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -200,9 +200,9 @@ const Sidebar = ({
         )}
       </div>
 
-      {/* Нижняя панель */}
+      {/* Bottom panel */}
       <div className="p-4 border-t border-telegram-border bg-telegram-bg">
-        {/* Статус соединения */}
+        {/* Connection status */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center">
             {isConnected ? (
@@ -220,7 +220,7 @@ const Sidebar = ({
             </span>
           </div>
           
-          {/* Кнопка переподключения */}
+          {/* Reconnect button */}
           {!isConnected && !isReconnecting && onReconnect && (
             <button
               onClick={onReconnect}
@@ -232,7 +232,7 @@ const Sidebar = ({
           )}
         </div>
 
-        {/* Кнопки действий */}
+        {/* Action buttons */}
         <div className="grid grid-cols-2 gap-2 mb-2">
           <button
             onClick={onToggleDebug}
@@ -269,7 +269,7 @@ const Sidebar = ({
           </button>
         </div>
 
-        {/* Выбор пользователя */}
+        {/* User selection */}
         <div className="mt-3">
           <UserSelector
             users={users}

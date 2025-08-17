@@ -49,13 +49,13 @@ const DebugPanel = ({ events, onClose }) => {
   };
 
   const clearEvents = () => {
-    // Здесь нужно добавить действие для очистки событий
+    // TODO: Add action to clear events
     console.log('Clear events');
   };
 
   return (
     <div className="w-96 bg-telegram-sidebar border-l border-telegram-border flex flex-col">
-      {/* Заголовок */}
+      {/* Header */}
       <div className="p-4 border-b border-telegram-border bg-telegram-bg flex items-center justify-between">
         <h2 className="text-lg font-medium text-telegram-text">{t('debug', getCurrentLanguage())}</h2>
         <button
@@ -68,34 +68,34 @@ const DebugPanel = ({ events, onClose }) => {
 
 
 
-      {/* Контент */}
+      {/* Content */}
       <div className="flex-1 overflow-hidden">
         <div className="h-full flex flex-col">
-            {/* Панель действий */}
+            {/* Action panel */}
             <div className="p-3 border-b border-telegram-border flex space-x-2">
               <button
                 onClick={clearEvents}
                 className="flex items-center px-3 py-1 bg-telegram-bg border border-telegram-border rounded text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors"
               >
                 <Trash2 className="w-4 h-4 mr-1" />
-                Очистить
+                {t('clear', getCurrentLanguage())}
               </button>
               <button
                 onClick={exportLogs}
                 className="flex items-center px-3 py-1 bg-telegram-bg border border-telegram-border rounded text-telegram-text hover:bg-telegram-primary hover:border-telegram-primary transition-colors"
               >
                 <Download className="w-4 h-4 mr-1" />
-                Экспорт
+                {t('export', getCurrentLanguage())}
               </button>
             </div>
 
-            {/* Список событий */}
+            {/* Events list */}
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {events.length === 0 ? (
                 <div className="text-center py-8">
                   <Info className="w-8 h-8 text-telegram-secondary mx-auto mb-2" />
                   <p className="text-telegram-text-secondary text-sm">
-                    Нет событий для отображения
+                    {t('noEventsToDisplay', getCurrentLanguage())}
                   </p>
                 </div>
               ) : (

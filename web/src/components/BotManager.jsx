@@ -51,18 +51,18 @@ const BotManager = ({ isOpen, onClose }) => {
       await apiService.deleteBot(botId);
       addDebugEvent({
         id: `bot-deleted-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: new Date().toLocaleTimeString('ru-RU'),
+        timestamp: new Date().toLocaleTimeString(getCurrentLanguage() === 'ru' ? 'ru-RU' : 'en-US'),
         type: 'warning',
-        description: 'Бот удален'
+        description: t('botDeleted', getCurrentLanguage())
       });
-      loadBots(); // Перезагружаем список
+      loadBots(); // Reload list
     } catch (error) {
       console.error('Failed to delete bot:', error);
       addDebugEvent({
         id: `bot-delete-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: new Date().toLocaleTimeString('ru-RU'),
+        timestamp: new Date().toLocaleTimeString(getCurrentLanguage() === 'ru' ? 'ru-RU' : 'en-US'),
         type: 'error',
-        description: `Ошибка удаления бота: ${error.message}`
+        description: `${t('botDeletionError', getCurrentLanguage())}: ${error.message}`
       });
     }
   };
@@ -80,9 +80,9 @@ const BotManager = ({ isOpen, onClose }) => {
         ));
         addDebugEvent({
           id: `bot-toggle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: new Date().toLocaleTimeString('ru-RU'),
+          timestamp: new Date().toLocaleTimeString(getCurrentLanguage() === 'ru' ? 'ru-RU' : 'en-US'),
           type: 'info',
-          description: `Бот ${response.bot.name} ${response.bot.is_active ? 'активирован' : 'деактивирован'}`
+          description: `${response.bot.name} ${response.bot.is_active ? t('botActivated', getCurrentLanguage()) : t('botDeactivated', getCurrentLanguage())}`
         });
       }
     } catch (error) {
@@ -95,9 +95,9 @@ const BotManager = ({ isOpen, onClose }) => {
     navigator.clipboard.writeText(text);
     addDebugEvent({
       id: `copy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toLocaleTimeString('ru-RU'),
+      timestamp: new Date().toLocaleTimeString(getCurrentLanguage() === 'ru' ? 'ru-RU' : 'en-US'),
       type: 'info',
-      description: 'Скопировано в буфер обмена'
+      description: t('copiedToClipboard', getCurrentLanguage())
     });
   };
 
@@ -106,7 +106,7 @@ const BotManager = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-telegram-sidebar rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
-        {/* Заголовок */}
+        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-telegram-border">
           <h2 className="text-lg font-medium text-telegram-text">
             {t('botManagement', getCurrentLanguage())}
@@ -119,16 +119,16 @@ const BotManager = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Содержимое */}
+        {/* Content */}
         <div className="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
-          {/* Ошибка */}
+          {/* Error */}
           {error && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
               <p className="text-red-500 text-sm">{error}</p>
             </div>
           )}
 
-          {/* Кнопка создания */}
+          {/* Create button */}
           <div className="mb-4">
             <button
               onClick={() => setShowCreateModal(true)}
@@ -139,7 +139,7 @@ const BotManager = ({ isOpen, onClose }) => {
             </button>
           </div>
 
-          {/* Список ботов */}
+          {/* Bots list */}
           {isLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-telegram-primary mx-auto mb-4"></div>
@@ -197,7 +197,7 @@ const BotManager = ({ isOpen, onClose }) => {
                     </div>
                   </div>
 
-                  {/* Информация о боте */}
+                  {/* Bot information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-telegram-text-secondary mb-1">{t('token', getCurrentLanguage())}:</p>
@@ -234,7 +234,7 @@ const BotManager = ({ isOpen, onClose }) => {
                     )}
                   </div>
 
-                  {/* Статус */}
+                  {/* Status */}
                   <div className="mt-3 flex items-center justify-between">
                     <div className="flex items-center">
                       <div className={`w-2 h-2 rounded-full mr-2 ${
@@ -256,7 +256,7 @@ const BotManager = ({ isOpen, onClose }) => {
           )}
         </div>
 
-        {/* Модальное окно создания бота */}
+        {/* Create bot modal */}
         <CreateBotModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
@@ -266,7 +266,7 @@ const BotManager = ({ isOpen, onClose }) => {
           }}
         />
 
-        {/* Модальное окно редактирования бота */}
+        {/* Edit bot modal */}
         <EditBotModal
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}

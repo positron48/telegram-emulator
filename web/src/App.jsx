@@ -53,13 +53,13 @@ function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isWebSocketSetup, setIsWebSocketSetup] = useState(false);
 
-  // Единый useEffect для инициализации
+  // Single useEffect for initialization
   useEffect(() => {
     const init = async () => {
       if (isInitialized) return;
       
       try {
-        // Инициализируем тему и язык
+        // Initialize theme and language
         initializeThemeAndLanguage();
         
         await initializeApp();
@@ -70,15 +70,15 @@ function App() {
     };
 
     init();
-  }, []); // Пустой массив зависимостей
+  }, []); // Empty dependency array
 
-  // WebSocket подключение при инициализации и смене пользователя
+  // WebSocket connection on initialization and user change
   useEffect(() => {
     if (!isInitialized || !currentUser) return;
 
     const setup = async () => {
       try {
-        // Отключаем предыдущее соединение если есть
+        // Disconnect previous connection if exists
         if (wsService.connected) {
           wsService.disconnect();
         }
@@ -91,14 +91,14 @@ function App() {
     };
 
     setup();
-  }, [isInitialized, currentUser?.id]); // Добавляем currentUser.id в зависимости
+  }, [isInitialized, currentUser?.id]); // Add currentUser.id to dependencies
 
-  // Обработчики WebSocket событий
+  // WebSocket event handlers
   useEffect(() => {
-    // Регистрируем обработчики независимо от состояния подключения
-    // чтобы они работали при переподключении
+    // Register handlers regardless of connection state
+    // so they work on reconnection
 
-    // Подписываемся на события
+    // Subscribe to events
     const handleMessage = (data) => {
       console.log('🔍 Received message data:', {
         id: data.id,
@@ -108,21 +108,21 @@ function App() {
         chat_id: data.chat_id,
         status: data.status
       });
-      // Проверяем, является ли сообщение от текущего пользователя
+      // Check if message is from current user
       const isOwnMessage = data.from?.id === currentUser?.id;
       
-      // Проверяем, есть ли уже временное сообщение с таким же текстом и отправителем
+      // Check if there's already a temporary message with the same text and sender
       const currentState = useStore.getState();
       const existingMessages = currentState.messages[data.chat_id] || [];
       
-      // Ищем временное сообщение по тексту и отправителю
+      // Look for temporary message by text and sender
       let tempMessageIndex = existingMessages.findIndex(msg => 
         msg.id.startsWith('temp-') && 
         msg.text === data.text && 
         (msg.from?.id === data.from?.id || msg.from_id === data.from?.id)
       );
       
-      // Если не найдено, попробуем найти по тексту среди сообщений от текущего пользователя
+      // If not found, try to find by text among messages from current user
       if (tempMessageIndex === -1 && isOwnMessage) {
         tempMessageIndex = existingMessages.findIndex(msg => 
           msg.id.startsWith('temp-') && 
@@ -130,14 +130,14 @@ function App() {
         );
       }
       
-      // Если все еще не найдено, попробуем найти самое последнее временное сообщение от текущего пользователя
+      // If still not found, try to find the latest temporary message from current user
       if (tempMessageIndex === -1 && isOwnMessage) {
         const tempMessages = existingMessages.filter(msg => 
           msg.id.startsWith('temp-') && 
           (msg.from?.id === currentUser?.id || msg.from_id === currentUser?.id)
         );
         if (tempMessages.length > 0) {
-          // Берем самое последнее временное сообщение
+          // Take the latest temporary message
           const lastTempMessage = tempMessages[tempMessages.length - 1];
           tempMessageIndex = existingMessages.findIndex(msg => msg.id === lastTempMessage.id);
         }
@@ -155,31 +155,31 @@ function App() {
       });
 
       if (tempMessageIndex !== -1) {
-        // Заменяем временное сообщение на реальное
+        // Replace temporary message with real one
         const updatedMessages = [...existingMessages];
         updatedMessages[tempMessageIndex] = {
           ...data,
-          is_outgoing: true, // Помечаем как исходящее
-          status: data.status || 'sent' // Устанавливаем статус из полученного сообщения
+          is_outgoing: true, // Mark as outgoing
+          status: data.status || 'sent' // Set status from received message
         };
         setMessages(data.chat_id, updatedMessages);
         
         console.log(`✅ Temporary message replaced: ${existingMessages[tempMessageIndex].id} -> ${data.id} with status: ${data.status}`);
       } else if (!isOwnMessage) {
-        // Добавляем новое сообщение только если оно не от текущего пользователя
+        // Add new message only if it's not from current user
         addMessage(data.chat_id, {
           ...data,
-          is_outgoing: false // Помечаем как входящее
+          is_outgoing: false // Mark as incoming
         });
         
         addDebugEvent({
           id: `message-new-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+          timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
           type: 'message',
-          description: `Новое сообщение от ${data.from?.username} в чате ${data.chat_id}`
+          description: `${t('newMessageFrom', getCurrentLanguage())} ${data.from?.username} ${t('inChat', getCurrentLanguage())} ${data.chat_id}`
         });
       } else if (isOwnMessage) {
-        // Логируем случаи, когда собственное сообщение не заменило временное
+        // Log cases when own message didn't replace temporary one
         console.log(`❌ Own message received but no temp message found:`, {
           messageId: data.id,
           text: data.text,
@@ -192,16 +192,16 @@ function App() {
           }))
         });
       }
-      // Игнорируем собственные сообщения без логирования - это нормальное поведение
+      // Ignore own messages without logging - this is normal behavior
     };
 
     const handleChatUpdate = (data) => {
       updateChat(data.id, data);
-      // Не логируем обновления чатов - это нормальное поведение
+      // Don't log chat updates - this is normal behavior
     };
 
     const handleUserUpdate = (data) => {
-      // Не логируем обновления пользователей - это нормальное поведение
+      // Don't log user updates - this is normal behavior
     };
 
     const handleDebugEvent = (data) => {
@@ -216,7 +216,7 @@ function App() {
 
     const handleMessageStatusUpdate = (data) => {
       updateMessageStatus(data.message_id, data.status);
-      // Логируем для отладки проблем со статусами
+      // Log for debugging status issues
       console.log(`Status update: ${data.message_id} -> ${data.status}`);
     };
 
@@ -227,23 +227,23 @@ function App() {
       setReconnecting(false);
       addDebugEvent({
         id: `disconnect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'error',
-        description: 'WebSocket соединение разорвано'
+        description: t('websocketConnectionError', getCurrentLanguage())
       });
     };
 
     const handleReconnecting = (data) => {
       setReconnecting(true);
-      // Не логируем стандартное переподключение в отладку - это нормальное поведение
+      // Don't log standard reconnection to debug - this is normal behavior
       console.log(`WebSocket reconnecting (${data.attempt}/${data.maxAttempts})`);
     };
 
     const handleReconnectError = (data) => {
-      // Логируем только неудачные попытки переподключения (не первую)
+      // Log only failed reconnection attempts (not the first one)
       addDebugEvent({
         id: `reconnect-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'error',
         description: `${t('reconnectError', getCurrentLanguage())} (${t('attempt', getCurrentLanguage())} ${data.attempt}): ${data.error.message || t('unknownError', getCurrentLanguage())}`
       });
@@ -253,7 +253,7 @@ function App() {
       setReconnecting(false);
       addDebugEvent({
         id: `reconnect-failed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'error',
         description: t('maxReconnectAttemptsExceeded', getCurrentLanguage())
       });
@@ -264,7 +264,7 @@ function App() {
       setReconnecting(false);
       addDebugEvent({
         id: `connect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'info',
         description: t('websocketConnected', getCurrentLanguage())
       });
@@ -275,13 +275,13 @@ function App() {
       setReconnecting(false);
       addDebugEvent({
         id: `connect-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'error',
         description: `${t('websocketConnectionError', getCurrentLanguage())}: ${data.error?.message || t('unknownError', getCurrentLanguage())}`
       });
     };
 
-    // Регистрируем обработчики
+    // Register handlers
     wsService.on('connect', handleConnect);
     wsService.on('connect_error', handleConnectError);
     wsService.on('message', handleMessage);
@@ -295,7 +295,7 @@ function App() {
     wsService.on('reconnect_error', handleReconnectError);
     wsService.on('reconnect_failed', handleReconnectFailed);
 
-    // Очистка обработчиков
+    // Cleanup handlers
     return () => {
       wsService.off('connect', handleConnect);
       wsService.off('connect_error', handleConnectError);
@@ -310,23 +310,23 @@ function App() {
       wsService.off('reconnect_error', handleReconnectError);
       wsService.off('reconnect_failed', handleReconnectFailed);
     };
-      }, [currentUser?.id]); // Убираем isConnected из зависимостей, чтобы обработчики работали при переподключении
+      }, [currentUser?.id]); // Remove isConnected from dependencies so handlers work on reconnection
 
   const initializeThemeAndLanguage = () => {
     try {
-      // Загружаем настройки из localStorage
+      // Load settings from localStorage
       const savedSettings = localStorage.getItem('telegram-emulator-settings');
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
         
-        // Применяем тему
+        // Apply theme
         if (settings.theme === 'dark') {
           document.documentElement.classList.add('dark');
         } else {
           document.documentElement.classList.remove('dark');
         }
         
-        // Применяем язык
+        // Apply language
         if (settings.language) {
           setLanguage(settings.language);
         }
@@ -341,12 +341,12 @@ function App() {
       setLoading(true);
       addDebugEvent({
         id: `init-start-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'info',
         description: t('appInitialization', getCurrentLanguage())
       });
 
-      // Загружаем пользователей
+      // Load users
       const usersResponse = await apiService.getUsers();
       setUsers(usersResponse.users || []);
       
@@ -354,24 +354,24 @@ function App() {
         setCurrentUser(usersResponse.users[0]);
         addDebugEvent({
           id: `user-select-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+          timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
           type: 'info',
-          description: `Выбран пользователь: ${usersResponse.users[0].username}`
+          description: `${t('user', getCurrentLanguage())} selected: ${usersResponse.users[0].username}`
         });
       }
 
-      // Загружаем чаты
+      // Load chats
       const chatsResponse = await apiService.getChats(usersResponse.users[0]?.id);
       setChats(chatsResponse.chats || []);
       
       addDebugEvent({
         id: `chats-loaded-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'info',
-        description: `Загружено чатов: ${chatsResponse.chats?.length || 0}`
+        description: `${t('chatsLoaded', getCurrentLanguage())}: ${chatsResponse.chats?.length || 0}`
       });
 
-      // Загружаем сообщения для каждого чата
+      // Load messages for each chat
       if (chatsResponse.chats) {
         for (const chat of chatsResponse.chats) {
           try {
@@ -409,16 +409,16 @@ function App() {
 
   const setupWebSocket = async () => {
     try {
-      // Подключаемся к WebSocket с user_id текущего пользователя
+      // Connect to WebSocket with current user's user_id
       const userId = currentUser?.id || 'anonymous';
       await wsService.connect('ws://localhost:3001/ws', userId);
       setConnected(true);
       
       addDebugEvent({
         id: `ws-connect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'info',
-        description: `WebSocket соединение установлено для пользователя ${currentUser?.username || 'anonymous'}`
+        description: `${t('websocketConnected', getCurrentLanguage())} for user ${currentUser?.username || 'anonymous'}`
       });
 
     } catch (error) {
@@ -426,9 +426,9 @@ function App() {
       setConnected(false);
       addDebugEvent({
         id: `ws-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'error',
-        description: `Ошибка WebSocket: ${error.message}`
+        description: `${t('websocketConnectionError', getCurrentLanguage())}: ${error.message}`
       });
     }
   };
@@ -437,7 +437,7 @@ function App() {
     if (!currentChat || !currentUser || !text.trim()) return;
 
     try {
-      // Создаем временное сообщение для оптимистичного обновления UI
+      // Create temporary message for optimistic UI update
       const tempMessage = {
         id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         chat_id: currentChat.id,
@@ -450,10 +450,10 @@ function App() {
         is_outgoing: true
       };
 
-      // Добавляем сообщение в локальное состояние сразу
+      // Add message to local state immediately
       addMessage(currentChat.id, tempMessage);
       
-      // Очищаем старые временные сообщения (оставляем только последние 5)
+      // Clean up old temporary messages (keep only last 5)
       const currentState = useStore.getState();
       const currentMessages = currentState.messages[currentChat.id] || [];
       const tempMessages = currentMessages.filter(msg => msg.id.startsWith('temp-'));
@@ -464,7 +464,7 @@ function App() {
         console.log(`🧹 Cleaned up ${messagesToRemove.length} old temp messages`);
       }
 
-      // Fallback: если через 3 секунды сообщение не заменилось, обновляем статус вручную
+      // Fallback: if after 3 seconds message wasn't replaced, update status manually
       setTimeout(() => {
         const currentState = useStore.getState();
         const currentMessages = currentState.messages[currentChat.id] || [];
@@ -479,15 +479,15 @@ function App() {
         }
       }, 3000);
 
-      // Отправляем сообщение через WebSocket
+      // Send message via WebSocket
       if (wsService.connected) {
         wsService.sendMessage(currentChat.id, text.trim(), currentUser.id);
       } else {
         addDebugEvent({
           id: `ws-not-connected-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+          timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
           type: 'error',
-          description: 'WebSocket не подключен, сообщение не отправлено'
+          description: t('websocketConnectionError', getCurrentLanguage())
         });
       }
       
@@ -495,9 +495,9 @@ function App() {
       console.error('Failed to send message:', error);
       addDebugEvent({
         id: `send-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'error',
-        description: `Ошибка отправки сообщения: ${error.message}`
+        description: `${t('failedToSave', getCurrentLanguage())}: ${error.message}`
       });
     }
   };
@@ -505,11 +505,11 @@ function App() {
   const handleDeleteUser = async (userId) => {
     try {
       await apiService.deleteUser(userId);
-      // Обновляем список пользователей
+      // Update users list
       const usersResponse = await apiService.getUsers();
       setUsers(usersResponse.users || []);
       
-      // Если удаленный пользователь был текущим, выбираем первого доступного
+      // If deleted user was current, select first available
       if (currentUser?.id === userId) {
         const remainingUsers = usersResponse.users.filter(u => u.id !== userId);
         if (remainingUsers.length > 0) {
@@ -524,7 +524,7 @@ function App() {
       
       addDebugEvent({
         id: `user-deleted-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'warning',
         description: t('userDeleted', getCurrentLanguage())
       });
@@ -532,9 +532,9 @@ function App() {
       console.error('Failed to delete user:', error);
       addDebugEvent({
         id: `user-delete-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'error',
-        description: `Ошибка удаления пользователя: ${error.message}`
+        description: `${t('failedToDelete', getCurrentLanguage())}: ${error.message}`
       });
     }
   };
@@ -543,18 +543,18 @@ function App() {
     try {
       await apiService.deleteChat(chatId);
       
-      // Обновляем список чатов
+      // Update chats list
       const chatsResponse = await apiService.getChats(currentUser?.id);
       setChats(chatsResponse.chats || []);
       
-      // Если удаленный чат был текущим, очищаем выбор
+      // If deleted chat was current, clear selection
       if (currentChat?.id === chatId) {
         useStore.getState().setCurrentChat(null);
       }
       
       addDebugEvent({
         id: `chat-deleted-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'warning',
         description: t('chatDeleted', getCurrentLanguage())
       });
@@ -562,9 +562,9 @@ function App() {
       console.error('Failed to delete chat:', error);
       addDebugEvent({
         id: `chat-delete-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'error',
-        description: `Ошибка удаления чата: ${error.message}`
+        description: `${t('failedToDelete', getCurrentLanguage())}: ${error.message}`
       });
     }
   };
@@ -573,7 +573,7 @@ function App() {
     try {
       addDebugEvent({
         id: `manual-reconnect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'info',
         description: t('manualWebSocketReconnect', getCurrentLanguage())
       });
@@ -582,17 +582,17 @@ function App() {
       
       addDebugEvent({
         id: `manual-reconnect-success-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'info',
-        description: 'WebSocket успешно переподключен'
+        description: t('websocketConnected', getCurrentLanguage())
       });
     } catch (error) {
       console.error('Manual reconnection failed:', error);
       addDebugEvent({
         id: `manual-reconnect-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
         type: 'error',
-        description: `Ошибка ручного переподключения: ${error.message}`
+        description: `${t('reconnectError', getCurrentLanguage())}: ${error.message}`
       });
     }
   };
@@ -613,13 +613,13 @@ function App() {
       <div className="flex items-center justify-center h-screen bg-telegram-bg">
         <div className="text-center">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold text-telegram-text mb-2">Ошибка загрузки</h1>
+          <h1 className="text-2xl font-bold text-telegram-text mb-2">{t('loadingError', getCurrentLanguage())}</h1>
           <p className="text-telegram-text-secondary mb-4">{error}</p>
           <button 
             onClick={initializeApp}
             className="bg-telegram-primary text-white px-4 py-2 rounded-lg hover:bg-telegram-primary/80 transition-colors"
           >
-            Попробовать снова
+            {t('tryAgain', getCurrentLanguage())}
           </button>
         </div>
       </div>
@@ -628,7 +628,7 @@ function App() {
 
   return (
     <div className="flex h-screen bg-telegram-bg">
-      {/* Боковая панель */}
+      {/* Sidebar */}
       <Sidebar 
         chats={chats}
         currentChat={currentChat}
@@ -648,7 +648,7 @@ function App() {
         onReconnect={handleReconnect}
       />
 
-      {/* Основная область чата */}
+      {/* Main chat area */}
       <div className="flex-1 flex flex-col">
         <ChatWindow
           chat={currentChat}
@@ -659,7 +659,7 @@ function App() {
         />
       </div>
 
-      {/* Панель отладки */}
+      {/* Debug panel */}
       {showDebugPanel && (
         <DebugPanel
           events={debugEvents}
@@ -667,7 +667,7 @@ function App() {
         />
       )}
 
-      {/* Модальные окна */}
+      {/* Modal windows */}
       <CreateUserModal
         isOpen={showCreateUserModal}
         onClose={() => setShowCreateUserModal(false)}

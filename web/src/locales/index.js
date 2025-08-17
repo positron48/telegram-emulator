@@ -155,7 +155,29 @@ export const locales = {
     member: 'Участник',
     creator: 'Создатель',
     events: 'События',
-
+    
+    // Debug events
+    botUpdated: 'Обновлен бот',
+    botCreated: 'Создан новый бот',
+    userCreated: 'Создан новый пользователь',
+    chatCreated: 'Создан новый чат',
+    copiedToClipboard: 'Скопировано в буфер обмена',
+    settingChanged: 'Настройка изменена',
+    settingsSaved: 'Настройки сохранены',
+    settingsSaveError: 'Ошибка сохранения настроек',
+    clear: 'Очистить',
+    export: 'Экспорт',
+    noEventsToDisplay: 'Нет событий для отображения',
+    botDeleted: 'Бот удален',
+    botDeletionError: 'Ошибка удаления бота',
+    botActivated: 'Бот активирован',
+    botDeactivated: 'Бот деактивирован',
+    newMessageFrom: 'Новое сообщение от',
+    inChat: 'в чате',
+    userSelected: 'Выбран пользователь',
+    chatsLoaded: 'Загружено чатов',
+    loadingError: 'Ошибка загрузки',
+    tryAgain: 'Попробовать снова',
     
     // Статусы
     connected: 'Подключено',
@@ -339,7 +361,29 @@ export const locales = {
     member: 'Member',
     creator: 'Creator',
     events: 'Events',
-
+    
+    // Debug events
+    botUpdated: 'Bot updated',
+    botCreated: 'Bot created',
+    userCreated: 'User created',
+    chatCreated: 'Chat created',
+    copiedToClipboard: 'Copied to clipboard',
+    settingChanged: 'Setting changed',
+    settingsSaved: 'Settings saved',
+    settingsSaveError: 'Settings save error',
+    clear: 'Clear',
+    export: 'Export',
+    noEventsToDisplay: 'No events to display',
+    botDeleted: 'Bot deleted',
+    botDeletionError: 'Bot deletion error',
+    botActivated: 'Bot activated',
+    botDeactivated: 'Bot deactivated',
+    newMessageFrom: 'New message from',
+    inChat: 'in chat',
+    userSelected: 'User selected',
+    chatsLoaded: 'Chats loaded',
+    loadingError: 'Loading error',
+    tryAgain: 'Try again',
     
     // Status
     connected: 'Connected',

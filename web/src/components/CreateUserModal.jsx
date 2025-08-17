@@ -42,9 +42,9 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
         addUser(response.user);
         addDebugEvent({
           id: `user-created-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: new Date().toLocaleTimeString('ru-RU'),
+          timestamp: new Date().toLocaleTimeString(getCurrentLanguage() === 'ru' ? 'ru-RU' : 'en-US'),
           type: 'info',
-          description: `Создан новый пользователь: ${response.user.username}`
+          description: `${t('userCreated', getCurrentLanguage())}: ${response.user.username}`
         });
         
         onUserCreated?.(response.user);
@@ -75,7 +75,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-telegram-sidebar rounded-lg shadow-xl max-w-md w-full mx-4">
-        {/* Заголовок */}
+        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-telegram-border">
           <h2 className="text-lg font-medium text-telegram-text">
             {t('createUser', getCurrentLanguage())}
@@ -88,9 +88,9 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
           </button>
         </div>
 
-        {/* Форма */}
+        {/* Form */}
         <form onSubmit={handleSubmit} className="p-4">
-          {/* Тип пользователя */}
+          {/* User Type */}
           <div className="mb-4">
             <label className="flex items-center cursor-pointer">
               <input
@@ -113,7 +113,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
             </label>
           </div>
 
-          {/* Имя пользователя */}
+          {/* Username */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
               {t('username', getCurrentLanguage())} *
@@ -129,7 +129,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
             />
           </div>
 
-          {/* Имя */}
+          {/* First Name */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
               {t('firstName', getCurrentLanguage())} *
@@ -145,7 +145,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
             />
           </div>
 
-          {/* Фамилия */}
+          {/* Last Name */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-telegram-text mb-2">
               {t('lastName', getCurrentLanguage())}
@@ -160,14 +160,14 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
             />
           </div>
 
-          {/* Ошибка */}
+          {/* Error */}
           {error && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
               <p className="text-red-500 text-sm">{error}</p>
             </div>
           )}
 
-          {/* Кнопки */}
+          {/* Buttons */}
           <div className="flex space-x-3">
             <button
               type="button"

@@ -41,9 +41,9 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
       if (response.bot) {
         addDebugEvent({
           id: `bot-created-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: new Date().toLocaleTimeString('ru-RU'),
+          timestamp: new Date().toLocaleTimeString(getCurrentLanguage() === 'ru' ? 'ru-RU' : 'en-US'),
           type: 'info',
-          description: `Создан новый бот: ${response.bot.name}`
+          description: `${t('botCreated', getCurrentLanguage())}: ${response.bot.name}`
         });
         
         onBotCreated?.(response.bot);
@@ -74,7 +74,7 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-telegram-sidebar rounded-lg shadow-xl max-w-md w-full mx-4">
-        {/* Заголовок */}
+        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-telegram-border">
           <h2 className="text-lg font-medium text-telegram-text">
             {t('createBot', getCurrentLanguage())}
@@ -87,12 +87,12 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
           </button>
         </div>
 
-        {/* Форма */}
+        {/* Form */}
         <form onSubmit={handleSubmit} className="p-4">
-          {/* Название */}
+          {/* Name */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Название *
+              {t('title', getCurrentLanguage())} *
             </label>
             <input
               type="text"
@@ -108,7 +108,7 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
           {/* Username */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Username *
+              {t('username', getCurrentLanguage())} *
             </label>
             <input
               type="text"
@@ -121,10 +121,10 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
             />
           </div>
 
-          {/* Токен */}
+          {/* Token */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Токен
+              {t('token', getCurrentLanguage())}
             </label>
             <input
               type="text"
@@ -139,7 +139,7 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
           {/* Webhook URL */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-telegram-text mb-2">
-              Webhook URL
+              {t('webhookUrl', getCurrentLanguage())}
             </label>
             <input
               type="url"
@@ -151,28 +151,28 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
             />
           </div>
 
-          {/* Ошибка */}
+          {/* Error */}
           {error && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
               <p className="text-red-500 text-sm">{error}</p>
             </div>
           )}
 
-          {/* Кнопки */}
+          {/* Buttons */}
           <div className="flex space-x-3">
             <button
               type="button"
               onClick={handleClose}
               className="flex-1 px-4 py-2 bg-telegram-bg border border-telegram-border rounded-lg text-telegram-text hover:bg-telegram-primary/10 transition-colors"
             >
-              Отмена
+              {t('cancel', getCurrentLanguage())}
             </button>
             <button
               type="submit"
               disabled={isLoading}
               className="flex-1 px-4 py-2 bg-telegram-primary text-white rounded-lg hover:bg-telegram-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Создание...' : 'Создать'}
+              {isLoading ? t('creating', getCurrentLanguage()) : t('create', getCurrentLanguage())}
             </button>
           </div>
         </form>

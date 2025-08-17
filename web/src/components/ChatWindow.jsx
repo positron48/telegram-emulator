@@ -12,12 +12,12 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Автоскролл к последнему сообщению
+  // Auto-scroll to last message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Фокус на поле ввода при смене чата
+  // Focus on input field when chat changes
   useEffect(() => {
     if (chat) {
       inputRef.current?.focus();
@@ -92,7 +92,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
 
   return (
     <div className="flex-1 flex flex-col bg-telegram-bg h-full">
-      {/* Заголовок чата */}
+      {/* Chat header */}
       <div className="flex items-center p-4 border-b border-telegram-border bg-telegram-sidebar">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-telegram-primary to-blue-600 flex items-center justify-center text-white font-medium mr-3 shadow-sm">
           {getChatAvatar()}
@@ -112,7 +112,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
           )}
         </div>
         
-        {/* Кнопка управления участниками (только для групп) */}
+        {/* Members management button (only for groups) */}
         {chat.type === 'group' && onShowMembers && (
           <button
             onClick={onShowMembers}
@@ -124,7 +124,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
         )}
       </div>
 
-      {/* Область сообщений */}
+      {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ height: 'calc(100vh - 200px)' }}>
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
@@ -153,10 +153,10 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
         )}
       </div>
 
-      {/* Поле ввода */}
+      {/* Input field */}
       <div className="p-4 border-t border-telegram-border bg-telegram-sidebar">
         <div className="flex items-end space-x-2">
-          {/* Кнопки действий */}
+          {/* Action buttons */}
           <div className="flex space-x-1">
             <button className="p-2 text-telegram-secondary hover:text-telegram-text transition-colors">
               <Paperclip className="w-5 h-5" />
@@ -166,7 +166,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
             </button>
           </div>
 
-          {/* Поле ввода */}
+          {/* Input field */}
           <div className="flex-1 relative">
             <textarea
               ref={inputRef}
@@ -183,7 +183,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
             />
           </div>
 
-          {/* Кнопка отправки */}
+          {/* Send button */}
           <div className="flex space-x-1">
             <button className="p-2 text-telegram-secondary hover:text-telegram-text transition-colors">
               <Mic className="w-5 h-5" />
@@ -203,7 +203,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
           </div>
         </div>
 
-        {/* Индикатор печати убран - не нужен для отправителя */}
+        {/* Typing indicator removed - not needed for sender */}
       </div>
     </div>
   );

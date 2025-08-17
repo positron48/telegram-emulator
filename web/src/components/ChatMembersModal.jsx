@@ -21,7 +21,7 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
     }
   }, [isOpen, chat]);
 
-  // Обновляем список доступных пользователей при изменении участников
+  // Update available users list when members change
   useEffect(() => {
     if (isOpen && chat) {
       loadAvailableUsers();
@@ -35,7 +35,7 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
     setError('');
     
     try {
-      // Получаем участников чата
+      // Get chat members
       const response = await apiService.getChatMembers(chat.id);
       setMembers(response.members || []);
     } catch (error) {
@@ -48,8 +48,8 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
 
   const loadAvailableUsers = async () => {
     try {
-      // Получаем всех пользователей, которые не в чате
-      // Используем актуальный список участников из состояния members
+      // Get all users who are not in the chat
+      // Use current members list from state
       const chatMemberIds = members.map(m => m.id);
       const available = users.filter(user => !chatMemberIds.includes(user.id));
       setAvailableUsers(available);
@@ -77,10 +77,10 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
       
       setSuccessMessage(t('memberAddedSuccess', getCurrentLanguage()));
       
-      // Перезагружаем данные
+      // Reload data
       await loadMembers();
       
-      // Очищаем уведомление через 3 секунды
+      // Clear notification after 3 seconds
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       console.error('Failed to add member:', error);
@@ -114,10 +114,10 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
       
       setSuccessMessage(t('memberRemovedSuccess', language));
       
-      // Перезагружаем данные
+      // Reload data
       await loadMembers();
       
-      // Очищаем уведомление через 3 секунды
+      // Clear notification after 3 seconds
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       console.error('Failed to remove member:', error);
@@ -132,7 +132,7 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
       return t('participant', getCurrentLanguage());
     }
     
-    // Для групп и каналов можно добавить логику ролей
+    // For groups and channels, role logic can be added
     if (member.id === chat?.created_by) {
       return t('creator', getCurrentLanguage());
     }
@@ -147,7 +147,7 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-telegram-sidebar rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden">
-        {/* Заголовок */}
+        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-telegram-border">
           <div className="flex items-center">
             <Users className="w-5 h-5 text-telegram-primary mr-2" />
@@ -163,23 +163,23 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
           </button>
         </div>
 
-        {/* Содержимое */}
+        {/* Content */}
         <div className="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
-          {/* Ошибка */}
+          {/* Error */}
           {error && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
               <p className="text-red-500 text-sm">{error}</p>
             </div>
           )}
 
-          {/* Успех */}
+          {/* Success */}
           {successMessage && (
             <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
               <p className="text-green-500 text-sm">{successMessage}</p>
             </div>
           )}
 
-          {/* Текущие участники */}
+          {/* Current members */}
           <div className="mb-6">
             <h3 className="text-md font-medium text-telegram-text mb-3">
               {t('currentMembers', language)} ({members.length})
@@ -240,7 +240,7 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
             )}
           </div>
 
-          {/* Добавление участников (только для групп) */}
+          {/* Adding members (only for groups) */}
           {chat.type === 'group' && (
             <div>
               <h3 className="text-md font-medium text-telegram-text mb-3">

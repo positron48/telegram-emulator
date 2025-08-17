@@ -9,7 +9,7 @@ A web-based Telegram emulator for local bot testing and development. The emulato
 ## 🚀 Features
 
 ### ✅ Implemented
-- **Full Telegram Bot API** - compatible with the official API
+- **Telegram Bot API** - compatible with the official API
 - **Web Interface** - similar to Telegram
 - **Bot Management** - create, edit, activate/deactivate bots
 - **Chat System** - private and group chats
@@ -236,27 +236,6 @@ curl "http://localhost:3001/bot1234567890:ABCdefGHIjklMNOpqrsTUVwxyz/getWebhookI
 
 - [Specification](TELEGRAM_EMULATOR_SPECIFICATION.md) - complete technical specification
 - [Bot Example](examples/) - usage example
-- [API Documentation](docs/api.md) - API method descriptions
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-If you have questions or issues:
-
-1. Check [Issues](https://github.com/your-repo/issues)
-2. Create a new Issue with problem description
-3. Attach logs and configuration
 
 ---
 

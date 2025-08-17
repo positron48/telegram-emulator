@@ -11,7 +11,7 @@ const SettingsPanel = ({ isOpen, onClose }) => {
 
   const { addDebugEvent } = useStore();
 
-  // Загружаем настройки из localStorage при открытии
+  // Load settings from localStorage when opening
   useEffect(() => {
     if (isOpen) {
       const savedSettings = localStorage.getItem('telegram-emulator-settings');
@@ -24,7 +24,7 @@ const SettingsPanel = ({ isOpen, onClose }) => {
         }
       }
       
-      // Загружаем язык из localStorage
+      // Load language from localStorage
       const currentLanguage = getCurrentLanguage();
       setSettings(prev => ({ ...prev, language: currentLanguage }));
     }
@@ -38,9 +38,9 @@ const SettingsPanel = ({ isOpen, onClose }) => {
 
     addDebugEvent({
       id: `setting-change-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toLocaleTimeString('ru-RU'),
+      timestamp: new Date().toLocaleTimeString(getCurrentLanguage() === 'ru' ? 'ru-RU' : 'en-US'),
       type: 'info',
-      description: `Настройка изменена: ${key} = ${value}`
+      description: `${t('settingChanged', getCurrentLanguage())}: ${key} = ${value}`
     });
   };
 
@@ -50,12 +50,12 @@ const SettingsPanel = ({ isOpen, onClose }) => {
       
       addDebugEvent({
         id: `settings-saved-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: new Date().toLocaleTimeString('ru-RU'),
+        timestamp: new Date().toLocaleTimeString(getCurrentLanguage() === 'ru' ? 'ru-RU' : 'en-US'),
         type: 'success',
-        description: 'Настройки сохранены'
+        description: t('settingsSaved', getCurrentLanguage())
       });
 
-      // Применяем настройки
+      // Apply settings
       applySettings(settings);
       
       onClose();
@@ -63,22 +63,22 @@ const SettingsPanel = ({ isOpen, onClose }) => {
       console.error('Failed to save settings:', error);
       addDebugEvent({
         id: `settings-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: new Date().toLocaleTimeString('ru-RU'),
+        timestamp: new Date().toLocaleTimeString(getCurrentLanguage() === 'ru' ? 'ru-RU' : 'en-US'),
         type: 'error',
-        description: `Ошибка сохранения настроек: ${error.message}`
+        description: `${t('settingsSaveError', getCurrentLanguage())}: ${error.message}`
       });
     }
   };
 
   const applySettings = (newSettings) => {
-    // Применяем тему
+    // Apply theme
     if (newSettings.theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
 
-    // Применяем язык
+    // Apply language
     setLanguage(newSettings.language);
   };
 
@@ -89,7 +89,7 @@ const SettingsPanel = ({ isOpen, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-telegram-sidebar rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
-        {/* Заголовок */}
+        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-telegram-border">
           <h2 className="text-lg font-medium text-telegram-text">
             {t('settings', settings.language)}
@@ -102,10 +102,10 @@ const SettingsPanel = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Содержимое */}
+        {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
           <div className="space-y-6">
-            {/* Тема */}
+            {/* Theme */}
             <div>
               <h3 className="text-md font-medium text-telegram-text mb-3">{t('theme', settings.language)}</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -132,7 +132,7 @@ const SettingsPanel = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            {/* Язык */}
+            {/* Language */}
             <div>
               <label className="block text-sm font-medium text-telegram-text mb-2">
                 {t('language', settings.language)}
@@ -149,7 +149,7 @@ const SettingsPanel = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Нижняя панель */}
+        {/* Bottom panel */}
         <div className="flex items-center justify-between p-4 border-t border-telegram-border">
           <div className="text-sm text-telegram-text-secondary">
             Telegram Emulator v1.0.0

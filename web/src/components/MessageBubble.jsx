@@ -88,14 +88,14 @@ const MessageBubble = ({ message, isOwn, currentUser }) => {
         'max-w-xs lg:max-w-md',
         isOwn ? 'order-2' : 'order-1'
       )}>
-        {/* Имя отправителя (только для чужих сообщений в групповых чатах) */}
+        {/* Sender name (only for other messages in group chats) */}
         {!isOwn && message.chat?.type === 'group' && (
           <div className="text-xs text-telegram-text-secondary mb-1 ml-1">
             {getSenderName()}
           </div>
         )}
 
-        {/* Пузырек сообщения */}
+        {/* Message bubble */}
         <div className={clsx(
           'message-bubble',
           isOwn ? 'outgoing' : 'incoming'
@@ -103,7 +103,7 @@ const MessageBubble = ({ message, isOwn, currentUser }) => {
           {getMessageContent()}
         </div>
 
-        {/* Время и статус */}
+        {/* Time and status */}
         <div className={clsx(
           'flex items-center mt-1 space-x-1',
           isOwn ? 'justify-end' : 'justify-start'
@@ -120,7 +120,7 @@ const MessageBubble = ({ message, isOwn, currentUser }) => {
         </div>
       </div>
 
-      {/* Аватар (только для чужих сообщений) */}
+      {/* Avatar (only for other messages) */}
       {!isOwn && (
         <div className={clsx(
           'w-8 h-8 rounded-full bg-gradient-to-br from-telegram-primary to-blue-600 flex items-center justify-center text-white text-sm font-medium ml-2 order-2 flex-shrink-0 shadow-sm',

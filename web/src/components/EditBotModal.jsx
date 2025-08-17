@@ -54,9 +54,9 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
       if (response.bot) {
         addDebugEvent({
           id: `bot-updated-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: new Date().toLocaleTimeString('ru-RU'),
+          timestamp: new Date().toLocaleTimeString(getCurrentLanguage() === 'ru' ? 'ru-RU' : 'en-US'),
           type: 'info',
-          description: `Обновлен бот: ${response.bot.name}`
+          description: `${t('botUpdated', getCurrentLanguage())}: ${response.bot.name}`
         });
         
         onBotUpdated?.(response.bot);
@@ -80,9 +80,9 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
     navigator.clipboard.writeText(text).then(() => {
       addDebugEvent({
         id: `copy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: new Date().toLocaleTimeString('ru-RU'),
+        timestamp: new Date().toLocaleTimeString(getCurrentLanguage() === 'ru' ? 'ru-RU' : 'en-US'),
         type: 'info',
-        description: 'Скопировано в буфер обмена'
+        description: t('copiedToClipboard', getCurrentLanguage())
       });
     });
   };

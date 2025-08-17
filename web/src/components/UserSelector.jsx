@@ -8,7 +8,7 @@ const UserSelector = ({ users, currentUser, onUserSelect, onCreateUser, onDelete
 
   return (
     <>
-      {/* Кнопка выбора пользователя */}
+      {/* User selection button */}
       <button
         onClick={() => setIsModalOpen(true)}
         className="flex items-center p-3 bg-telegram-sidebar rounded-lg text-telegram-text hover:bg-telegram-primary transition-colors w-full"
@@ -27,7 +27,7 @@ const UserSelector = ({ users, currentUser, onUserSelect, onCreateUser, onDelete
         <Settings className="w-4 h-4 text-telegram-secondary" />
       </button>
 
-      {/* Модальное окно выбора пользователя */}
+      {/* User selection modal */}
       <UserModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
