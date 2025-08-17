@@ -64,6 +64,132 @@ class TelegramEmulatorBot:
         response = requests.post(f"{self.api_url}/sendMessage", json=data)
         return response.json()
     
+    def send_message_with_keyboard(self, chat_id: str, text: str, keyboard: Dict[str, Any], parse_mode: str = None) -> Dict[str, Any]:
+        """Отправляет сообщение с обычной клавиатурой"""
+        data = {
+            'chat_id': chat_id,
+            'text': text,
+            'reply_markup': keyboard
+        }
+        if parse_mode:
+            data['parse_mode'] = parse_mode
+            
+        response = requests.post(f"{self.api_url}/sendMessage", json=data)
+        return response.json()
+    
+    def send_message_with_inline_keyboard(self, chat_id: str, text: str, inline_keyboard: Dict[str, Any], parse_mode: str = None) -> Dict[str, Any]:
+        """Отправляет сообщение с inline клавиатурой"""
+        data = {
+            'chat_id': chat_id,
+            'text': text,
+            'reply_markup': inline_keyboard
+        }
+        if parse_mode:
+            data['parse_mode'] = parse_mode
+            
+        response = requests.post(f"{self.api_url}/sendMessage", json=data)
+        return response.json()
+    
+    def answer_callback_query(self, callback_query_id: str, text: str = None, show_alert: bool = False) -> Dict[str, Any]:
+        """Отвечает на callback query (показывает уведомление)"""
+        data = {
+            'callback_query_id': callback_query_id
+        }
+        if text:
+            data['text'] = text
+        if show_alert:
+            data['show_alert'] = show_alert
+            
+        response = requests.post(f"{self.api_url}/answerCallbackQuery", json=data)
+        return response.json()
+    
+    def edit_message_text(self, chat_id: str, message_id: str, text: str, reply_markup: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Редактирует текст сообщения"""
+        data = {
+            'chat_id': chat_id,
+            'message_id': message_id,
+            'text': text
+        }
+        if reply_markup:
+            data['reply_markup'] = reply_markup
+            
+        response = requests.post(f"{self.api_url}/editMessageText", json=data)
+        return response.json()
+    
+    def handle_callback_query(self, callback_query: Dict[str, Any]) -> None:
+        """Обрабатывает callback query от inline кнопок"""
+        callback_query_id = callback_query.get('id')
+        callback_data = callback_query.get('data')
+        message = callback_query.get('message', {})
+        
+        # Извлекаем chat_id из message
+        chat_id = message.get('chat_id')  # Прямо из message, а не из message.chat.id
+        message_id = message.get('id')    # message_id это id сообщения
+        user = callback_query.get('from', {})
+        
+        print(f"Обрабатываем callback_query: {callback_data} от пользователя {user.get('first_name', 'Unknown')}")
+        print(f"Полный callback_query: {callback_query}")
+        print(f"DEBUG: chat_id = {chat_id}")
+        print(f"DEBUG: message = {message}")
+        print(f"DEBUG: message.get('chat_id') = {message.get('chat_id')}")
+        
+        # Проверяем, что callback_data не пустой
+        if not callback_data:
+            print(f"❌ callback_data пустой или None: {callback_data}")
+            if callback_query_id:
+                result = self.answer_callback_query(callback_query_id, "❌ Ошибка: пустой callback_data")
+                print(f"Ответ на пустой callback_query: {result}")
+            return
+        
+        # Обрабатываем разные типы callback_data
+        if callback_data == 'search':
+            print(f"🔍 Обрабатываю callback_data 'search'")
+            # Показываем уведомление
+            result = self.answer_callback_query(callback_query_id, "🔍 Поиск выполняется...", show_alert=True)
+            print(f"Ответ на callback_query: {result}")
+            
+            # Отправляем новое сообщение с результатами
+            print(f"Проверяю chat_id: {chat_id}")
+            if chat_id:
+                print(f"✅ chat_id найден, отправляю сообщение в чат {chat_id}")
+                response = self.send_message(str(chat_id), "🔍 **Результаты поиска:**\n\n✅ Найдено: 1 результат\n⏱️ Время поиска: 0.1 сек\n📄 Тип: текстовый документ\n\n_Поиск выполнен успешно!_")
+                print(f"Результат отправки сообщения: {response}")
+            else:
+                print("❌ chat_id не найден, не могу отправить сообщение")
+            
+        elif callback_data == 'notes':
+            # Показываем уведомление
+            result = self.answer_callback_query(callback_query_id, "📝 Заметки загружаются...")
+            print(f"Ответ на callback_query: {result}")
+            
+            # Отправляем новое сообщение
+            if chat_id:
+                self.send_message(str(chat_id), "📝 **Ваши заметки:**\n\n📌 Заметка 1: Покупки\n   _Молоко, хлеб, яйца_\n\n📌 Заметка 2: Встречи\n   _Завтра в 15:00_\n\n📌 Заметка 3: Идеи\n   _Новый проект_\n\n💡 Всего заметок: 3")
+            else:
+                print("❌ chat_id не найден, не могу отправить сообщение")
+            
+        elif callback_data == 'contacts':
+            # Показываем уведомление
+            result = self.answer_callback_query(callback_query_id, "📞 Контакты загружаются...")
+            print(f"Ответ на callback_query: {result}")
+            
+            # Отправляем новое сообщение
+            if chat_id:
+                self.send_message(str(chat_id), "📞 **Контакты поддержки:**\n\n📱 Телефон: +7 (999) 123-45-67\n📧 Email: support@example.com\n🤖 Telegram: @support_bot\n\n⏰ Время работы: 24/7\n\n_Обращайтесь в любое время!_")
+            else:
+                print("❌ chat_id не найден, не могу отправить сообщение")
+            
+        else:
+            # Неизвестный callback_data
+            result = self.answer_callback_query(callback_query_id, f"❓ Неизвестная команда: {callback_data}")
+            print(f"Неизвестный callback_data: {callback_data}")
+            
+            # Отправляем сообщение об ошибке
+            if chat_id:
+                self.send_message(str(chat_id), f"❓ **Неизвестная команда:**\n\n🔍 Получено: `{callback_data}`\n⚠️ Эта команда не обрабатывается\n\n💡 Попробуйте другие кнопки или команду `/help`")
+            else:
+                print("❌ chat_id не найден, не могу отправить сообщение об ошибке")
+
     def set_webhook(self, url: str) -> Dict[str, Any]:
         """Устанавливает webhook"""
         data = {'url': url}
@@ -151,16 +277,49 @@ class TelegramEmulatorBot:
             # Простая логика бота
             if text.lower() == '/start':
                 response_text = f"Привет! Я бот в эмуляторе Telegram. Ваш ID: {user.get('id')}"
+                
+                # Создаем клавиатуру с кнопками
+                keyboard = {
+                    "keyboard": [
+                        [{"text": "ℹ️ Информация"}, {"text": "🔧 Настройки"}],
+                        [{"text": "📊 Статистика"}, {"text": "❓ Помощь"}],
+                        [{"text": "🎮 Игры"}, {"text": "📱 Профиль"}]
+                    ],
+                    "resize_keyboard": True,
+                    "one_time_keyboard": False
+                }
+                
+                result = self.send_message_with_keyboard(str(chat_id), response_text, keyboard)
             elif text.lower() == '/help':
-                response_text = "Доступные команды:\n/start - Начать\n/help - Помощь\n/echo <текст> - Эхо"
+                response_text = "Доступные команды:\n/start - Начать с клавиатурой\n/help - Помощь\n/echo <текст> - Эхо\n/keyboard - Показать клавиатуру\n/inline - Показать inline клавиатуру"
+                result = self.send_message(str(chat_id), response_text)
+            elif text.lower() == '/keyboard':
+                response_text = "Вот обычная клавиатура:"
+                keyboard = {
+                    "keyboard": [
+                        [{"text": "Кнопка 1"}, {"text": "Кнопка 2"}],
+                        [{"text": "Кнопка 3"}]
+                    ],
+                    "resize_keyboard": True
+                }
+                result = self.send_message_with_keyboard(str(chat_id), response_text, keyboard)
+            elif text.lower() == '/inline':
+                response_text = "Вот inline клавиатура:"
+                inline_keyboard = {
+                    "inline_keyboard": [
+                        [{"text": "🔍 Поиск", "callback_data": "search"}, {"text": "📝 Заметки", "callback_data": "notes"}],
+                        [{"text": "🌐 Сайт", "url": "https://example.com"}, {"text": "📞 Контакты", "callback_data": "contacts"}]
+                    ]
+                }
+                result = self.send_message_with_inline_keyboard(str(chat_id), response_text, inline_keyboard)
             elif text.lower().startswith('/echo '):
                 echo_text = text[6:]  # Убираем '/echo '
                 response_text = f"Эхо: {echo_text}"
+                result = self.send_message(str(chat_id), response_text)
             else:
                 response_text = f"Вы написали: {text}"
+                result = self.send_message(str(chat_id), response_text)
             
-            # Отправляем ответ
-            result = self.send_message(str(chat_id), response_text)
             if result.get('ok'):
                 print(f"Ответ отправлен: {response_text}")
             else:
@@ -170,7 +329,9 @@ class TelegramEmulatorBot:
         elif 'callback_query' in update:
             callback_query = update['callback_query']
             print(f"Получен callback_query: {callback_query}")
-            # Здесь можно добавить обработку callback_query
+            
+            # Обрабатываем callback_query
+            self.handle_callback_query(callback_query)
         elif 'edited_message' in update:
             edited_message = update['edited_message']
             print(f"Получено edited_message: {edited_message}")
@@ -198,20 +359,60 @@ class TelegramEmulatorBot:
                 # Простая логика бота
                 if text.lower() == '/start':
                     response_text = f"Привет! Я бот в эмуляторе Telegram. Ваш ID: {user.get('id')}"
+                    
+                    # Создаем клавиатуру с кнопками
+                    keyboard = {
+                        "keyboard": [
+                            [{"text": "ℹ️ Информация"}, {"text": "🔧 Настройки"}],
+                            [{"text": "📊 Статистика"}, {"text": "❓ Помощь"}],
+                            [{"text": "🎮 Игры"}, {"text": "📱 Профиль"}]
+                        ],
+                        "resize_keyboard": True,
+                        "one_time_keyboard": False
+                    }
+                    
+                    result = self.send_message_with_keyboard(str(chat_id), response_text, keyboard)
                 elif text.lower() == '/help':
-                    response_text = "Доступные команды:\n/start - Начать\n/help - Помощь\n/echo <текст> - Эхо"
+                    response_text = "Доступные команды:\n/start - Начать с клавиатурой\n/help - Помощь\n/echo <текст> - Эхо\n/keyboard - Показать клавиатуру\n/inline - Показать inline клавиатуру"
+                    result = self.send_message(str(chat_id), response_text)
+                elif text.lower() == '/keyboard':
+                    response_text = "Вот обычная клавиатура:"
+                    keyboard = {
+                        "keyboard": [
+                            [{"text": "Кнопка 1"}, {"text": "Кнопка 2"}],
+                            [{"text": "Кнопка 3"}]
+                        ],
+                        "resize_keyboard": True
+                    }
+                    result = self.send_message_with_keyboard(str(chat_id), response_text, keyboard)
+                elif text.lower() == '/inline':
+                    response_text = "Вот inline клавиатура:"
+                    inline_keyboard = {
+                        "inline_keyboard": [
+                            [{"text": "🔍 Поиск", "callback_data": "search"}, {"text": "📝 Заметки", "callback_data": "notes"}],
+                            [{"text": "🌐 Сайт", "url": "https://example.com"}, {"text": "📞 Контакты", "callback_data": "contacts"}]
+                        ]
+                    }
+                    result = self.send_message_with_inline_keyboard(str(chat_id), response_text, inline_keyboard)
                 elif text.lower().startswith('/echo '):
                     echo_text = text[6:]  # Убираем '/echo '
                     response_text = f"Эхо: {echo_text}"
+                    result = self.send_message(str(chat_id), response_text)
                 else:
                     response_text = f"Вы написали: {text}"
-                
-                # Отправляем ответ
-                result = self.send_message(str(chat_id), response_text)
+                    result = self.send_message(str(chat_id), response_text)
                 if result.get('ok'):
                     print(f"Ответ отправлен: {response_text}")
                 else:
                     print(f"Ошибка отправки: {result}")
+            
+            # Обрабатываем callback query
+            elif 'callback_query' in update:
+                callback_query = update['callback_query']
+                print(f"Получен callback_query: {callback_query}")
+                
+                # Обрабатываем callback_query
+                self.handle_callback_query(callback_query)
         
         # Обновляем offset до последнего обработанного update_id + 1
         # Это правильная логика Telegram Bot API

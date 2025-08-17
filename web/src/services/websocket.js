@@ -93,6 +93,7 @@ class WebSocketService {
         this.socket.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
+            console.log('WebSocket received:', message); // Добавляем логирование
             
             // Обработка событий эмулятора
             switch (message.type) {
@@ -119,6 +120,9 @@ class WebSocketService {
                 break;
               case 'debug_event':
                 this.triggerEvent('debug_event', message.data);
+                break;
+              case 'callback_query':
+                this.triggerEvent('callback_query', message.data);
                 break;
 
               default:
@@ -251,6 +255,12 @@ class WebSocketService {
       chat_id: chatId,
       text,
       from_user_id: fromUserId
+    });
+  }
+
+  sendCallbackQuery(button) {
+    this.emit('callback_query', {
+      button: button
     });
   }
 

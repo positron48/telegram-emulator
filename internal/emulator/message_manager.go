@@ -40,7 +40,7 @@ func NewMessageManager(messageRepo *repository.MessageRepository, chatRepo *repo
 }
 
 // SendMessage отправляет сообщение в чат
-func (m *MessageManager) SendMessage(chatID, fromUserID, text, messageType string) (*models.Message, error) {
+func (m *MessageManager) SendMessage(chatID, fromUserID, text, messageType string, replyMarkup interface{}) (*models.Message, error) {
 	// Генерируем уникальный ID
 	id, err := m.generateID()
 	if err != nil {
@@ -93,6 +93,14 @@ func (m *MessageManager) SendMessage(chatID, fromUserID, text, messageType strin
 		Timestamp: time.Now(),
 		CreatedAt: time.Now(),
 	}
+	
+	// Устанавливаем клавиатуру, если она есть
+	if replyMarkup != nil {
+		if err := message.SetReplyMarkup(replyMarkup); err != nil {
+			m.logger.Error("Ошибка установки клавиатуры", zap.Error(err))
+			// Не прерываем отправку сообщения, просто логируем ошибку
+		}
+	}
 
 	// Сохраняем сообщение
 	if err := m.messageRepo.Create(message); err != nil {
@@ -135,6 +143,9 @@ func (m *MessageManager) GetChatMessages(chatID string, limit, offset int) ([]mo
 		m.logger.Error("Ошибка получения сообщений чата", zap.String("chat_id", chatID), zap.Error(err))
 		return nil, err
 	}
+	
+	// Клавиатуры автоматически десериализуются при обращении к GetReplyMarkup()
+	
 	return messages, nil
 }
 
@@ -145,6 +156,9 @@ func (m *MessageManager) GetMessage(id string) (*models.Message, error) {
 		m.logger.Error("Ошибка получения сообщения", zap.String("id", id), zap.Error(err))
 		return nil, err
 	}
+	
+	// Клавиатура автоматически десериализуется при обращении к GetReplyMarkup()
+	
 	return message, nil
 }
 
@@ -252,18 +266,25 @@ func (m *MessageManager) broadcastMessage(message *models.Message) {
 			return
 		}
 
-		// Отправляем всем участникам чата, включая отправителя
-		for _, member := range chat.Members {
-			m.wsServer.BroadcastToUser(member.ID, "message", map[string]interface{}{
-				"id":        message.ID,
-				"chat_id":   message.ChatID,
-				"from":      message.From,
-				"text":      message.Text,
-				"type":      message.Type,
-				"timestamp": message.Timestamp,
-				"status":    message.Status,
-			})
+			// Отправляем всем участникам чата, включая отправителя
+	for _, member := range chat.Members {
+		messageData := map[string]interface{}{
+			"id":        message.ID,
+			"chat_id":   message.ChatID,
+			"from":      message.From,
+			"text":      message.Text,
+			"type":      message.Type,
+			"timestamp": message.Timestamp,
+			"status":    message.Status,
 		}
+		
+		// Добавляем клавиатуру, если она есть
+		if replyMarkup := message.GetReplyMarkup(); replyMarkup != nil {
+			messageData["reply_markup"] = replyMarkup
+		}
+		
+		m.wsServer.BroadcastToUser(member.ID, "message", messageData)
+	}
 	}
 }
 

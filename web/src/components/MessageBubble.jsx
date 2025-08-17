@@ -5,7 +5,7 @@ import { Check, CheckCheck } from 'lucide-react';
 import clsx from 'clsx';
 import { t, getCurrentLanguage } from '../locales';
 
-const MessageBubble = ({ message, isOwn, currentUser }) => {
+const MessageBubble = ({ message, isOwn, currentUser, onSendMessage, onCallbackQuery }) => {
   const formatTime = (timestamp) => {
     try {
       const language = getCurrentLanguage();
@@ -75,8 +75,64 @@ const MessageBubble = ({ message, isOwn, currentUser }) => {
           </div>
         );
       default:
-        return <div>{message.text}</div>;
+        return <div>{renderTextWithCommands(message.text)}</div>;
     }
+  };
+
+  const renderTextWithCommands = (text) => {
+    if (!text) return null;
+    
+    // Регулярное выражение для поиска команд (начинаются с /)
+    const commandRegex = /(\/[a-zA-Z0-9_]+)/g;
+    const parts = text.split(commandRegex);
+    
+    return parts.map((part, index) => {
+      if (commandRegex.test(part)) {
+        return (
+          <button
+            key={index}
+            className="text-blue-500 hover:text-blue-600 underline cursor-pointer font-medium"
+            onClick={() => {
+              if (onSendMessage) {
+                onSendMessage(part);
+              }
+              console.log('Command clicked:', part);
+            }}
+          >
+            {part}
+          </button>
+        );
+      }
+      return part;
+    });
+  };
+
+  const renderInlineKeyboard = () => {
+    if (!message.reply_markup || !message.reply_markup.inline_keyboard) return null;
+
+    return (
+      <div className="mt-2 space-y-1">
+        {message.reply_markup.inline_keyboard.map((row, rowIndex) => (
+          <div key={rowIndex} className="flex space-x-1">
+            {row.map((button, buttonIndex) => (
+              <button
+                key={buttonIndex}
+                className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
+                onClick={() => {
+                  // Для inline клавиатуры отправляем callback_query
+                  if (onCallbackQuery) {
+                    onCallbackQuery(button);
+                  }
+                  console.log('Inline button clicked:', button);
+                }}
+              >
+                {button.text}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -101,6 +157,7 @@ const MessageBubble = ({ message, isOwn, currentUser }) => {
           isOwn ? 'outgoing' : 'incoming'
         )}>
           {getMessageContent()}
+          {renderInlineKeyboard()}
         </div>
 
         {/* Time and status */}

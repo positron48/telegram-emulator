@@ -57,8 +57,9 @@ func main() {
 	chatManager := emulator.NewChatManager(chatRepo, messageRepo, userRepo)
 	messageManager := emulator.NewMessageManager(messageRepo, chatRepo, userRepo, botManager, wsServer)
 	
-	// Устанавливаем MessageManager в WebSocket сервер
+	// Устанавливаем MessageManager и BotManager в WebSocket сервер
 	wsServer.SetMessageManager(messageManager)
+	wsServer.SetBotManager(botManager)
 	
 	go wsServer.Start()
 

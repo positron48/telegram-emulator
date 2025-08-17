@@ -44,6 +44,10 @@ func (api *TelegramBotAPI) SetupTelegramBotRoutes(router *gin.Engine) {
 		botAPI.POST("/setWebhook", api.SetWebhook)
 		botAPI.GET("/deleteWebhook", api.DeleteWebhook)
 		botAPI.GET("/getWebhookInfo", api.GetWebhookInfo)
+		
+		// Callback query методы
+		botAPI.POST("/answerCallbackQuery", api.AnswerCallbackQuery)
+		botAPI.POST("/editMessageText", api.EditMessageText)
 	}
 }
 
@@ -241,8 +245,8 @@ func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
 		}
 	}
 
-	// Отправляем сообщение через обычный API
-	message, err := api.messageManager.SendMessage(internalChatID, botUser.ID, request.Text, "text")
+	// Отправляем сообщение через обычный API с клавиатурой
+	message, err := api.messageManager.SendMessage(internalChatID, botUser.ID, request.Text, "text", request.ReplyMarkup)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Failed to send message: " + err.Error()})
 		return
@@ -384,4 +388,97 @@ func (api *TelegramBotAPI) findBotByToken(token string) (*models.Bot, error) {
 	}
 
 	return nil, &models.BotNotFoundError{}
+}
+
+// AnswerCallbackQuery отвечает на callback query
+func (api *TelegramBotAPI) AnswerCallbackQuery(c *gin.Context) {
+	token := c.Param("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
+		return
+	}
+
+	// Находим бота по токену
+	bot, err := api.findBotByToken(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "error_code": 401, "description": "Unauthorized"})
+		return
+	}
+
+	var request struct {
+		CallbackQueryID string `json:"callback_query_id" binding:"required"`
+		Text            string `json:"text,omitempty"`
+		ShowAlert       bool   `json:"show_alert,omitempty"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: " + err.Error()})
+		return
+	}
+
+	// Логируем ответ на callback query
+	api.logger.Info("Ответ на callback query",
+		zap.String("bot_id", bot.ID),
+		zap.String("callback_query_id", request.CallbackQueryID),
+		zap.String("text", request.Text),
+		zap.Bool("show_alert", request.ShowAlert))
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok":     true,
+		"result": true,
+	})
+}
+
+// EditMessageText редактирует текст сообщения
+func (api *TelegramBotAPI) EditMessageText(c *gin.Context) {
+	token := c.Param("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
+		return
+	}
+
+	// Находим бота по токену
+	bot, err := api.findBotByToken(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"ok": false, "error_code": 401, "description": "Unauthorized"})
+		return
+	}
+
+	var request struct {
+		ChatID      string      `json:"chat_id" binding:"required"`
+		MessageID   string      `json:"message_id" binding:"required"`
+		Text        string      `json:"text" binding:"required"`
+		ReplyMarkup interface{} `json:"reply_markup,omitempty"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: " + err.Error()})
+		return
+	}
+
+	// Логируем редактирование сообщения
+	api.logger.Info("Редактирование сообщения",
+		zap.String("chat_id", request.ChatID),
+		zap.String("message_id", request.MessageID),
+		zap.String("text", request.Text))
+
+	c.JSON(http.StatusOK, gin.H{
+		"ok":     true,
+		"result": gin.H{
+			"message_id": request.MessageID,
+			"from": gin.H{
+				"id":         bot.ID,
+				"is_bot":     true,
+				"first_name": bot.Name,
+				"username":   bot.Username,
+			},
+			"chat": gin.H{
+				"id":    request.ChatID,
+				"type":  "private",
+				"title": bot.Name,
+			},
+			"date": time.Now().Unix(),
+			"text": request.Text,
+		},
+	})
 }

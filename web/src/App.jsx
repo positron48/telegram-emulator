@@ -433,6 +433,33 @@ function App() {
     }
   };
 
+  const handleCallbackQuery = async (button) => {
+    try {
+      console.log('Callback query:', button);
+      
+      // Отправляем callback query через WebSocket
+      if (wsService.connected) {
+        wsService.sendCallbackQuery(button);
+      }
+      
+      // Логируем событие
+      addDebugEvent({
+        id: `callback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
+        type: 'info',
+        description: `Callback query: ${button.text} (${button.callback_data || button.url || 'no data'})`
+      });
+    } catch (error) {
+      console.error('Failed to handle callback query:', error);
+      addDebugEvent({
+        id: `callback-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
+        type: 'error',
+        description: `Callback query error: ${error.message}`
+      });
+    }
+  };
+
   const handleSendMessage = async (text) => {
     if (!currentChat || !currentUser || !text.trim()) return;
 
@@ -656,6 +683,7 @@ function App() {
           currentUser={currentUser}
           onSendMessage={handleSendMessage}
           onShowMembers={() => setShowChatMembersModal(true)}
+          onCallbackQuery={handleCallbackQuery}
         />
       </div>
 

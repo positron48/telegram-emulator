@@ -373,7 +373,7 @@ func (m *Message) ToTelegramMessage() TelegramMessage {
 		}
 	}
 
-	return TelegramMessage{
+	telegramMessage := TelegramMessage{
 		MessageID: messageID,
 		From: TelegramUser{
 			ID:        fromID,
@@ -391,6 +391,13 @@ func (m *Message) ToTelegramMessage() TelegramMessage {
 		Date: m.Timestamp.Unix(),
 		Text: m.Text,
 	}
+
+	// Добавляем клавиатуру, если она есть
+	if replyMarkup := m.GetReplyMarkup(); replyMarkup != nil {
+		telegramMessage.ReplyMarkup = replyMarkup
+	}
+
+	return telegramMessage
 }
 
 // FromTelegramMessage конвертирует сообщение из формата Telegram Bot API во внутренний формат

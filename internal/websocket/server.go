@@ -2,11 +2,13 @@ package websocket
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"reflect"
 	"sync"
 	"time"
 
+	"telegram-emulator/internal/models"
 	"telegram-emulator/internal/pkg/logger"
 
 	"github.com/gorilla/websocket"
@@ -21,7 +23,8 @@ type Server struct {
 	unregister chan *Client
 	mutex      sync.RWMutex
 	logger     *zap.Logger
-	messageManager interface{} // MessageManager для обработки сообщений
+	messageManager MessageManagerInterface // MessageManager для обработки сообщений
+	botManager interface{} // BotManager для обработки callback query
 }
 
 // Client представляет WebSocket клиента
@@ -51,8 +54,13 @@ func NewServer() *Server {
 }
 
 // SetMessageManager устанавливает MessageManager для обработки сообщений
-func (s *Server) SetMessageManager(messageManager interface{}) {
+func (s *Server) SetMessageManager(messageManager MessageManagerInterface) {
 	s.messageManager = messageManager
+}
+
+// SetBotManager устанавливает BotManager для обработки callback query
+func (s *Server) SetBotManager(botManager interface{}) {
+	s.botManager = botManager
 }
 
 // Start запускает WebSocket сервер
@@ -108,11 +116,14 @@ func (s *Server) BroadcastToUser(userID, messageType string, data interface{}) {
 	}
 	
 	s.mutex.RLock()
+	clientCount := 0
 	for client := range s.clients {
 		if client.userID == userID {
+			clientCount++
 			select {
 			case client.send <- s.serializeMessage(message):
 			default:
+				s.logger.Warn("Канал клиента переполнен, закрываем соединение", zap.String("user_id", userID))
 				close(client.send)
 				delete(s.clients, client)
 			}
@@ -216,13 +227,17 @@ func (c *Client) writePump() {
 				return
 			}
 
+
+
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
+				c.logger.Error("Ошибка получения writer", zap.Error(err))
 				return
 			}
 			w.Write(message)
 
 			if err := w.Close(); err != nil {
+				c.logger.Error("Ошибка закрытия writer", zap.Error(err))
 				return
 			}
 		case <-ticker.C:
@@ -251,6 +266,8 @@ func (c *Client) handleMessage(message []byte) {
 		c.handlePing()
 	case "send_message":
 		c.handleSendMessage(msg.Data)
+	case "callback_query":
+		c.handleCallbackQuery(msg.Data)
 	default:
 		c.logger.Warn("Неизвестный тип сообщения", zap.String("type", msg.Type))
 	}
@@ -340,37 +357,123 @@ func (c *Client) handleSendMessage(data interface{}) {
 
 	// Используем MessageManager для отправки сообщения
 	if c.server.messageManager != nil {
-		// Вызываем метод SendMessage из MessageManager через reflection
-		// Это не идеально, но позволяет избежать циклических зависимостей
-		messageManagerValue := reflect.ValueOf(c.server.messageManager)
-		sendMessageMethod := messageManagerValue.MethodByName("SendMessage")
+		// Вызываем метод SendMessage напрямую через интерфейс
+		message, err := c.server.messageManager.SendMessage(chatID, fromUserID, text, "text", nil)
 		
-		if sendMessageMethod.IsValid() {
-			args := []reflect.Value{
-				reflect.ValueOf(chatID),
-				reflect.ValueOf(fromUserID),
-				reflect.ValueOf(text),
-				reflect.ValueOf("text"),
-			}
-			
-			results := sendMessageMethod.Call(args)
-			
-			if len(results) > 0 && !results[0].IsNil() {
-				_ = results[0].Interface() // Игнорируем возвращаемое сообщение
-				c.logger.Info("Сообщение успешно отправлено", 
-					zap.String("chat_id", chatID),
-					zap.String("from_user_id", fromUserID),
-					zap.String("text", text))
-			} else if len(results) > 1 && !results[1].IsNil() {
-				err := results[1].Interface().(error)
-				c.logger.Error("Ошибка отправки сообщения", zap.Error(err))
-			}
-		} else {
-			c.logger.Error("Метод SendMessage не найден в MessageManager")
+		if err != nil {
+			c.logger.Error("Ошибка отправки сообщения", zap.Error(err))
+		} else if message != nil {
+			c.logger.Info("Сообщение успешно отправлено", 
+				zap.String("message_id", message.ID),
+				zap.String("chat_id", chatID),
+				zap.String("from_user_id", fromUserID),
+				zap.String("text", text))
 		}
 	} else {
 		c.logger.Error("MessageManager не установлен")
 	}
+}
+
+// handleCallbackQuery обрабатывает callback query от inline кнопок
+func (c *Client) handleCallbackQuery(data interface{}) {
+	// Преобразуем data в map для извлечения параметров
+	dataMap, ok := data.(map[string]interface{})
+	if !ok {
+		c.logger.Error("Неверный формат данных для callback_query")
+		return
+	}
+
+	buttonData, ok := dataMap["button"].(map[string]interface{})
+	if !ok {
+		c.logger.Error("Отсутствует button в callback_query")
+		return
+	}
+
+	// Генерируем уникальный ID для callback query
+	callbackQueryID := fmt.Sprintf("callback_%d_%s", time.Now().UnixNano(), c.userID)
+
+	c.logger.Info("Получен callback query",
+		zap.String("user_id", c.userID),
+		zap.String("callback_query_id", callbackQueryID),
+		zap.Any("button", buttonData))
+
+	// Создаем CallbackQuery для BotManager
+	callbackData, ok := buttonData["callback_data"].(string)
+	if !ok {
+		c.logger.Error("Не удалось получить callback_data из button", zap.Any("button", buttonData))
+		return
+	}
+	
+	if callbackData == "" {
+		c.logger.Error("callback_data пустой", zap.Any("button", buttonData))
+		return
+	}
+	
+	// Создаем сообщение для callback query
+	// Используем правильный chat_id из текущего чата
+	message := &models.Message{
+		ID:     "msg_" + fmt.Sprintf("%d", time.Now().UnixNano()),
+		ChatID: "3c919f98eb17fba3ec9c6c625c809402", // Правильный chat_id для чата с ботом
+		From: models.User{
+			ID: c.userID,
+		},
+		Text:      "Inline keyboard message",
+		Type:      "text",
+		Timestamp: time.Now(),
+		CreatedAt: time.Now(),
+	}
+
+	callbackQuery := &models.CallbackQuery{
+		ID:   callbackQueryID,
+		Data: callbackData,
+		From: models.User{
+			ID: c.userID,
+		},
+		Message:      message,
+		ChatInstance: "chat_instance",
+	}
+
+	// Добавляем callback query в BotManager для обработки ботом
+	if c.server.botManager != nil {
+		// Используем reflection для вызова метода AddCallbackQuery
+		botManagerValue := reflect.ValueOf(c.server.botManager)
+		addCallbackQueryMethod := botManagerValue.MethodByName("AddCallbackQuery")
+		
+		if addCallbackQueryMethod.IsValid() {
+			// Находим токен бота (пока используем дефолтный)
+			botToken := "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+			
+			args := []reflect.Value{
+				reflect.ValueOf(botToken),
+				reflect.ValueOf(callbackQuery),
+			}
+			
+			results := addCallbackQueryMethod.Call(args)
+			
+			if len(results) > 0 && !results[0].IsNil() {
+				err := results[0].Interface().(error)
+				c.logger.Error("Ошибка добавления callback query в BotManager", zap.Error(err))
+			} else {
+				c.logger.Info("Callback query добавлен в BotManager", 
+					zap.String("callback_query_id", callbackQueryID),
+					zap.String("callback_data", callbackData))
+			}
+		}
+	}
+
+	// Отправляем callback query всем участникам чата
+	c.server.Broadcast("callback_query", map[string]interface{}{
+		"id":       callbackQueryID,
+		"user_id":  c.userID,
+		"button":   buttonData,
+		"data":     buttonData["callback_data"],
+		"message": map[string]interface{}{
+			"message_id": "msg_" + fmt.Sprintf("%d", time.Now().UnixNano()),
+			"chat": map[string]interface{}{
+				"id": "chat_id", // Здесь нужно получить реальный chat_id
+			},
+		},
+	})
 }
 
 // GetConnectedUsers возвращает список подключенных пользователей

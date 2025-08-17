@@ -6,9 +6,10 @@ import clsx from 'clsx';
 import MessageBubble from './MessageBubble';
 import { t, getCurrentLanguage } from '../locales';
 
-const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers }) => {
+const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers, onCallbackQuery }) => {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [currentKeyboard, setCurrentKeyboard] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -24,12 +25,41 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
     }
   }, [chat?.id]);
 
+  // Track keyboard from messages
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Ищем последнее сообщение с обычной клавиатурой
+      const lastMessageWithKeyboard = messages
+        .slice()
+        .reverse()
+        .find(msg => msg.reply_markup && msg.reply_markup.keyboard);
+      
+      if (lastMessageWithKeyboard) {
+        setCurrentKeyboard(lastMessageWithKeyboard.reply_markup);
+      } else {
+        setCurrentKeyboard(null);
+      }
+    } else {
+      setCurrentKeyboard(null);
+    }
+  }, [messages]);
+
+  // Скрываем клавиатуру при смене чата
+  useEffect(() => {
+    setCurrentKeyboard(null);
+  }, [chat?.id]);
+
   const handleSendMessage = () => {
     if (!inputText.trim() || !chat) return;
     
     onSendMessage(inputText);
     setInputText('');
     setIsTyping(false);
+    
+    // Если клавиатура одноразовая, убираем её
+    if (currentKeyboard && currentKeyboard.one_time_keyboard) {
+      setCurrentKeyboard(null);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -42,6 +72,40 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
   const handleInputChange = (e) => {
     setInputText(e.target.value);
     setIsTyping(e.target.value.length > 0);
+  };
+
+  const renderKeyboard = () => {
+    if (!currentKeyboard || !currentKeyboard.keyboard) return null;
+
+    return (
+      <div className="p-2 border-t border-telegram-border bg-telegram-sidebar">
+        <div className="space-y-1">
+          {currentKeyboard.keyboard.map((row, rowIndex) => (
+            <div key={rowIndex} className="flex space-x-1">
+              {row.map((button, buttonIndex) => (
+                <button
+                  key={buttonIndex}
+                  className="flex-1 px-3 py-2 bg-telegram-secondary text-telegram-text rounded-lg text-sm font-medium hover:bg-telegram-secondary/80 transition-colors"
+                  onClick={() => {
+                    if (onSendMessage) {
+                      onSendMessage(button.text);
+                    }
+                    console.log('Keyboard button clicked:', button.text);
+                    
+                    // Если клавиатура одноразовая, убираем её
+                    if (currentKeyboard && currentKeyboard.one_time_keyboard) {
+                      setCurrentKeyboard(null);
+                    }
+                  }}
+                >
+                  {button.text}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   const getChatTitle = () => {
@@ -146,6 +210,8 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
                 message={message}
                 isOwn={message.from?.id === currentUser?.id || message.from_id === currentUser?.id || message.is_outgoing}
                 currentUser={currentUser}
+                onSendMessage={onSendMessage}
+                onCallbackQuery={onCallbackQuery}
               />
             ))}
             <div ref={messagesEndRef} />
@@ -205,6 +271,9 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers 
 
         {/* Typing indicator removed - not needed for sender */}
       </div>
+
+      {/* Keyboard */}
+      {renderKeyboard()}
     </div>
   );
 };

@@ -71,7 +71,7 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		req.Type = "text"
 	}
 
-	message, err := h.messageManager.SendMessage(chatID, req.FromUserID, req.Text, req.Type)
+	message, err := h.messageManager.SendMessage(chatID, req.FromUserID, req.Text, req.Type, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

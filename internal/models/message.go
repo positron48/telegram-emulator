@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -16,6 +17,7 @@ type Message struct {
 	IsOutgoing bool     `json:"is_outgoing"`
 	Timestamp time.Time `json:"timestamp"`
 	CreatedAt time.Time `json:"created_at"`
+	ReplyMarkupJSON string `json:"reply_markup,omitempty" gorm:"column:reply_markup"` // Клавиатура в JSON формате
 }
 
 // TableName возвращает имя таблицы для модели Message
@@ -67,4 +69,35 @@ func (m *Message) IsVoice() bool {
 // IsPhoto проверяет, является ли сообщение фотографией
 func (m *Message) IsPhoto() bool {
 	return m.Type == MessageTypePhoto
+}
+
+// SetReplyMarkup устанавливает клавиатуру и сериализует её в JSON
+func (m *Message) SetReplyMarkup(replyMarkup interface{}) error {
+	if replyMarkup == nil {
+		m.ReplyMarkupJSON = ""
+		return nil
+	}
+	
+	// Сериализуем клавиатуру в JSON
+	jsonData, err := json.Marshal(replyMarkup)
+	if err != nil {
+		return err
+	}
+	
+	m.ReplyMarkupJSON = string(jsonData)
+	return nil
+}
+
+// GetReplyMarkup десериализует клавиатуру из JSON
+func (m *Message) GetReplyMarkup() interface{} {
+	if m.ReplyMarkupJSON == "" {
+		return nil
+	}
+	
+	var replyMarkup interface{}
+	if err := json.Unmarshal([]byte(m.ReplyMarkupJSON), &replyMarkup); err != nil {
+		return nil
+	}
+	
+	return replyMarkup
 }

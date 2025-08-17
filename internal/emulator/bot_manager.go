@@ -359,6 +359,59 @@ func (m *BotManager) AddUpdate(botID string, update *models.Update) error {
 	return nil
 }
 
+// AddCallbackQuery добавляет callback query в очередь обновлений для бота
+func (m *BotManager) AddCallbackQuery(botToken string, callbackQuery *models.CallbackQuery) error {
+	// Находим бота по токену
+	bots, err := m.GetAllBots()
+	if err != nil {
+		return err
+	}
+	
+	var bot *models.Bot
+	for _, b := range bots {
+		if b.Token == botToken {
+			bot = &b
+			break
+		}
+	}
+	
+	if bot == nil {
+		return fmt.Errorf("бот с токеном %s не найден", botToken)
+	}
+	
+	if !bot.IsActive {
+		return fmt.Errorf("бот неактивен")
+	}
+	
+	// Создаем обновление с callback query
+	update := &models.Update{
+		UpdateID:      m.updateID,
+		CallbackQuery: callbackQuery,
+		Timestamp:     time.Now(),
+	}
+	m.updateID++
+	
+	// Добавляем в очередь
+	if m.updateQueue[bot.ID] == nil {
+		m.updateQueue[bot.ID] = []models.Update{}
+	}
+	
+	m.updateQueue[bot.ID] = append(m.updateQueue[bot.ID], *update)
+	
+	// Ограничиваем размер очереди
+	if len(m.updateQueue[bot.ID]) > 1000 {
+		m.updateQueue[bot.ID] = m.updateQueue[bot.ID][len(m.updateQueue[bot.ID])-1000:]
+	}
+	
+	m.logger.Info("Callback query добавлен в очередь", 
+		zap.String("bot_id", bot.ID),
+		zap.String("bot_token", botToken),
+		zap.Int64("update_id", update.UpdateID),
+		zap.String("callback_data", callbackQuery.Data))
+	
+	return nil
+}
+
 // ClearUpdates очищает очередь обновлений для бота
 func (m *BotManager) ClearUpdates(botID string) error {
 	delete(m.updateQueue, botID)
