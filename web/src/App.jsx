@@ -27,6 +27,7 @@ function App() {
     isLoading,
     error,
     isConnected,
+    isReconnecting,
     setCurrentUser,
     setChats,
     setUsers,
@@ -38,7 +39,8 @@ function App() {
     addDebugEvent,
     setLoading,
     setError,
-    setConnected
+    setConnected,
+    setReconnecting
   } = useStore();
 
   const [showDebugPanel, setShowDebugPanel] = useState(false);
@@ -98,30 +100,71 @@ function App() {
 
     // Подписываемся на события
     const handleMessage = (data) => {
+      console.log('🔍 Received message data:', {
+        id: data.id,
+        text: data.text,
+        from: data.from,
+        from_id: data.from_id,
+        chat_id: data.chat_id,
+        status: data.status
+      });
       // Проверяем, является ли сообщение от текущего пользователя
       const isOwnMessage = data.from?.id === currentUser?.id;
       
-      // Проверяем, есть ли уже временное сообщение с таким же текстом
-      const existingMessages = messages[data.chat_id] || [];
-      const tempMessageIndex = existingMessages.findIndex(msg => 
-        msg.id.startsWith('temp-') && msg.text === data.text
+      // Проверяем, есть ли уже временное сообщение с таким же текстом и отправителем
+      const currentState = useStore.getState();
+      const existingMessages = currentState.messages[data.chat_id] || [];
+      
+      // Ищем временное сообщение по тексту и отправителю
+      let tempMessageIndex = existingMessages.findIndex(msg => 
+        msg.id.startsWith('temp-') && 
+        msg.text === data.text && 
+        (msg.from?.id === data.from?.id || msg.from_id === data.from?.id)
       );
+      
+      // Если не найдено, попробуем найти по тексту среди сообщений от текущего пользователя
+      if (tempMessageIndex === -1 && isOwnMessage) {
+        tempMessageIndex = existingMessages.findIndex(msg => 
+          msg.id.startsWith('temp-') && 
+          msg.text === data.text
+        );
+      }
+      
+      // Если все еще не найдено, попробуем найти самое последнее временное сообщение от текущего пользователя
+      if (tempMessageIndex === -1 && isOwnMessage) {
+        const tempMessages = existingMessages.filter(msg => 
+          msg.id.startsWith('temp-') && 
+          (msg.from?.id === currentUser?.id || msg.from_id === currentUser?.id)
+        );
+        if (tempMessages.length > 0) {
+          // Берем самое последнее временное сообщение
+          const lastTempMessage = tempMessages[tempMessages.length - 1];
+          tempMessageIndex = existingMessages.findIndex(msg => msg.id === lastTempMessage.id);
+        }
+      }
+      
+      console.log('🔍 Looking for temp message:', {
+        searchText: data.text,
+        searchFromId: data.from?.id,
+        tempMessages: existingMessages.filter(m => m.id.startsWith('temp-')).map(m => ({
+          id: m.id,
+          text: m.text,
+          fromId: m.from?.id || m.from_id
+        })),
+        foundIndex: tempMessageIndex
+      });
 
       if (tempMessageIndex !== -1) {
         // Заменяем временное сообщение на реальное
         const updatedMessages = [...existingMessages];
         updatedMessages[tempMessageIndex] = {
           ...data,
-          is_outgoing: true // Помечаем как исходящее
+          is_outgoing: true, // Помечаем как исходящее
+          status: data.status || 'sent' // Устанавливаем статус из полученного сообщения
         };
         setMessages(data.chat_id, updatedMessages);
         
-        addDebugEvent({
-          id: `message-replace-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-          type: 'info',
-          description: `Временное сообщение заменено на реальное: ${data.id}`
-        });
+        console.log(`✅ Temporary message replaced: ${existingMessages[tempMessageIndex].id} -> ${data.id} with status: ${data.status}`);
       } else if (!isOwnMessage) {
         // Добавляем новое сообщение только если оно не от текущего пользователя
         addMessage(data.chat_id, {
@@ -135,34 +178,30 @@ function App() {
           type: 'message',
           description: `Новое сообщение от ${data.from?.username} в чате ${data.chat_id}`
         });
-      } else {
-        // Игнорируем собственные сообщения, которые приходят через WebSocket
-        addDebugEvent({
-          id: `message-ignored-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-          type: 'info',
-          description: `Игнорировано собственное сообщение: ${data.id}`
+      } else if (isOwnMessage) {
+        // Логируем случаи, когда собственное сообщение не заменило временное
+        console.log(`❌ Own message received but no temp message found:`, {
+          messageId: data.id,
+          text: data.text,
+          fromId: data.from?.id,
+          currentUserId: currentUser?.id,
+          existingTempMessages: existingMessages.filter(m => m.id.startsWith('temp-')).map(m => ({
+            id: m.id,
+            text: m.text,
+            fromId: m.from?.id || m.from_id
+          }))
         });
       }
+      // Игнорируем собственные сообщения без логирования - это нормальное поведение
     };
 
     const handleChatUpdate = (data) => {
       updateChat(data.id, data);
-      addDebugEvent({
-        id: `chat-update-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-        type: 'info',
-        description: `Обновление чата: ${data.title}`
-      });
+      // Не логируем обновления чатов - это нормальное поведение
     };
 
     const handleUserUpdate = (data) => {
-      addDebugEvent({
-        id: `user-update-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-        type: 'info',
-        description: `Обновление пользователя: ${data.username}`
-      });
+      // Не логируем обновления пользователей - это нормальное поведение
     };
 
     const handleDebugEvent = (data) => {
@@ -177,18 +216,15 @@ function App() {
 
     const handleMessageStatusUpdate = (data) => {
       updateMessageStatus(data.message_id, data.status);
-      addDebugEvent({
-        id: `status-update-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-        type: 'info',
-        description: `Обновление статуса сообщения: ${data.message_id} -> ${data.status}`
-      });
+      // Логируем для отладки проблем со статусами
+      console.log(`Status update: ${data.message_id} -> ${data.status}`);
     };
 
 
 
     const handleDisconnect = () => {
       setConnected(false);
+      setReconnecting(false);
       addDebugEvent({
         id: `disconnect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
@@ -198,15 +234,13 @@ function App() {
     };
 
     const handleReconnecting = (data) => {
-      addDebugEvent({
-        id: `reconnecting-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-        type: 'warning',
-        description: `Попытка переподключения ${data.attempt}/${data.maxAttempts}`
-      });
+      setReconnecting(true);
+      // Не логируем стандартное переподключение в отладку - это нормальное поведение
+      console.log(`WebSocket reconnecting (${data.attempt}/${data.maxAttempts})`);
     };
 
     const handleReconnectError = (data) => {
+      // Логируем только неудачные попытки переподключения (не первую)
       addDebugEvent({
         id: `reconnect-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
@@ -216,6 +250,7 @@ function App() {
     };
 
     const handleReconnectFailed = () => {
+      setReconnecting(false);
       addDebugEvent({
         id: `reconnect-failed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
@@ -226,6 +261,7 @@ function App() {
 
     const handleConnect = () => {
       setConnected(true);
+      setReconnecting(false);
       addDebugEvent({
         id: `connect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
@@ -236,6 +272,7 @@ function App() {
 
     const handleConnectError = (data) => {
       setConnected(false);
+      setReconnecting(false);
       addDebugEvent({
         id: `connect-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
@@ -405,7 +442,7 @@ function App() {
         id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         chat_id: currentChat.id,
         from: currentUser,
-        from_id: currentUser.id, // Добавляем from_id для правильного определения isOwn
+        from_id: currentUser.id,
         text: text.trim(),
         type: 'text',
         status: 'sending',
@@ -415,8 +452,19 @@ function App() {
 
       // Добавляем сообщение в локальное состояние сразу
       addMessage(currentChat.id, tempMessage);
+      
+      // Очищаем старые временные сообщения (оставляем только последние 5)
+      const currentState = useStore.getState();
+      const currentMessages = currentState.messages[currentChat.id] || [];
+      const tempMessages = currentMessages.filter(msg => msg.id.startsWith('temp-'));
+      if (tempMessages.length > 5) {
+        const messagesToRemove = tempMessages.slice(0, tempMessages.length - 5);
+        const updatedMessages = currentMessages.filter(msg => !messagesToRemove.some(rm => rm.id === msg.id));
+        setMessages(currentChat.id, updatedMessages);
+        console.log(`🧹 Cleaned up ${messagesToRemove.length} old temp messages`);
+      }
 
-      // Fallback: если через 1 секунду сообщение не заменилось, обновляем статус вручную
+      // Fallback: если через 3 секунды сообщение не заменилось, обновляем статус вручную
       setTimeout(() => {
         const currentState = useStore.getState();
         const currentMessages = currentState.messages[currentChat.id] || [];
@@ -427,21 +475,9 @@ function App() {
           updatedMessages[tempMsgIndex] = { ...currentMessages[tempMsgIndex], status: 'sent' };
           setMessages(currentChat.id, updatedMessages);
           
-          addDebugEvent({
-            id: `fallback-status-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-            type: 'warning',
-            description: `Fallback: статус сообщения обновлен на 'sent'`
-          });
+          console.log(`⚠️ Fallback triggered: status updated to 'sent' for temp message ${tempMessage.id}`);
         }
-      }, 1000);
-      
-      addDebugEvent({
-        id: `send-message-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: format(new Date(), 'HH:mm:ss', { locale: ru }),
-        type: 'message',
-        description: `Отправлено сообщение через WebSocket: "${text.trim()}"`
-      });
+      }, 3000);
 
       // Отправляем сообщение через WebSocket
       if (wsService.connected) {
@@ -599,6 +635,7 @@ function App() {
         currentUser={currentUser}
         users={users}
         isConnected={isConnected}
+        isReconnecting={isReconnecting}
         onChatSelect={(chat) => useStore.getState().setCurrentChat(chat)}
         onToggleDebug={() => setShowDebugPanel(!showDebugPanel)}
         onUserSelect={(user) => setCurrentUser(user)}

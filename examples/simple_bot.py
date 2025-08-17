@@ -80,6 +80,10 @@ class TelegramEmulatorBot:
         response = requests.get(f"{self.api_url}/getWebhookInfo")
         return response.json()
     
+    def get_current_offset(self) -> int:
+        """Получает текущий offset"""
+        return self.offset
+    
     def run_webhook_server(self, port: int = 8080) -> None:
         """Запускает webhook сервер"""
         from flask import Flask, request, jsonify
@@ -100,10 +104,15 @@ class TelegramEmulatorBot:
         
         @app.route('/health', methods=['GET'])
         def health():
-            return jsonify({"status": "ok"})
+            return jsonify({
+                "status": "ok",
+                "current_offset": self.get_current_offset(),
+                "offset_file": self.offset_file
+            })
         
         webhook_url = f"http://localhost:{port}/webhook"
         print(f"Webhook сервер запущен на {webhook_url}")
+        print(f"Текущий offset: {self.get_current_offset()}")
         
         # Устанавливаем webhook в эмуляторе
         result = self.set_webhook(webhook_url)
@@ -122,6 +131,13 @@ class TelegramEmulatorBot:
     def process_webhook_update(self, update: Dict[str, Any]) -> None:
         """Обрабатывает обновление из webhook"""
         print(f"Получено webhook обновление: {update}")
+        
+        # Обновляем offset при получении webhook обновления
+        update_id = update.get('update_id', 0)
+        if update_id > 0:
+            self.offset = update_id + 1
+            self.save_offset(self.offset)
+            print(f"DEBUG: webhook offset обновлен до {self.offset} (update_id: {update_id})")
         
         # Обрабатываем сообщения
         if 'message' in update:
@@ -149,6 +165,18 @@ class TelegramEmulatorBot:
                 print(f"Ответ отправлен: {response_text}")
             else:
                 print(f"Ошибка отправки: {result}")
+        
+        # Обрабатываем другие типы обновлений (callback_query, etc.)
+        elif 'callback_query' in update:
+            callback_query = update['callback_query']
+            print(f"Получен callback_query: {callback_query}")
+            # Здесь можно добавить обработку callback_query
+        elif 'edited_message' in update:
+            edited_message = update['edited_message']
+            print(f"Получено edited_message: {edited_message}")
+            # Здесь можно добавить обработку edited_message
+        else:
+            print(f"Неизвестный тип обновления: {list(update.keys())}")
     
     def process_updates(self, updates: list) -> None:
         """Обрабатывает полученные обновления"""

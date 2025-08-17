@@ -129,8 +129,8 @@ func (api *TelegramBotAPI) GetUpdates(c *gin.Context) {
 		// Ждем новые обновления в течение timeout секунд
 		startTime := time.Now()
 		for time.Since(startTime) < time.Duration(timeout)*time.Second {
-			// Проверяем новые обновления каждые 100ms
-			time.Sleep(100 * time.Millisecond)
+			// Проверяем новые обновления каждые 1 секунду (увеличено с 100ms для снижения нагрузки на БД)
+			time.Sleep(1 * time.Second)
 			
 			updates, err = api.botManager.GetBotUpdates(bot.ID, offset, limit)
 			if err != nil {

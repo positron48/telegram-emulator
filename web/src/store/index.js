@@ -15,6 +15,7 @@ const useStore = create(
       isLoading: false,
       error: null,
       isConnected: false,
+      isReconnecting: false,
 
       // Действия
       setCurrentUser: (user) => set({ currentUser: user }),
@@ -101,6 +102,7 @@ const useStore = create(
       setError: (error) => set({ error }),
       
       setConnected: (isConnected) => set({ isConnected }),
+      setReconnecting: (isReconnecting) => set({ isReconnecting }),
       
       // Селекторы
       getChatById: (chatId) => {
@@ -134,7 +136,8 @@ const useStore = create(
         debugEvents: [],
         isLoading: false,
         error: null,
-        isConnected: false
+        isConnected: false,
+        isReconnecting: false
       })
     }),
     {

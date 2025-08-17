@@ -22,18 +22,19 @@ const Sidebar = ({
   chats, 
   currentChat, 
   currentUser, 
-  users,
+  users, 
   isConnected, 
+  isReconnecting, 
   onChatSelect, 
-  onToggleDebug,
-  onUserSelect,
-  onCreateUser,
-  onDeleteUser,
-  onCreateChat,
-  onDeleteChat,
-  onShowBotManager,
-  onShowSettings,
-  onReconnect
+  onToggleDebug, 
+  onUserSelect, 
+  onCreateUser, 
+  onDeleteUser, 
+  onCreateChat, 
+  onDeleteChat, 
+  onShowBotManager, 
+  onShowSettings, 
+  onReconnect 
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -206,19 +207,21 @@ const Sidebar = ({
           <div className="flex items-center">
             {isConnected ? (
               <Wifi className="w-4 h-4 text-green-500 mr-2" />
+            ) : isReconnecting ? (
+              <Wifi className="w-4 h-4 text-yellow-500 mr-2 animate-pulse" />
             ) : (
               <WifiOff className="w-4 h-4 text-red-500 mr-2" />
             )}
             <span className={clsx(
               'text-sm',
-              isConnected ? 'text-green-500' : 'text-red-500'
+              isConnected ? 'text-green-500' : isReconnecting ? 'text-yellow-500' : 'text-red-500'
             )}>
-              {isConnected ? t('connected', getCurrentLanguage()) : t('disconnected', getCurrentLanguage())}
+              {isConnected ? t('connected', getCurrentLanguage()) : isReconnecting ? t('reconnecting', getCurrentLanguage()) : t('disconnected', getCurrentLanguage())}
             </span>
           </div>
           
           {/* Кнопка переподключения */}
-          {!isConnected && onReconnect && (
+          {!isConnected && !isReconnecting && onReconnect && (
             <button
               onClick={onReconnect}
               className="px-2 py-1 text-xs bg-telegram-primary text-white rounded hover:bg-telegram-primary/80 transition-colors"

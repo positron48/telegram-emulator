@@ -2,6 +2,7 @@ class WebSocketService {
   constructor() {
     this.socket = null;
     this.isConnected = false;
+    this.isReconnecting = false; // Новое состояние для переподключения
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 1000;
@@ -36,6 +37,7 @@ class WebSocketService {
         this.socket.onopen = () => {
           console.log('WebSocket connected');
           this.isConnected = true;
+          this.isReconnecting = false; // Сбрасываем состояние переподключения
           this.reconnectAttempts = 0;
           this.triggerEvent('connect');
           resolve();
@@ -44,7 +46,6 @@ class WebSocketService {
         this.socket.onclose = (event) => {
           console.log('WebSocket disconnected:', event.code, event.reason);
           this.isConnected = false;
-          this.triggerEvent('disconnect', { code: event.code, reason: event.reason });
           
           // Очищаем socket
           this.socket = null;
@@ -52,19 +53,33 @@ class WebSocketService {
           // Автоматическое переподключение только если это не было намеренное отключение
           if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
-            console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-            this.triggerEvent('reconnecting', { attempt: this.reconnectAttempts, maxAttempts: this.maxReconnectAttempts });
+            this.isReconnecting = true; // Устанавливаем состояние переподключения
+            
+            // Триггерим событие переподключения только для первой попытки
+            if (this.reconnectAttempts === 1) {
+              this.triggerEvent('reconnecting', { attempt: this.reconnectAttempts, maxAttempts: this.maxReconnectAttempts });
+            }
             
             this.reconnectTimer = setTimeout(() => {
               console.log(`Starting reconnection attempt ${this.reconnectAttempts}...`);
               this.connect(url, this.currentUserId).catch(error => {
                 console.error('Reconnection failed:', error);
-                this.triggerEvent('reconnect_error', { error, attempt: this.reconnectAttempts });
+                // Триггерим ошибку переподключения только если это не первая попытка
+                if (this.reconnectAttempts > 1) {
+                  this.triggerEvent('reconnect_error', { error, attempt: this.reconnectAttempts });
+                }
               });
             }, this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1)); // Экспоненциальная задержка
-          } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            console.log('Max reconnection attempts reached');
-            this.triggerEvent('reconnect_failed');
+          } else {
+            // Соединение действительно потеряно
+            this.isReconnecting = false;
+            if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+              console.log('Max reconnection attempts reached');
+              this.triggerEvent('reconnect_failed');
+            } else {
+              // Намеренное отключение
+              this.triggerEvent('disconnect', { code: event.code, reason: event.reason });
+            }
           }
         };
 
@@ -130,8 +145,9 @@ class WebSocketService {
       this.reconnectTimer = null;
     }
     
-    // Сбрасываем счетчик попыток
+    // Сбрасываем счетчик попыток и состояние переподключения
     this.reconnectAttempts = 0;
+    this.isReconnecting = false;
     
     if (this.socket) {
       // Убираем обработчики чтобы избежать рекурсии
@@ -151,6 +167,7 @@ class WebSocketService {
   resetReconnectAttempts() {
     console.log('Resetting reconnection attempts');
     this.reconnectAttempts = 0;
+    this.isReconnecting = false;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -163,6 +180,7 @@ class WebSocketService {
     // Сбрасываем состояние
     this.resetReconnectAttempts();
     this.isConnected = false;
+    this.isReconnecting = false;
     
     // Очищаем старый socket
     if (this.socket) {
@@ -250,6 +268,10 @@ class WebSocketService {
   // Геттеры
   get connected() {
     return this.isConnected;
+  }
+
+  get reconnecting() {
+    return this.isReconnecting;
   }
 
   get socketId() {

@@ -66,5 +66,6 @@ temp/
 configs/local.yaml
 configs/production.yaml
 
-# Bot storage
+# examples
+examples/__pycache__/
 bot_offset_*.txt
