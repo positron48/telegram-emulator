@@ -4,6 +4,8 @@ English | [Русский](README.md)
 
 A web-based Telegram emulator for local bot testing and development. The emulator provides a graphical interface that mimics Telegram and allows you to test bots without using the real Telegram API.
 
+![](screen.png)
+
 ## 🚀 Features
 
 ### ✅ Implemented
