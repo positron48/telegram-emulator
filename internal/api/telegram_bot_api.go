@@ -102,26 +102,31 @@ func (api *TelegramBotAPI) GetUpdates(c *gin.Context) {
 		return
 	}
 
-	// Получаем параметры запроса
-	offset := 0
-	if offsetStr := c.Query("offset"); offsetStr != "" {
-		if parsed, err := strconv.Atoi(offsetStr); err == nil {
-			offset = parsed
-		}
+	// Получаем параметры запроса из query, form (POST) или JSON
+	var params struct {
+		Offset  int `form:"offset" json:"offset"`
+		Limit   int `form:"limit" json:"limit"`
+		Timeout int `form:"timeout" json:"timeout"`
 	}
+	// Значения по умолчанию
+	params.Limit = 100
+	params.Timeout = 0
 
-	limit := 100
-	if limitStr := c.Query("limit"); limitStr != "" {
-		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 && parsed <= 100 {
-			limit = parsed
-		}
+	// Унифицированный биндинг: поддерживает GET query, POST form, POST JSON
+	_ = c.ShouldBind(&params)
+
+	// Валидация и границы
+	offset := params.Offset
+	limit := params.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 100
 	}
-
-	timeout := 0
-	if timeoutStr := c.Query("timeout"); timeoutStr != "" {
-		if parsed, err := strconv.Atoi(timeoutStr); err == nil && parsed >= 0 && parsed <= 50 {
-			timeout = parsed
-		}
+	timeout := params.Timeout
+	if timeout < 0 {
+		timeout = 0
+	}
+	if timeout > 50 {
+		timeout = 50
 	}
 
 	// Получаем обновления
@@ -160,7 +165,7 @@ func (api *TelegramBotAPI) GetUpdates(c *gin.Context) {
 	}
 
 	// Конвертируем в формат Telegram Bot API
-	var telegramUpdates []gin.H
+	telegramUpdates := make([]gin.H, 0)
 	for _, update := range updates {
 		telegramUpdate := gin.H{
 			"update_id": update.UpdateID,
