@@ -37,13 +37,17 @@ func (api *TelegramBotAPI) SetupTelegramBotRoutes(router *gin.Engine) {
 	// Telegram Bot API маршруты
 	botAPI := router.Group("/bot:token")
 	{
-		// Основные методы
+		// Основные методы - поддерживаем и GET и POST для совместимости
 		botAPI.GET("/getMe", api.GetMe)
+		botAPI.POST("/getMe", api.GetMe)
 		botAPI.GET("/getUpdates", api.GetUpdates)
+		botAPI.POST("/getUpdates", api.GetUpdates)
 		botAPI.POST("/sendMessage", api.SendMessage)
 		botAPI.POST("/setWebhook", api.SetWebhook)
 		botAPI.GET("/deleteWebhook", api.DeleteWebhook)
+		botAPI.POST("/deleteWebhook", api.DeleteWebhook)
 		botAPI.GET("/getWebhookInfo", api.GetWebhookInfo)
+		botAPI.POST("/getWebhookInfo", api.GetWebhookInfo)
 		
 		// Callback query методы
 		botAPI.POST("/answerCallbackQuery", api.AnswerCallbackQuery)
