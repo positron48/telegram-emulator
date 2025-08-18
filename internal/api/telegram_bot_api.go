@@ -66,10 +66,13 @@ func (api *TelegramBotAPI) GetMe(c *gin.Context) {
 		return
 	}
 
+	// Конвертируем строковый ID в числовой (как в Telegram Bot API)
+	botID := api.convertStringIDToInt64(bot.ID)
+
 	c.JSON(http.StatusOK, gin.H{
 		"ok": true,
 		"result": gin.H{
-			"id":         bot.ID,
+			"id":         botID,
 			"is_bot":     true,
 			"first_name": bot.Name,
 			"username":   bot.Username,
@@ -462,12 +465,15 @@ func (api *TelegramBotAPI) EditMessageText(c *gin.Context) {
 		zap.String("message_id", request.MessageID),
 		zap.String("text", request.Text))
 
+	// Конвертируем строковый ID в числовой
+	botID := api.convertStringIDToInt64(bot.ID)
+
 	c.JSON(http.StatusOK, gin.H{
 		"ok":     true,
 		"result": gin.H{
 			"message_id": request.MessageID,
 			"from": gin.H{
-				"id":         bot.ID,
+				"id":         botID,
 				"is_bot":     true,
 				"first_name": bot.Name,
 				"username":   bot.Username,
@@ -481,4 +487,17 @@ func (api *TelegramBotAPI) EditMessageText(c *gin.Context) {
 			"text": request.Text,
 		},
 	})
+}
+
+// convertStringIDToInt64 конвертирует строковый ID в числовой (как в Telegram Bot API)
+func (api *TelegramBotAPI) convertStringIDToInt64(id string) int64 {
+	result := int64(0)
+	if len(id) > 0 {
+		for i, char := range id {
+			if i < 8 { // Ограничиваем длину для предотвращения переполнения
+				result = result*31 + int64(char)
+			}
+		}
+	}
+	return result
 }
