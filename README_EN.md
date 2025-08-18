@@ -22,6 +22,8 @@ A web-based Telegram emulator for local bot testing and development. The emulato
 - **SQLite Database** - stores all data
 - **Interactive Python Bot** - with mode selection (api, long polling, webhook)
 - **Debug Panel** - monitoring events and system state
+- **Keyboard Support** - ReplyKeyboardMarkup and InlineKeyboardMarkup
+- **Callback Queries** - full support for inline keyboard interactions
 
 ### 🔧 Telegram Bot API Methods
 
@@ -30,10 +32,12 @@ The emulator supports the following Telegram Bot API methods:
 #### Core Methods
 - `getMe` - get bot information
 - `getUpdates` - get updates
-- `sendMessage` - send message
+- `sendMessage` - send message with keyboards
 - `setWebhook` - set webhook
 - `deleteWebhook` - delete webhook
 - `getWebhookInfo` - get webhook information
+- `answerCallbackQuery` - answer callback queries
+- `editMessageText` - edit message text and inline keyboards
 
 #### Supported Update Types
 - Messages (`message`)
@@ -113,6 +117,40 @@ curl -X POST "http://localhost:3001/bot1234567890:ABCdefGHIjklMNOpqrsTUVwxyz/sen
   -d '{"chat_id": "2773246093156", "text": "Hello!"}'
 ```
 
+#### Send Message with Reply Keyboard
+```bash
+curl -X POST "http://localhost:3001/bot1234567890:ABCdefGHIjklMNOpqrsTUVwxyz/sendMessage" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "chat_id": "2773246093156", 
+    "text": "Choose an option:",
+    "reply_markup": {
+      "keyboard": [
+        [{"text": "Option 1"}, {"text": "Option 2"}],
+        [{"text": "Option 3"}]
+      ],
+      "resize_keyboard": true,
+      "one_time_keyboard": false
+    }
+  }'
+```
+
+#### Send Message with Inline Keyboard
+```bash
+curl -X POST "http://localhost:3001/bot1234567890:ABCdefGHIjklMNOpqrsTUVwxyz/sendMessage" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "chat_id": "2773246093156", 
+    "text": "Choose an action:",
+    "reply_markup": {
+      "inline_keyboard": [
+        [{"text": "Search", "callback_data": "search"}],
+        [{"text": "Settings", "callback_data": "settings"}]
+      ]
+    }
+  }'
+```
+
 ### 3. Interactive Python Bot
 
 Ready-to-use bot with mode selection:
@@ -132,6 +170,11 @@ python simple_bot.py
 - Built-in webhook server with automatic configuration
 - Support for all Telegram Bot API modes
 - Graceful shutdown with webhook cleanup
+- Full keyboard support with commands:
+  - `/start` - shows reply keyboard
+  - `/help` - shows help information
+  - `/keyboard` - shows reply keyboard
+  - `/inline` - shows inline keyboard with callback queries
 
 For more details, see [examples/README.md](examples/README.md)
 
