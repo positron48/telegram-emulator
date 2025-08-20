@@ -1,5 +1,7 @@
 # Примеры ботов для Telegram Emulator
 
+[English](README_EN.md) | Русский
+
 Этот каталог содержит примеры ботов, которые демонстрируют работу с Telegram Emulator API.
 
 ## Интерактивный Python бот
