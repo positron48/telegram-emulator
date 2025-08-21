@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"regexp"
 	"time"
 )
 
@@ -18,6 +19,7 @@ type Message struct {
 	Timestamp time.Time `json:"timestamp"`
 	CreatedAt time.Time `json:"created_at"`
 	ReplyMarkupJSON string `json:"reply_markup,omitempty" gorm:"column:reply_markup"` // Клавиатура в JSON формате
+	EntitiesJSON string `json:"entities,omitempty" gorm:"column:entities"` // Сущности в JSON формате
 }
 
 // TableName возвращает имя таблицы для модели Message
@@ -100,4 +102,154 @@ func (m *Message) GetReplyMarkup() interface{} {
 	}
 	
 	return replyMarkup
+}
+
+// SetEntities устанавливает сущности и сериализует их в JSON
+func (m *Message) SetEntities(entities []MessageEntity) error {
+	if entities == nil || len(entities) == 0 {
+		m.EntitiesJSON = ""
+		return nil
+	}
+	
+	// Сериализуем сущности в JSON
+	jsonData, err := json.Marshal(entities)
+	if err != nil {
+		return err
+	}
+	
+	m.EntitiesJSON = string(jsonData)
+	return nil
+}
+
+// GetEntities десериализует сущности из JSON
+func (m *Message) GetEntities() []MessageEntity {
+	if m.EntitiesJSON == "" {
+		return nil
+	}
+	
+	var entities []MessageEntity
+	if err := json.Unmarshal([]byte(m.EntitiesJSON), &entities); err != nil {
+		return nil
+	}
+	
+	return entities
+}
+
+// ParseAndSetEntities парсит текст сообщения и устанавливает сущности
+func (m *Message) ParseAndSetEntities() error {
+	if m.Text == "" {
+		return nil
+	}
+	
+	var entities []MessageEntity
+	
+	// Парсим команды
+	commandEntities := parseCommands(m.Text)
+	entities = append(entities, commandEntities...)
+	
+	// Парсим упоминания
+	mentionEntities := parseMentions(m.Text)
+	entities = append(entities, mentionEntities...)
+	
+	// Парсим URL (до хештегов, чтобы избежать конфликтов)
+	urlEntities := parseURLs(m.Text)
+	entities = append(entities, urlEntities...)
+	
+	// Парсим хештеги (после URL)
+	hashtagEntities := parseHashtags(m.Text)
+	entities = append(entities, hashtagEntities...)
+	
+	return m.SetEntities(entities)
+}
+
+// IsCommand проверяет, является ли сообщение командой
+func (m *Message) IsCommand() bool {
+	entities := m.GetEntities()
+	for _, entity := range entities {
+		if entity.Type == "bot_command" {
+			return true
+		}
+	}
+	return false
+}
+
+// GetCommand возвращает команду из сообщения
+func (m *Message) GetCommand() string {
+	entities := m.GetEntities()
+	for _, entity := range entities {
+		if entity.Type == "bot_command" {
+			if entity.Offset < len(m.Text) && entity.Offset+entity.Length <= len(m.Text) {
+				return m.Text[entity.Offset : entity.Offset+entity.Length]
+			}
+		}
+	}
+	return ""
+}
+
+// parseCommands парсит команды в тексте
+func parseCommands(text string) []MessageEntity {
+	var entities []MessageEntity
+	commandRegex := regexp.MustCompile(`/([a-zA-Z0-9_]+)`)
+	
+	matches := commandRegex.FindAllStringIndex(text, -1)
+	for _, match := range matches {
+		entities = append(entities, MessageEntity{
+			Type:   "bot_command",
+			Offset: match[0],
+			Length: match[1] - match[0],
+		})
+	}
+	
+	return entities
+}
+
+// parseMentions парсит упоминания в тексте
+func parseMentions(text string) []MessageEntity {
+	var entities []MessageEntity
+	mentionRegex := regexp.MustCompile(`@([a-zA-Z0-9_]{5,32})`)
+	
+	matches := mentionRegex.FindAllStringIndex(text, -1)
+	for _, match := range matches {
+		entities = append(entities, MessageEntity{
+			Type:   "mention",
+			Offset: match[0],
+			Length: match[1] - match[0],
+		})
+	}
+	
+	return entities
+}
+
+// parseHashtags парсит хештеги в тексте
+func parseHashtags(text string) []MessageEntity {
+	var entities []MessageEntity
+	hashtagRegex := regexp.MustCompile(`#([a-zA-Z0-9_]+)`)
+	
+	matches := hashtagRegex.FindAllStringIndex(text, -1)
+	for _, match := range matches {
+		entities = append(entities, MessageEntity{
+			Type:   "hashtag",
+			Offset: match[0],
+			Length: match[1] - match[0],
+		})
+	}
+	
+	return entities
+}
+
+// parseURLs парсит URL в тексте
+func parseURLs(text string) []MessageEntity {
+	var entities []MessageEntity
+	urlRegex := regexp.MustCompile(`https?://[^\s]+`)
+	
+	matches := urlRegex.FindAllStringIndex(text, -1)
+	for _, match := range matches {
+		entities = append(entities, MessageEntity{
+			Type:   "url",
+			Offset: match[0],
+			Length: match[1] - match[0],
+		})
+	}
+	
+	return entities
 }

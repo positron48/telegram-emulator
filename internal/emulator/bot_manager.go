@@ -24,6 +24,7 @@ type BotManager struct {
 	updateQueue  map[string][]models.Update // Очередь обновлений для каждого бота
 	updateID     int64                      // Глобальный счетчик update_id
 	chatIDMap    map[int64]string           // Маппинг Telegram chat_id -> внутренний chat_id
+	nextUpdateID map[string]int64           // Персональный счетчик update_id для каждого бота
 }
 
 // NewBotManager создает новый экземпляр BotManager
@@ -37,6 +38,7 @@ func NewBotManager(botRepo *repository.BotRepository, userRepo *repository.UserR
 		updateQueue: make(map[string][]models.Update),
 		updateID:    1,
 		chatIDMap:   make(map[int64]string),
+		nextUpdateID: make(map[string]int64),
 	}
 }
 
@@ -319,9 +321,13 @@ func (m *BotManager) AddUpdate(botID string, update *models.Update) error {
 		return fmt.Errorf("бот неактивен")
 	}
 
-	// Устанавливаем update_id
-	update.UpdateID = m.updateID
-	m.updateID++
+	// Устанавливаем update_id персонифицировано для бота
+	nextID := m.nextUpdateID[botID]
+	if nextID == 0 {
+		nextID = 1
+	}
+	update.UpdateID = nextID
+	m.nextUpdateID[botID] = nextID + 1
 
 	// Устанавливаем timestamp
 	update.Timestamp = time.Now()
@@ -383,13 +389,17 @@ func (m *BotManager) AddCallbackQuery(botToken string, callbackQuery *models.Cal
 		return fmt.Errorf("бот неактивен")
 	}
 	
-	// Создаем обновление с callback query
+	// Создаем обновление с callback query с персонифицированным update_id
+	nextID := m.nextUpdateID[bot.ID]
+	if nextID == 0 {
+		nextID = 1
+	}
 	update := &models.Update{
-		UpdateID:      m.updateID,
+		UpdateID:      nextID,
 		CallbackQuery: callbackQuery,
 		Timestamp:     time.Now(),
 	}
-	m.updateID++
+	m.nextUpdateID[bot.ID] = nextID + 1
 	
 	// Добавляем в очередь
 	if m.updateQueue[bot.ID] == nil {

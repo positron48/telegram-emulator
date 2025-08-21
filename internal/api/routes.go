@@ -49,6 +49,7 @@ func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatMana
 			messages.GET("/:id", messageHandler.GetByID)
 			messages.PUT("/:id/status", messageHandler.UpdateStatus)
 			messages.DELETE("/:id", messageHandler.DeleteMessage)
+			messages.POST("/:id/callback", messageHandler.HandleCallbackQuery)
 		}
 
 		// Сообщения чатов
@@ -78,8 +79,9 @@ func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatMana
 			wsServer.HandleWebSocket(c.Writer, c.Request)
 		})
 
-		// Главная страница - теперь обслуживается Vite dev сервером
+		// Главная страница
 		router.GET("/", func(c *gin.Context) {
+			c.Header("Content-Type", "application/json; charset=utf-8")
 			c.JSON(200, gin.H{
 				"message": "Telegram Emulator API",
 				"version": "1.0.0",

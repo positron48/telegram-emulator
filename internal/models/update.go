@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strconv"
 	"time"
 )
 
@@ -392,6 +393,11 @@ func (m *Message) ToTelegramMessage() TelegramMessage {
 		Text: m.Text,
 	}
 
+	// Добавляем сущности, если они есть
+	if entities := m.GetEntities(); entities != nil && len(entities) > 0 {
+		telegramMessage.Entities = entities
+	}
+
 	// Добавляем клавиатуру, если она есть
 	if replyMarkup := m.GetReplyMarkup(); replyMarkup != nil {
 		telegramMessage.ReplyMarkup = replyMarkup
@@ -403,9 +409,9 @@ func (m *Message) ToTelegramMessage() TelegramMessage {
 // FromTelegramMessage конвертирует сообщение из формата Telegram Bot API во внутренний формат
 func FromTelegramMessage(tgMsg TelegramMessage, chatID string) *Message {
 	return &Message{
-		ID:        string(tgMsg.MessageID),
+		ID:        strconv.FormatInt(tgMsg.MessageID, 10),
 		ChatID:    chatID,
-		FromID:    string(tgMsg.From.ID),
+		FromID:    strconv.FormatInt(tgMsg.From.ID, 10),
 		Text:      tgMsg.Text,
 		Type:      MessageTypeText,
 		Status:    MessageStatusSent,

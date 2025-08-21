@@ -102,6 +102,12 @@ func (m *MessageManager) SendMessage(chatID, fromUserID, text, messageType strin
 		}
 	}
 
+	// Парсим и устанавливаем сущности (команды, упоминания, хештеги, URL)
+	if err := message.ParseAndSetEntities(); err != nil {
+		m.logger.Error("Ошибка парсинга сущностей", zap.Error(err))
+		// Не прерываем отправку сообщения, просто логируем ошибку
+	}
+
 	// Сохраняем сообщение
 	if err := m.messageRepo.Create(message); err != nil {
 		m.logger.Error("Ошибка создания сообщения", zap.Error(err))
@@ -236,6 +242,105 @@ func (m *MessageManager) SearchMessages(chatID, query string) ([]models.Message,
 	return messages, nil
 }
 
+// HandleCallbackQuery обрабатывает callback query от inline кнопки
+func (m *MessageManager) HandleCallbackQuery(userID, messageID, callbackData string) (*models.CallbackQuery, error) {
+	// Получаем сообщение
+	message, err := m.messageRepo.GetByID(messageID)
+	if err != nil {
+		m.logger.Error("Ошибка получения сообщения для callback query", zap.String("message_id", messageID), zap.Error(err))
+		return nil, err
+	}
+
+	// Получаем пользователя
+	user, err := m.userRepo.GetByID(userID)
+	if err != nil {
+		m.logger.Error("Ошибка получения пользователя для callback query", zap.String("user_id", userID), zap.Error(err))
+		return nil, err
+	}
+
+	// Генерируем уникальный ID для callback query
+	callbackID, err := m.generateID()
+	if err != nil {
+		m.logger.Error("Ошибка генерации ID для callback query", zap.Error(err))
+		return nil, err
+	}
+
+	// Создаем callback query
+	callbackQuery := &models.CallbackQuery{
+		ID:       callbackID,
+		From:     *user,
+		Message:  message,
+		Data:     callbackData,
+	}
+
+	// Уведомляем ботов о callback query
+	m.notifyBotsCallbackQuery(callbackQuery)
+
+	m.logger.Info("Callback query обработан", 
+		zap.String("callback_id", callbackID),
+		zap.String("message_id", messageID),
+		zap.String("user_id", userID),
+		zap.String("callback_data", callbackData))
+
+	return callbackQuery, nil
+}
+
+// notifyBotsCallbackQuery уведомляет ботов о callback query
+func (m *MessageManager) notifyBotsCallbackQuery(callbackQuery *models.CallbackQuery) {
+	if m.botManager == nil {
+		m.logger.Error("botManager равен nil - уведомления ботов отключены")
+		return
+	}
+
+	// Получаем всех активных ботов
+	bots, err := m.botManager.GetAllBots()
+	if err != nil {
+		m.logger.Error("Ошибка получения ботов для уведомления callback query", zap.Error(err))
+		return
+	}
+
+	// Создаем обновление для каждого бота
+	for _, bot := range bots {
+		if !bot.IsActive {
+			continue
+		}
+
+		// Проверяем, является ли сообщение от этого бота
+		botUser, err := m.userRepo.GetByUsername(bot.Username)
+		if err != nil {
+			m.logger.Error("Ошибка получения пользователя-бота", 
+				zap.String("bot_id", bot.ID),
+				zap.String("bot_username", bot.Username),
+				zap.Error(err))
+			continue
+		}
+
+		// Если сообщение от этого бота, уведомляем его о callback query
+		if callbackQuery.Message.FromID == botUser.ID {
+			// Создаем обновление
+			update := &models.Update{
+				CallbackQuery: callbackQuery,
+			}
+
+			// Добавляем в очередь обновлений бота
+			if err := m.botManager.AddUpdate(bot.ID, update); err != nil {
+				m.logger.Error("Ошибка добавления callback query для бота", 
+					zap.String("bot_id", bot.ID), 
+					zap.Error(err))
+			}
+
+			// Если у бота есть webhook URL, отправляем обновление в webhook
+			if bot.WebhookURL != "" {
+				go m.sendWebhookUpdate(&bot, update)
+			}
+		}
+	}
+
+	m.logger.Info("Боты уведомлены о callback query", 
+		zap.String("callback_id", callbackQuery.ID),
+		zap.Int("bots_count", len(bots)))
+}
+
 // simulateMessageDelivery эмулирует доставку сообщения
 func (m *MessageManager) simulateMessageDelivery(message *models.Message) {
 	// Эмулируем задержку сети
@@ -340,7 +445,7 @@ func (m *MessageManager) notifyBots(message *models.Message) {
 		return
 	}
 
-	// Создаем обновление для каждого бота
+	// Создаем обновление для каждого бота только если бот является участником чата
 	for _, bot := range bots {
 		if !bot.IsActive {
 			continue
@@ -362,6 +467,27 @@ func (m *MessageManager) notifyBots(message *models.Message) {
 			m.logger.Debug("Пропускаем уведомление бота о его собственном сообщении", 
 				zap.String("bot_id", bot.ID),
 				zap.String("message_id", message.ID))
+			continue
+		}
+
+		// Проверяем, состоит ли бот в этом чате
+		chat, err := m.chatRepo.GetByID(message.ChatID)
+		if err != nil {
+			m.logger.Error("Ошибка получения чата для проверки членства бота", zap.String("chat_id", message.ChatID), zap.Error(err))
+			continue
+		}
+		isBotMember := false
+		for _, member := range chat.Members {
+			if member.Username == bot.Username || member.ID == botUser.ID {
+				isBotMember = true
+				break
+			}
+		}
+		if !isBotMember {
+			// Бот не состоит в этом чате — пропускаем уведомление
+			m.logger.Debug("Бот не является участником чата, уведомление пропущено", 
+				zap.String("bot_id", bot.ID),
+				zap.String("chat_id", message.ChatID))
 			continue
 		}
 

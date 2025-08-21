@@ -200,3 +200,34 @@ func (h *MessageHandler) SearchMessages(c *gin.Context) {
 		"query":    query,
 	})
 }
+
+// HandleCallbackQueryRequest представляет запрос на обработку callback query
+type HandleCallbackQueryRequest struct {
+	UserID       string `json:"user_id" binding:"required"`
+	CallbackData string `json:"callback_data" binding:"required"`
+}
+
+// HandleCallbackQuery обрабатывает callback query от inline кнопки
+func (h *MessageHandler) HandleCallbackQuery(c *gin.Context) {
+	messageID := c.Param("id")
+	if messageID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID сообщения обязателен"})
+		return
+	}
+
+	var req HandleCallbackQueryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	callbackQuery, err := h.messageManager.HandleCallbackQuery(req.UserID, messageID, req.CallbackData)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"callback_query": callbackQuery,
+	})
+}

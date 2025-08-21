@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"telegram-emulator/internal/api"
@@ -74,11 +75,15 @@ func main() {
 	// Настройка и запуск HTTP сервера
 	router := gin.Default()
 	
-	// Настройка CORS
+	// Настройка CORS и HTTP заголовков
 	router.Use(func(c *gin.Context) {
+		// Устанавливаем HTTP/1.1
+		c.Header("Server", "Telegram-Emulator/1.0")
+		
+		// CORS заголовки
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, User-Agent")
 		
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
@@ -91,11 +96,17 @@ func main() {
 	// Настройка маршрутов
 	api.SetupRoutes(router, userManager, chatManager, messageManager, botManager, wsServer)
 
-	// Запуск сервера
+	// Запуск сервера с правильными настройками HTTP
 	addr := fmt.Sprintf("%s:%d", cfg.Emulator.Host, cfg.Emulator.Port)
 	log.Info("HTTP сервер запускается", zap.String("address", addr))
 	
-	if err := router.Run(addr); err != nil {
+	// Создаем HTTP сервер с правильными настройками
+	server := &http.Server{
+		Addr:    addr,
+		Handler: router,
+	}
+	
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal("Ошибка запуска HTTP сервера", zap.Error(err))
 	}
 }
