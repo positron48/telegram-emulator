@@ -6,6 +6,7 @@
 
 import asyncio
 import logging
+import json
 from typing import Dict, Any, List
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, ForceReply
@@ -22,12 +23,38 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Добавляем логирование для httpx
+httpx_logger = logging.getLogger("httpx")
+httpx_logger.setLevel(logging.DEBUG)
+
 class EmulatorBot:
     def __init__(self):
         self.application = None
     
+    async def log_update(self, update: Update) -> None:
+        """Логирование полученного обновления"""
+        try:
+            update_dict = update.to_dict()
+            logger.info("📥 ПОЛУЧЕНО ОБНОВЛЕНИЕ:")
+            logger.info(f"JSON: {json.dumps(update_dict, indent=2, ensure_ascii=False)}")
+        except Exception as e:
+            logger.error(f"Ошибка логирования обновления: {e}")
+    
+    async def log_request(self, method: str, url: str, data: Dict[str, Any] = None) -> None:
+        """Логирование отправляемого запроса"""
+        try:
+            logger.info(f"📤 ОТПРАВЛЯЕМ ЗАПРОС:")
+            logger.info(f"Метод: {method}")
+            logger.info(f"URL: {url}")
+            if data:
+                logger.info(f"Данные: {json.dumps(data, indent=2, ensure_ascii=False)}")
+        except Exception as e:
+            logger.error(f"Ошибка логирования запроса: {e}")
+    
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработка команды /start"""
+        await self.log_update(update)
+        
         user = update.effective_user
         keyboard = [
             [
@@ -42,11 +69,20 @@ class EmulatorBot:
         
         text = f"Привет, {user.first_name}! Я бот для тестирования эмулятора Telegram API.\n\nВыберите опцию:"
         
+        # Логируем данные для отправки
+        await self.log_request("POST", f"{EMULATOR_URL}/bot/{BOT_TOKEN}/sendMessage", {
+            "chat_id": update.effective_chat.id,
+            "text": text,
+            "reply_markup": reply_markup.to_dict()
+        })
+        
         await update.message.reply_text(text, reply_markup=reply_markup)
         logger.info(f"Отправлено приветственное сообщение пользователю {user.first_name}")
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработка команды /help"""
+        await self.log_update(update)
+        
         help_text = """
 🤖 Доступные команды:
 
@@ -70,6 +106,8 @@ class EmulatorBot:
     
     async def keyboard_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработка команды /keyboard"""
+        await self.log_update(update)
+        
         keyboard = [
             ["📱 Главное меню", "⚙️ Настройки"],
             ["❓ Помощь", "📞 Контакты"],
@@ -82,18 +120,24 @@ class EmulatorBot:
     
     async def remove_keyboard_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработка команды /remove_keyboard"""
+        await self.log_update(update)
+        
         reply_markup = ReplyKeyboardRemove()
         await update.message.reply_text("Клавиатура удалена!", reply_markup=reply_markup)
         logger.info("Клавиатура удалена")
     
     async def force_reply_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработка команды /force_reply"""
+        await self.log_update(update)
+        
         reply_markup = ForceReply()
         await update.message.reply_text("Пожалуйста, введите ваш ответ:", reply_markup=reply_markup)
         logger.info("Отправлен force reply")
     
     async def entities_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработка команды /entities"""
+        await self.log_update(update)
+        
         entities_text = """
 Демонстрация Message Entities:
 
@@ -110,6 +154,8 @@ class EmulatorBot:
     
     async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработка callback query"""
+        await self.log_update(update)
+        
         query = update.callback_query
         await query.answer()  # Отвечаем на callback query
         
@@ -126,6 +172,8 @@ class EmulatorBot:
     
     async def handle_text_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработка текстового сообщения"""
+        await self.log_update(update)
+        
         text = update.message.text
         user = update.effective_user
         
@@ -153,6 +201,12 @@ class EmulatorBot:
     async def error_handler(self, update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработка ошибок"""
         logger.error(f"Ошибка при обработке обновления: {context.error}")
+        if update:
+            try:
+                update_dict = update.to_dict()
+                logger.error(f"Обновление, вызвавшее ошибку: {json.dumps(update_dict, indent=2, ensure_ascii=False)}")
+            except:
+                logger.error(f"Не удалось сериализовать обновление: {update}")
     
     def setup_handlers(self) -> None:
         """Настройка обработчиков команд и сообщений"""
@@ -182,7 +236,9 @@ class EmulatorBot:
         logger.info("=" * 50)
         
         # Создаем приложение с кастомным base_url
-        self.application = Application.builder().token(BOT_TOKEN).base_url(f"{EMULATOR_URL}/bot").build()
+        # Используем формат без слеша, чтобы соответствовать нашему эмулятору
+        # Добавляем слеш в конце, чтобы python-telegram-bot правильно формировал URL
+        self.application = Application.builder().token(BOT_TOKEN).base_url(f"{EMULATOR_URL}/bot/").build()
         
         # Настраиваем обработчики
         self.setup_handlers()

@@ -1,9 +1,14 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"telegram-emulator/internal/emulator"
@@ -36,44 +41,58 @@ func NewTelegramBotAPI(botManager *emulator.BotManager, userManager *emulator.Us
 // SetupTelegramBotRoutes настраивает маршруты Telegram Bot API
 func (api *TelegramBotAPI) SetupTelegramBotRoutes(router *gin.Engine) {
 	// Telegram Bot API маршруты с правильными заголовками
-	botAPI := router.Group("/bot:token")
-	botAPI.Use(func(c *gin.Context) {
+	// Используем формат /bot<token> как в официальном Telegram Bot API
+	
+	// Middleware для извлечения токена из пути
+	botMiddleware := func(c *gin.Context) {
 		// Устанавливаем правильные заголовки для Telegram Bot API
 		c.Header("Content-Type", "application/json; charset=utf-8")
 		c.Header("Server", "Telegram-Emulator/1.0")
 		c.Next()
-	})
-	
-	{
-		// Основные методы - поддерживаем и GET и POST для совместимости
-		botAPI.GET("/getMe", api.GetMe)
-		botAPI.POST("/getMe", api.GetMe)
-		botAPI.GET("/getUpdates", api.GetUpdates)
-		botAPI.POST("/getUpdates", api.GetUpdates)
-		botAPI.POST("/sendMessage", api.SendMessage)
-		botAPI.POST("/setWebhook", api.SetWebhook)
-		botAPI.GET("/deleteWebhook", api.DeleteWebhook)
-		botAPI.POST("/deleteWebhook", api.DeleteWebhook)
-		botAPI.GET("/getWebhookInfo", api.GetWebhookInfo)
-		botAPI.POST("/getWebhookInfo", api.GetWebhookInfo)
-		
-		// Callback query методы
-		botAPI.POST("/answerCallbackQuery", api.AnswerCallbackQuery)
-		botAPI.POST("/editMessageText", api.EditMessageText)
-		botAPI.POST("/editMessageReplyMarkup", api.EditMessageReplyMarkup)
 	}
+	
+	// Регистрируем маршруты с middleware
+	router.Use(botMiddleware)
+	
+	// Основные методы - поддерживаем и GET и POST для совместимости
+	// Формат 1: /bot<token>/method (без слеша)
+	router.GET("/bot:token/getMe", api.GetMe)
+	router.POST("/bot:token/getMe", api.GetMe)
+	router.GET("/bot:token/getUpdates", api.GetUpdates)
+	router.POST("/bot:token/getUpdates", api.GetUpdates)
+	router.POST("/bot:token/sendMessage", api.SendMessage)
+	router.POST("/bot:token/setWebhook", api.SetWebhook)
+	router.GET("/bot:token/deleteWebhook", api.DeleteWebhook)
+	router.POST("/bot:token/deleteWebhook", api.DeleteWebhook)
+	router.GET("/bot:token/getWebhookInfo", api.GetWebhookInfo)
+	router.POST("/bot:token/getWebhookInfo", api.GetWebhookInfo)
+	router.POST("/bot:token/answerCallbackQuery", api.AnswerCallbackQuery)
+	router.POST("/bot:token/editMessageText", api.EditMessageText)
+	router.POST("/bot:token/editMessageReplyMarkup", api.EditMessageReplyMarkup)
+	
+	// Формат 2: /bot/<token>/method (со слешем) - для совместимости с python-telegram-bot
+	router.GET("/bot/:token2/getMe", api.GetMe)
+	router.POST("/bot/:token2/getMe", api.GetMe)
+	router.GET("/bot/:token2/getUpdates", api.GetUpdates)
+	router.POST("/bot/:token2/getUpdates", api.GetUpdates)
+	router.POST("/bot/:token2/sendMessage", api.SendMessage)
+	router.POST("/bot/:token2/setWebhook", api.SetWebhook)
+	router.GET("/bot/:token2/deleteWebhook", api.DeleteWebhook)
+	router.POST("/bot/:token2/deleteWebhook", api.DeleteWebhook)
+	router.GET("/bot/:token2/getWebhookInfo", api.GetWebhookInfo)
+	router.POST("/bot/:token2/getWebhookInfo", api.GetWebhookInfo)
+	router.POST("/bot/:token2/answerCallbackQuery", api.AnswerCallbackQuery)
+	router.POST("/bot/:token2/editMessageText", api.EditMessageText)
+	router.POST("/bot/:token2/editMessageReplyMarkup", api.EditMessageReplyMarkup)
 }
 
 // GetMe возвращает информацию о боте
 func (api *TelegramBotAPI) GetMe(c *gin.Context) {
-	token := api.normalizeToken(c.Param("token"))
+	token := api.extractTokenFromPath(c)
 	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
 		return
 	}
-
-	// Нормализуем токен
-	token = api.normalizeToken(token)
 
 	// Находим бота по токену
 	bot, err := api.findBotByToken(token)
@@ -101,14 +120,11 @@ func (api *TelegramBotAPI) GetMe(c *gin.Context) {
 
 // GetUpdates возвращает обновления для бота
 func (api *TelegramBotAPI) GetUpdates(c *gin.Context) {
-	token := api.normalizeToken(c.Param("token"))
+	token := api.extractTokenFromPath(c)
 	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
 		return
 	}
-
-	// Нормализуем токен
-	token = api.normalizeToken(token)
 
 	// Находим бота по токену
 	bot, err := api.findBotByToken(token)
@@ -207,14 +223,11 @@ func (api *TelegramBotAPI) GetUpdates(c *gin.Context) {
 
 // SendMessage отправляет сообщение
 func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
-	token := api.normalizeToken(c.Param("token"))
+	token := api.extractTokenFromPath(c)
 	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
 		return
 	}
-
-	// Нормализуем токен
-	token = api.normalizeToken(token)
 
 	// Находим бота по токену
 	bot, err := api.findBotByToken(token)
@@ -224,31 +237,72 @@ func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
 	}
 
 	var request struct {
-		ChatID                string      `json:"chat_id" binding:"required"`
-		Text                  string      `json:"text" binding:"required"`
-		ParseMode             string      `json:"parse_mode"`
-		DisableWebPagePreview bool        `json:"disable_web_page_preview"`
-		DisableNotification   bool        `json:"disable_notification"`
-		ProtectContent        bool        `json:"protect_content"`
-		ReplyToMessageID      int64       `json:"reply_to_message_id"`
-		AllowSendingWithoutReply bool     `json:"allow_sending_without_reply"`
+		ChatID                string      `json:"chat_id" form:"chat_id" binding:"required"`
+		Text                  string      `json:"text" form:"text" binding:"required"`
+		ParseMode             string      `json:"parse_mode" form:"parse_mode"`
+		DisableWebPagePreview bool        `json:"disable_web_page_preview" form:"disable_web_page_preview"`
+		DisableNotification   bool        `json:"disable_notification" form:"disable_notification"`
+		ProtectContent        bool        `json:"protect_content" form:"protect_content"`
+		ReplyToMessageID      int64       `json:"reply_to_message_id" form:"reply_to_message_id"`
+		AllowSendingWithoutReply bool     `json:"allow_sending_without_reply" form:"allow_sending_without_reply"`
 		ReplyMarkup           interface{} `json:"reply_markup"`
+		ReplyMarkupString     string      `form:"reply_markup"`
 	}
 
+	// Логируем входящий запрос
+	api.logger.Info("📥 ПОЛУЧЕН ЗАПРОС sendMessage",
+		zap.String("content_type", c.ContentType()),
+		zap.String("method", c.Request.Method),
+		zap.String("url", c.Request.URL.String()))
+
 	// Улучшенная обработка JSON - поддерживаем как JSON, так и form data
-	if c.ContentType() == "application/json" {
+	contentType := c.ContentType()
+	api.logger.Info("📥 Content-Type", zap.String("content_type", contentType))
+	
+	// Читаем raw data для логирования
+	rawData, _ := c.GetRawData()
+	api.logger.Info("📥 Raw данные", zap.String("body", string(rawData)))
+	
+	// Восстанавливаем данные для парсинга
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawData))
+	
+	// Пробуем сначала JSON, потом form data
+	if strings.Contains(contentType, "application/json") {
+		api.logger.Info("📥 Парсим как JSON")
 		if err := c.ShouldBindJSON(&request); err != nil {
-			rawData, _ := c.GetRawData()
 			api.logger.Error("Ошибка парсинга JSON", zap.Error(err), zap.String("body", string(rawData)))
-			c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: invalid JSON format"})
-			return
+			// Если JSON не удался, пробуем form data
+			api.logger.Info("📥 Пробуем парсить как form data")
+			if err := c.ShouldBind(&request); err != nil {
+				api.logger.Error("Ошибка парсинга form data", zap.Error(err))
+				c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: invalid data format"})
+				return
+			}
 		}
 	} else {
-		// Поддержка form data для совместимости
+		// Пробуем form data
+		api.logger.Info("📥 Парсим как form data")
 		if err := c.ShouldBind(&request); err != nil {
 			api.logger.Error("Ошибка парсинга form data", zap.Error(err))
-			c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: invalid form data"})
-			return
+			// Если form data не удался, пробуем JSON
+			api.logger.Info("📥 Пробуем парсить как JSON")
+			if err := c.ShouldBindJSON(&request); err != nil {
+				api.logger.Error("Ошибка парсинга JSON", zap.Error(err))
+				c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: invalid data format"})
+				return
+			}
+		} else {
+			// Form data успешно распарсена, теперь обрабатываем reply_markup
+			if request.ReplyMarkupString != "" {
+				api.logger.Info("📥 Обрабатываем reply_markup из form data", zap.String("reply_markup", request.ReplyMarkupString))
+				var replyMarkup interface{}
+				if err := json.Unmarshal([]byte(request.ReplyMarkupString), &replyMarkup); err != nil {
+					api.logger.Error("Ошибка парсинга reply_markup JSON", zap.Error(err))
+				} else {
+					request.ReplyMarkup = replyMarkup
+					api.logger.Info("📥 reply_markup успешно распарсен")
+				}
+			}
 		}
 	}
 
@@ -333,7 +387,7 @@ func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
 
 // SetWebhook устанавливает webhook для бота
 func (api *TelegramBotAPI) SetWebhook(c *gin.Context) {
-	token := api.normalizeToken(c.Param("token"))
+	token := api.extractTokenFromPath(c)
 	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
 		return
@@ -376,7 +430,7 @@ func (api *TelegramBotAPI) SetWebhook(c *gin.Context) {
 
 // DeleteWebhook удаляет webhook
 func (api *TelegramBotAPI) DeleteWebhook(c *gin.Context) {
-	token := api.normalizeToken(c.Param("token"))
+	token := api.extractTokenFromPath(c)
 	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
 		return
@@ -404,7 +458,7 @@ func (api *TelegramBotAPI) DeleteWebhook(c *gin.Context) {
 
 // GetWebhookInfo возвращает информацию о webhook
 func (api *TelegramBotAPI) GetWebhookInfo(c *gin.Context) {
-	token := api.normalizeToken(c.Param("token"))
+	token := api.extractTokenFromPath(c)
 	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
 		return
@@ -446,12 +500,45 @@ func (api *TelegramBotAPI) GetWebhookInfo(c *gin.Context) {
 	})
 }
 
-// normalizeToken убирает двоеточие из начала токена
-func (api *TelegramBotAPI) normalizeToken(token string) string {
-	if len(token) > 0 && token[0] == ':' {
-		return token[1:]
+// extractTokenFromPath извлекает токен из пути /bot<token>/method или /bot/<token>/method
+func (api *TelegramBotAPI) extractTokenFromPath(c *gin.Context) string {
+	// Сначала пробуем получить токен из параметров Gin
+	if token := c.Param("token"); token != "" {
+		if decoded, err := url.QueryUnescape(token); err == nil {
+			return decoded
+		}
+		return token
 	}
-	return token
+	
+	if token := c.Param("token2"); token != "" {
+		if decoded, err := url.QueryUnescape(token); err == nil {
+			return decoded
+		}
+		return token
+	}
+	
+	// Fallback: парсим из пути вручную
+	path := c.Request.URL.Path
+	if strings.HasPrefix(path, "/bot") {
+		var tokenPart string
+		if strings.HasPrefix(path, "/bot/") {
+			// Формат /bot/<token>/method
+			tokenPart = path[5:] // len("/bot/") = 5
+		} else {
+			// Формат /bot<token>/method
+			tokenPart = path[4:] // len("/bot") = 4
+		}
+		// Ищем следующий слеш
+		if slashIndex := strings.Index(tokenPart, "/"); slashIndex != -1 {
+			token := tokenPart[:slashIndex]
+			// URL декодируем токен
+			if decoded, err := url.QueryUnescape(token); err == nil {
+				return decoded
+			}
+			return token
+		}
+	}
+	return ""
 }
 
 // findBotByToken находит бота по токену
@@ -485,7 +572,7 @@ func (api *TelegramBotAPI) findBotByToken(token string) (*models.Bot, error) {
 
 // AnswerCallbackQuery отвечает на callback query
 func (api *TelegramBotAPI) AnswerCallbackQuery(c *gin.Context) {
-	token := api.normalizeToken(c.Param("token"))
+	token := api.extractTokenFromPath(c)
 	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
 		return
@@ -527,7 +614,7 @@ func (api *TelegramBotAPI) AnswerCallbackQuery(c *gin.Context) {
 
 // EditMessageReplyMarkup редактирует клавиатуру сообщения
 func (api *TelegramBotAPI) EditMessageReplyMarkup(c *gin.Context) {
-	token := api.normalizeToken(c.Param("token"))
+	token := api.extractTokenFromPath(c)
 	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
 		return
@@ -592,7 +679,7 @@ func (api *TelegramBotAPI) EditMessageReplyMarkup(c *gin.Context) {
 
 // EditMessageText редактирует текст сообщения
 func (api *TelegramBotAPI) EditMessageText(c *gin.Context) {
-	token := api.normalizeToken(c.Param("token"))
+	token := api.extractTokenFromPath(c)
 	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: token is empty"})
 		return
