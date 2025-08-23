@@ -44,7 +44,7 @@ const MessageBubble = ({ message, isOwn, currentUser, onSendMessage, onCallbackQ
       case 'text':
         return (
           <div className="whitespace-pre-wrap break-words">
-            {message.text}
+            {renderTextWithCommands(message.text)}
           </div>
         );
       case 'file':
@@ -82,29 +82,75 @@ const MessageBubble = ({ message, isOwn, currentUser, onSendMessage, onCallbackQ
   const renderTextWithCommands = (text) => {
     if (!text) return null;
     
-    // Регулярное выражение для поиска команд (начинаются с /)
-    const commandRegex = /(\/[a-zA-Z0-9_]+)/g;
-    const parts = text.split(commandRegex);
+    // Сначала обрабатываем URL-адреса
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    let parts = text.split(urlRegex);
     
-    return parts.map((part, index) => {
-      if (commandRegex.test(part)) {
+    // Обрабатываем каждую часть на предмет команд
+    parts = parts.map((part, index) => {
+      // Если это URL, делаем его кликабельным
+      if (urlRegex.test(part)) {
         return (
-          <button
-            key={index}
-            className="text-blue-500 hover:text-blue-600 underline cursor-pointer font-medium"
-            onClick={() => {
-              if (onSendMessage) {
-                onSendMessage(part);
-              }
-              console.log('Command clicked:', part);
-            }}
+          <a
+            key={`url-${index}`}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
           >
             {part}
-          </button>
+          </a>
         );
       }
-      return part;
+      
+      // Если это не URL, ищем команды
+      // Команды должны быть в начале строки или после пробела
+      const commandRegex = /(^|\s)(\/[a-zA-Z0-9_]+)/g;
+      const commandParts = part.split(commandRegex);
+      
+      return commandParts.map((commandPart, commandIndex) => {
+        if (commandRegex.test(commandPart)) {
+          // Это пробел + команда, разделяем
+          const space = commandPart.charAt(0) === ' ' ? ' ' : '';
+          const command = commandPart.substring(space.length);
+          
+          return (
+            <React.Fragment key={`command-${index}-${commandIndex}`}>
+              {space}
+              <button
+                style={{
+                  color: 'rgb(59, 130, 246)',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  transition: 'color 0.2s'
+                }}
+                className="hover:text-blue-600 dark:hover:text-[rgb(156,197,255)] inline-flex items-center"
+                onClick={() => {
+                  if (onSendMessage) {
+                    onSendMessage(command);
+                  }
+                  console.log('Command clicked:', command);
+                }}
+                title={`Click to send: ${command}`}
+              >
+                <span 
+                  style={{
+                    color: 'rgb(59, 130, 246)',
+                    fontWeight: '500'
+                  }}
+                  className="dark:text-[rgb(121,171,252)]"
+                >
+                  {command}
+                </span>
+              </button>
+            </React.Fragment>
+          );
+        }
+        return commandPart;
+      });
     });
+    
+    return parts;
   };
 
   const renderInlineKeyboard = () => {
