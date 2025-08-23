@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+
+
 // BotHandler обрабатывает запросы к API ботов
 type BotHandler struct {
 	botManager *emulator.BotManager
@@ -62,9 +64,15 @@ func (h *BotHandler) Create(c *gin.Context) {
 
 // GetByID возвращает бота по ID
 func (h *BotHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
+	idStr := c.Param("id")
+	if idStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID бота обязателен"})
+		return
+	}
+
+	id, err := ParseBotID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID бота"})
 		return
 	}
 
@@ -81,9 +89,15 @@ func (h *BotHandler) GetByID(c *gin.Context) {
 
 // Update обновляет бота
 func (h *BotHandler) Update(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
+	idStr := c.Param("id")
+	if idStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID бота обязателен"})
+		return
+	}
+
+	id, err := ParseBotID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID бота"})
 		return
 	}
 
@@ -135,9 +149,15 @@ func (h *BotHandler) Update(c *gin.Context) {
 
 // Delete удаляет бота
 func (h *BotHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
+	idStr := c.Param("id")
+	if idStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID бота обязателен"})
+		return
+	}
+
+	id, err := ParseBotID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID бота"})
 		return
 	}
 
@@ -151,14 +171,20 @@ func (h *BotHandler) Delete(c *gin.Context) {
 
 // SendMessage отправляет сообщение через бота
 func (h *BotHandler) SendMessage(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
+	idStr := c.Param("id")
+	if idStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID бота обязателен"})
 		return
 	}
 
+	id, err := ParseBotID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID бота"})
+		return
+	}
+
 	var messageData struct {
-		ChatID    string `json:"chat_id" binding:"required"`
+		ChatID    int64  `json:"chat_id" binding:"required"`
 		Text      string `json:"text" binding:"required"`
 		ParseMode string `json:"parse_mode"`
 	}
@@ -181,9 +207,15 @@ func (h *BotHandler) SendMessage(c *gin.Context) {
 
 // GetUpdates возвращает обновления для бота
 func (h *BotHandler) GetUpdates(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
+	idStr := c.Param("id")
+	if idStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID бота обязателен"})
+		return
+	}
+
+	id, err := ParseBotID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID бота"})
 		return
 	}
 
@@ -214,9 +246,15 @@ func (h *BotHandler) GetUpdates(c *gin.Context) {
 
 // Webhook обрабатывает webhook от бота
 func (h *BotHandler) Webhook(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
+	idStr := c.Param("id")
+	if idStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID бота обязателен"})
+		return
+	}
+
+	id, err := ParseBotID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID бота"})
 		return
 	}
 

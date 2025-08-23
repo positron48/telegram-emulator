@@ -1,10 +1,8 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -67,6 +65,7 @@ func (api *TelegramBotAPI) SetupTelegramBotRoutes(router *gin.Engine) {
 	router.POST("/bot:token/deleteWebhook", api.DeleteWebhook)
 	router.GET("/bot:token/getWebhookInfo", api.GetWebhookInfo)
 	router.POST("/bot:token/getWebhookInfo", api.GetWebhookInfo)
+	router.GET("/bot:token/answerCallbackQuery", api.AnswerCallbackQuery)
 	router.POST("/bot:token/answerCallbackQuery", api.AnswerCallbackQuery)
 	router.POST("/bot:token/editMessageText", api.EditMessageText)
 	router.POST("/bot:token/editMessageReplyMarkup", api.EditMessageReplyMarkup)
@@ -83,6 +82,7 @@ func (api *TelegramBotAPI) SetupTelegramBotRoutes(router *gin.Engine) {
 	router.POST("/bot/:token2/deleteWebhook", api.DeleteWebhook)
 	router.GET("/bot/:token2/getWebhookInfo", api.GetWebhookInfo)
 	router.POST("/bot/:token2/getWebhookInfo", api.GetWebhookInfo)
+	router.GET("/bot/:token2/answerCallbackQuery", api.AnswerCallbackQuery)
 	router.POST("/bot/:token2/answerCallbackQuery", api.AnswerCallbackQuery)
 	router.POST("/bot/:token2/editMessageText", api.EditMessageText)
 	router.POST("/bot/:token2/editMessageReplyMarkup", api.EditMessageReplyMarkup)
@@ -103,13 +103,10 @@ func (api *TelegramBotAPI) GetMe(c *gin.Context) {
 		return
 	}
 
-	// Конвертируем строковый ID в числовой (как в Telegram Bot API)
-	botID := api.convertStringIDToInt64(bot.ID)
-
 	c.JSON(http.StatusOK, gin.H{
 		"ok": true,
 		"result": gin.H{
-			"id":         botID,
+			"id":         bot.ID,
 			"is_bot":     true,
 			"first_name": bot.Name,
 			"username":   bot.Username,
@@ -172,7 +169,7 @@ func (api *TelegramBotAPI) GetUpdates(c *gin.Context) {
 	// Если нет обновлений и указан timeout, ждем новые обновления
 	if len(updates) == 0 && timeout > 0 {
 		api.logger.Info("Long polling: ожидаем новые обновления", 
-			zap.String("bot_id", bot.ID),
+			zap.Int64("bot_id", bot.ID),
 			zap.Int("timeout", timeout))
 		
 		// Ждем новые обновления в течение timeout секунд
@@ -189,7 +186,7 @@ func (api *TelegramBotAPI) GetUpdates(c *gin.Context) {
 			
 			if len(updates) > 0 {
 				api.logger.Info("Long polling: получены новые обновления", 
-					zap.String("bot_id", bot.ID),
+					zap.Int64("bot_id", bot.ID),
 					zap.Int("count", len(updates)),
 					zap.Duration("wait_time", time.Since(startTime)))
 				break
@@ -211,7 +208,7 @@ func (api *TelegramBotAPI) GetUpdates(c *gin.Context) {
 			telegramUpdate["edited_message"] = update.EditedMessage.ToTelegramMessage()
 		}
 		if update.CallbackQuery != nil {
-			telegramUpdate["callback_query"] = update.CallbackQuery
+			telegramUpdate["callback_query"] = update.CallbackQuery.ToTelegramCallbackQuery()
 		}
 
 		telegramUpdates = append(telegramUpdates, telegramUpdate)
@@ -257,54 +254,31 @@ func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
 		zap.String("method", c.Request.Method),
 		zap.String("url", c.Request.URL.String()))
 
-	// Улучшенная обработка JSON - поддерживаем как JSON, так и form data
+	// Универсальный биндинг: поддерживает GET query, POST form, POST JSON
 	contentType := c.ContentType()
-	api.logger.Info("📥 Content-Type", zap.String("content_type", contentType))
-	
-	// Читаем raw data для логирования
-	rawData, _ := c.GetRawData()
-	api.logger.Info("📥 Raw данные", zap.String("body", string(rawData)))
-	
-	// Восстанавливаем данные для парсинга
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawData))
-	
-	// Пробуем сначала JSON, потом form data
 	if strings.Contains(contentType, "application/json") {
-		api.logger.Info("📥 Парсим как JSON")
 		if err := c.ShouldBindJSON(&request); err != nil {
-			api.logger.Error("Ошибка парсинга JSON", zap.Error(err), zap.String("body", string(rawData)))
-			// Если JSON не удался, пробуем form data
-			api.logger.Info("📥 Пробуем парсить как form data")
-			if err := c.ShouldBind(&request); err != nil {
-				api.logger.Error("Ошибка парсинга form data", zap.Error(err))
-				c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: invalid data format"})
-				return
-			}
+			api.logger.Error("Ошибка парсинга JSON", zap.Error(err))
+			c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: invalid data format"})
+			return
 		}
 	} else {
-		// Пробуем form data
-		api.logger.Info("📥 Парсим как form data")
 		if err := c.ShouldBind(&request); err != nil {
 			api.logger.Error("Ошибка парсинга form data", zap.Error(err))
-			// Если form data не удался, пробуем JSON
-			api.logger.Info("📥 Пробуем парсить как JSON")
-			if err := c.ShouldBindJSON(&request); err != nil {
-				api.logger.Error("Ошибка парсинга JSON", zap.Error(err))
-				c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: invalid data format"})
-				return
-			}
+			c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: invalid data format"})
+			return
+		}
+	}
+	
+	// Обрабатываем reply_markup из form data если он передан как строка
+	if request.ReplyMarkupString != "" {
+		api.logger.Info("📥 Обрабатываем reply_markup из form data", zap.String("reply_markup", request.ReplyMarkupString))
+		var replyMarkup interface{}
+		if err := json.Unmarshal([]byte(request.ReplyMarkupString), &replyMarkup); err != nil {
+			api.logger.Error("Ошибка парсинга reply_markup JSON", zap.Error(err))
 		} else {
-			// Form data успешно распарсена, теперь обрабатываем reply_markup
-			if request.ReplyMarkupString != "" {
-				api.logger.Info("📥 Обрабатываем reply_markup из form data", zap.String("reply_markup", request.ReplyMarkupString))
-				var replyMarkup interface{}
-				if err := json.Unmarshal([]byte(request.ReplyMarkupString), &replyMarkup); err != nil {
-					api.logger.Error("Ошибка парсинга reply_markup JSON", zap.Error(err))
-				} else {
-					request.ReplyMarkup = replyMarkup
-					api.logger.Info("📥 reply_markup успешно распарсен")
-				}
-			}
+			request.ReplyMarkup = replyMarkup
+			api.logger.Info("📥 reply_markup успешно распарсен")
 		}
 	}
 
@@ -313,47 +287,29 @@ func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: chat_id is required"})
 		return
 	}
+	
+	// Конвертируем chat_id из строки в int64
+	chatID, err := strconv.ParseInt(request.ChatID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: invalid chat_id format"})
+		return
+	}
 	if request.Text == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: text is required"})
 		return
 	}
 
 	// Получаем пользователя-бота
+	api.logger.Info("Получаем пользователя-бота", zap.String("bot_username", bot.Username))
 	botUser, err := api.userManager.GetUserByUsername(bot.Username)
 	if err != nil {
 		api.logger.Error("Ошибка получения пользователя-бота", zap.String("bot_username", bot.Username), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Bot user not found"})
 		return
 	}
+	api.logger.Info("Пользователь-бот найден", zap.Int64("bot_user_id", botUser.ID))
 
-	// Конвертируем Telegram chat_id в внутренний chat_id
-	internalChatID := request.ChatID
-	if telegramChatID, err := strconv.ParseInt(request.ChatID, 10, 64); err == nil {
-		// Это Telegram chat_id, нужно найти внутренний chat_id
-		chats, err := api.chatManager.GetAllChats()
-		if err != nil {
-			api.logger.Error("Ошибка получения чатов", zap.Error(err))
-			c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Failed to get chats"})
-			return
-		}
-		
-		for _, chat := range chats {
-			// Конвертируем внутренний chat_id в Telegram chat_id
-			chatTelegramID := int64(0)
-			if len(chat.ID) > 0 {
-				for i, char := range chat.ID {
-					if i < 8 { // Ограничиваем длину
-						chatTelegramID = chatTelegramID*31 + int64(char)
-					}
-				}
-			}
-			
-			if chatTelegramID == telegramChatID {
-				internalChatID = chat.ID
-				break
-			}
-		}
-	}
+	api.logger.Info("Начинаем обработку sendMessage", zap.Int64("chat_id", chatID), zap.String("text", request.Text))
 
 	// Валидация reply_markup если он передан
 	if request.ReplyMarkup != nil {
@@ -365,7 +321,7 @@ func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
 	}
 
 	// Отправляем сообщение через обычный API с клавиатурой
-	message, err := api.messageManager.SendMessage(internalChatID, botUser.ID, request.Text, "text", request.ReplyMarkup)
+	message, err := api.messageManager.SendMessage(chatID, botUser.ID, request.Text, "text", request.ReplyMarkup)
 	if err != nil {
 		api.logger.Error("Ошибка отправки сообщения", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Failed to send message"})
@@ -376,9 +332,9 @@ func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
 	telegramMessage := message.ToTelegramMessage()
 
 	api.logger.Info("Сообщение успешно отправлено", 
-		zap.String("bot_id", bot.ID),
-		zap.String("chat_id", request.ChatID),
-		zap.String("message_id", message.ID),
+		zap.Int64("bot_id", bot.ID),
+		zap.Int64("chat_id", chatID),
+		zap.Int64("message_id", message.ID),
 		zap.Bool("is_command", message.IsCommand()))
 
 	c.JSON(http.StatusOK, gin.H{
@@ -559,12 +515,12 @@ func (api *TelegramBotAPI) findBotByToken(token string) (*models.Bot, error) {
 
 	for _, bot := range bots {
 		api.logger.Debug("Проверяем бота", 
-			zap.String("bot_id", bot.ID),
+			zap.Int64("bot_id", bot.ID),
 			zap.String("bot_token", bot.Token),
 			zap.String("search_token", token))
 		
 		if bot.Token == token {
-			api.logger.Info("Бот найден", zap.String("bot_id", bot.ID))
+			api.logger.Info("Бот найден", zap.Int64("bot_id", bot.ID))
 			return &bot, nil
 		}
 	}
@@ -589,21 +545,22 @@ func (api *TelegramBotAPI) AnswerCallbackQuery(c *gin.Context) {
 	}
 
 	var request struct {
-		CallbackQueryID string `json:"callback_query_id" binding:"required"`
-		Text            string `json:"text,omitempty"`
-		ShowAlert       bool   `json:"show_alert,omitempty"`
-		URL             string `json:"url,omitempty"`
-		CacheTime       int    `json:"cache_time,omitempty"`
+		CallbackQueryID string `json:"callback_query_id" form:"callback_query_id" binding:"required"`
+		Text            string `json:"text,omitempty" form:"text"`
+		ShowAlert       bool   `json:"show_alert,omitempty" form:"show_alert"`
+		URL             string `json:"url,omitempty" form:"url"`
+		CacheTime       int    `json:"cache_time,omitempty" form:"cache_time"`
 	}
 
-	if err := c.ShouldBindJSON(&request); err != nil {
+	// Унифицированный биндинг: поддерживает GET query, POST form, POST JSON
+	if err := c.ShouldBind(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: " + err.Error()})
 		return
 	}
 
 	// Логируем ответ на callback query
 	api.logger.Info("Ответ на callback query",
-		zap.String("bot_id", bot.ID),
+		zap.Int64("bot_id", bot.ID),
 		zap.String("callback_query_id", request.CallbackQueryID),
 		zap.String("text", request.Text),
 		zap.Bool("show_alert", request.ShowAlert),
@@ -652,12 +609,12 @@ func (api *TelegramBotAPI) EditMessageReplyMarkup(c *gin.Context) {
 
 	// Логируем редактирование клавиатуры
 	api.logger.Info("Редактирование клавиатуры сообщения",
-		zap.String("bot_id", bot.ID),
+		zap.Int64("bot_id", bot.ID),
 		zap.String("chat_id", request.ChatID),
 		zap.String("message_id", request.MessageID))
 
 	// Конвертируем строковый ID в числовой
-	botID := api.convertStringIDToInt64(bot.ID)
+	botID := bot.ID
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok":     true,
@@ -714,7 +671,7 @@ func (api *TelegramBotAPI) EditMessageText(c *gin.Context) {
 		zap.String("text", request.Text))
 
 	// Конвертируем строковый ID в числовой
-	botID := api.convertStringIDToInt64(bot.ID)
+	botID := bot.ID
 
 	c.JSON(http.StatusOK, gin.H{
 		"ok":     true,
@@ -869,15 +826,4 @@ func (api *TelegramBotAPI) validateKeyboard(keyboard interface{}) error {
 	return nil
 }
 
-// convertStringIDToInt64 конвертирует строковый ID в числовой (как в Telegram Bot API)
-func (api *TelegramBotAPI) convertStringIDToInt64(id string) int64 {
-	result := int64(0)
-	if len(id) > 0 {
-		for i, char := range id {
-			if i < 8 { // Ограничиваем длину для предотвращения переполнения
-				result = result*31 + int64(char)
-			}
-		}
-	}
-	return result
-}
+

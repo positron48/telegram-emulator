@@ -8,9 +8,9 @@ import (
 
 // Message представляет сообщение в эмуляторе
 type Message struct {
-	ID        string    `json:"id" gorm:"primaryKey"`
-	ChatID    string    `json:"chat_id"`
-	FromID    string    `json:"from_id"`
+	ID        int64     `json:"id" gorm:"primaryKey"`
+	ChatID    int64     `json:"chat_id"`
+	FromID    int64     `json:"from_id"`
 	From      User      `json:"from" gorm:"foreignKey:FromID"`
 	Text      string    `json:"text"`
 	Type      string    `json:"type"` // text, file, voice, photo

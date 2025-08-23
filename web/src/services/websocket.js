@@ -258,9 +258,10 @@ class WebSocketService {
     });
   }
 
-  sendCallbackQuery(button) {
+  sendCallbackQuery(button, chatId) {
     this.emit('callback_query', {
-      button: button
+      button: button,
+      chat_id: chatId
     });
   }
 

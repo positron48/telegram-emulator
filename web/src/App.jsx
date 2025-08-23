@@ -438,8 +438,8 @@ function App() {
       console.log('Callback query:', button);
       
       // Отправляем callback query через WebSocket
-      if (wsService.connected) {
-        wsService.sendCallbackQuery(button);
+      if (wsService.connected && currentChat) {
+        wsService.sendCallbackQuery(button, currentChat.id);
       }
       
       // Логируем событие

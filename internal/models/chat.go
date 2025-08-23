@@ -6,7 +6,7 @@ import (
 
 // Chat представляет чат в эмуляторе
 type Chat struct {
-	ID          string    `json:"id" gorm:"primaryKey"`
+	ID          int64     `json:"id" gorm:"primaryKey"`
 	Type        string    `json:"type"` // private, group
 	Title       string    `json:"title"`
 	Username    string    `json:"username"`
@@ -25,8 +25,8 @@ func (Chat) TableName() string {
 
 // ChatMember представляет связь между чатом и пользователем
 type ChatMember struct {
-	ChatID   string    `json:"chat_id" gorm:"primaryKey"`
-	UserID   string    `json:"user_id" gorm:"primaryKey"`
+	ChatID   int64     `json:"chat_id" gorm:"primaryKey"`
+	UserID   int64     `json:"user_id" gorm:"primaryKey"`
 	JoinedAt time.Time `json:"joined_at"`
 }
 
@@ -82,7 +82,7 @@ func (c *Chat) CanUserLeave() bool {
 }
 
 // IsUserMember проверяет, является ли пользователь участником чата
-func (c *Chat) IsUserMember(userID string) bool {
+func (c *Chat) IsUserMember(userID int64) bool {
 	for _, member := range c.Members {
 		if member.ID == userID {
 			return true
@@ -103,7 +103,7 @@ func (c *Chat) AddMember(user User) {
 }
 
 // RemoveMember удаляет пользователя из чата
-func (c *Chat) RemoveMember(userID string) {
+func (c *Chat) RemoveMember(userID int64) {
 	for i, member := range c.Members {
 		if member.ID == userID {
 			c.Members = append(c.Members[:i], c.Members[i+1:]...)

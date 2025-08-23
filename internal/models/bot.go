@@ -6,7 +6,7 @@ import (
 
 // Bot представляет бота в эмуляторе
 type Bot struct {
-	ID                string    `json:"id" gorm:"primaryKey"`
+	ID                int64     `json:"id" gorm:"primaryKey"`
 	Name              string    `json:"name"`
 	Username          string    `json:"username" gorm:"uniqueIndex"`
 	Token             string    `json:"token"`

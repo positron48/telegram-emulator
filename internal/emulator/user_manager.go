@@ -1,8 +1,6 @@
 package emulator
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"time"
 
 	"telegram-emulator/internal/models"
@@ -71,13 +69,13 @@ func (m *UserManager) CreateUser(username, firstName, lastName string, isBot boo
 			// Не удаляем пользователя, просто логируем ошибку
 		} else {
 			m.logger.Info("Создана запись бота", 
-				zap.String("bot_id", bot.ID),
+				zap.Int64("bot_id", bot.ID),
 				zap.String("username", bot.Username))
 		}
 	}
 
 	m.logger.Info("Создан новый пользователь", 
-		zap.String("id", user.ID),
+		zap.Int64("id", user.ID),
 		zap.String("username", user.Username),
 		zap.Bool("is_bot", user.IsBot))
 
@@ -85,10 +83,10 @@ func (m *UserManager) CreateUser(username, firstName, lastName string, isBot boo
 }
 
 // GetUser получает пользователя по ID
-func (m *UserManager) GetUser(id string) (*models.User, error) {
+func (m *UserManager) GetUser(id int64) (*models.User, error) {
 	user, err := m.userRepo.GetByID(id)
 	if err != nil {
-		m.logger.Error("Ошибка получения пользователя", zap.String("id", id), zap.Error(err))
+		m.logger.Error("Ошибка получения пользователя", zap.Int64("id", id), zap.Error(err))
 		return nil, err
 	}
 	return user, nil
@@ -118,46 +116,46 @@ func (m *UserManager) GetAllUsers() ([]models.User, error) {
 func (m *UserManager) UpdateUser(user *models.User) error {
 	user.UpdatedAt = time.Now()
 	if err := m.userRepo.Update(user); err != nil {
-		m.logger.Error("Ошибка обновления пользователя", zap.String("id", user.ID), zap.Error(err))
+		m.logger.Error("Ошибка обновления пользователя", zap.Int64("id", user.ID), zap.Error(err))
 		return err
 	}
 
-	m.logger.Info("Пользователь обновлен", zap.String("id", user.ID))
+	m.logger.Info("Пользователь обновлен", zap.Int64("id", user.ID))
 	return nil
 }
 
 // DeleteUser удаляет пользователя
-func (m *UserManager) DeleteUser(id string) error {
+func (m *UserManager) DeleteUser(id int64) error {
 	// Получаем пользователя перед удалением
 	user, err := m.userRepo.GetByID(id)
 	if err != nil {
-		m.logger.Error("Ошибка получения пользователя для удаления", zap.String("id", id), zap.Error(err))
+		m.logger.Error("Ошибка получения пользователя для удаления", zap.Int64("id", id), zap.Error(err))
 		return err
 	}
 
 	// Если пользователь является ботом, удаляем запись бота
 	if user.IsBot {
 		if err := m.botRepo.Delete(id); err != nil {
-			m.logger.Error("Ошибка удаления записи бота", zap.String("id", id), zap.Error(err))
+			m.logger.Error("Ошибка удаления записи бота", zap.Int64("id", id), zap.Error(err))
 			// Не прерываем удаление пользователя, просто логируем ошибку
 		} else {
-			m.logger.Info("Запись бота удалена", zap.String("id", id))
+			m.logger.Info("Запись бота удалена", zap.Int64("id", id))
 		}
 	}
 
 	if err := m.userRepo.Delete(id); err != nil {
-		m.logger.Error("Ошибка удаления пользователя", zap.String("id", id), zap.Error(err))
+		m.logger.Error("Ошибка удаления пользователя", zap.Int64("id", id), zap.Error(err))
 		return err
 	}
 
-	m.logger.Info("Пользователь удален", zap.String("id", id))
+	m.logger.Info("Пользователь удален", zap.Int64("id", id))
 	return nil
 }
 
 // SetUserOnline устанавливает статус онлайн для пользователя
-func (m *UserManager) SetUserOnline(id string, isOnline bool) error {
+func (m *UserManager) SetUserOnline(id int64, isOnline bool) error {
 	if err := m.userRepo.SetOnlineStatus(id, isOnline); err != nil {
-		m.logger.Error("Ошибка установки статуса онлайн", zap.String("id", id), zap.Bool("online", isOnline), zap.Error(err))
+		m.logger.Error("Ошибка установки статуса онлайн", zap.Int64("id", id), zap.Bool("online", isOnline), zap.Error(err))
 		return err
 	}
 
@@ -165,7 +163,7 @@ func (m *UserManager) SetUserOnline(id string, isOnline bool) error {
 	if !isOnline {
 		status = "оффлайн"
 	}
-	m.logger.Info("Пользователь изменил статус", zap.String("id", id), zap.String("status", status))
+	m.logger.Info("Пользователь изменил статус", zap.Int64("id", id), zap.String("status", status))
 	return nil
 }
 
@@ -190,10 +188,6 @@ func (m *UserManager) GetBots() ([]models.User, error) {
 }
 
 // generateID генерирует уникальный ID
-func (m *UserManager) generateID() (string, error) {
-	bytes := make([]byte, 16)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
+func (m *UserManager) generateID() (int64, error) {
+	return time.Now().UnixNano(), nil
 }

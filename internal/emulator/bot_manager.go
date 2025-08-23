@@ -2,8 +2,6 @@ package emulator
 
 import (
 	"bytes"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,10 +23,10 @@ type BotManager struct {
 	messageRepo  *repository.MessageRepository
 	chatRepo     *repository.ChatRepository
 	logger       *zap.Logger
-	updateQueue  map[string][]models.Update // Очередь обновлений для каждого бота
+	updateQueue  map[int64][]models.Update // Очередь обновлений для каждого бота
 	updateID     int64                      // Глобальный счетчик update_id
 	chatIDMap    map[int64]string           // Маппинг Telegram chat_id -> внутренний chat_id
-	nextUpdateID map[string]int64           // Персональный счетчик update_id для каждого бота
+	nextUpdateID map[int64]int64           // Персональный счетчик update_id для каждого бота
 }
 
 // NewBotManager создает новый экземпляр BotManager
@@ -39,10 +37,10 @@ func NewBotManager(botRepo *repository.BotRepository, userRepo *repository.UserR
 		messageRepo: messageRepo,
 		chatRepo:    chatRepo,
 		logger:      logger.GetLogger(),
-		updateQueue: make(map[string][]models.Update),
+		updateQueue: make(map[int64][]models.Update),
 		updateID:    1,
 		chatIDMap:   make(map[int64]string),
-		nextUpdateID: make(map[string]int64),
+		nextUpdateID: make(map[int64]int64),
 	}
 }
 
@@ -72,7 +70,7 @@ func (m *BotManager) CreateBot(name, username, token, webhookURL string) (*model
 
 	// Создаем пользователя-бота
 	botUser := &models.User{
-		ID:        fmt.Sprintf("bot_%s", id),
+		ID:        id, // Используем тот же ID что и у бота
 		Username:  username,
 		FirstName: name,
 		IsBot:     true,
@@ -90,7 +88,7 @@ func (m *BotManager) CreateBot(name, username, token, webhookURL string) (*model
 	}
 
 	m.logger.Info("Создан новый бот", 
-		zap.String("id", bot.ID),
+		zap.Int64("id", bot.ID),
 		zap.String("name", bot.Name),
 		zap.String("username", bot.Username))
 
@@ -98,10 +96,10 @@ func (m *BotManager) CreateBot(name, username, token, webhookURL string) (*model
 }
 
 // GetBot получает бота по ID
-func (m *BotManager) GetBot(id string) (*models.Bot, error) {
+func (m *BotManager) GetBot(id int64) (*models.Bot, error) {
 	bot, err := m.botRepo.GetByID(id)
 	if err != nil {
-		m.logger.Error("Ошибка получения бота", zap.String("id", id), zap.Error(err))
+		m.logger.Error("Ошибка получения бота", zap.Int64("id", id), zap.Error(err))
 		return nil, err
 	}
 	return bot, nil
@@ -121,33 +119,32 @@ func (m *BotManager) GetAllBots() ([]models.Bot, error) {
 func (m *BotManager) UpdateBot(bot *models.Bot) error {
 	bot.UpdatedAt = time.Now()
 	if err := m.botRepo.Update(bot); err != nil {
-		m.logger.Error("Ошибка обновления бота", zap.String("id", bot.ID), zap.Error(err))
+		m.logger.Error("Ошибка обновления бота", zap.Int64("id", bot.ID), zap.Error(err))
 		return err
 	}
 
-	m.logger.Info("Бот обновлен", zap.String("id", bot.ID))
+	m.logger.Info("Бот обновлен", zap.Int64("id", bot.ID))
 	return nil
 }
 
 // DeleteBot удаляет бота
-func (m *BotManager) DeleteBot(id string) error {
+func (m *BotManager) DeleteBot(id int64) error {
 	if err := m.botRepo.Delete(id); err != nil {
-		m.logger.Error("Ошибка удаления бота", zap.String("id", id), zap.Error(err))
+		m.logger.Error("Ошибка удаления бота", zap.Int64("id", id), zap.Error(err))
 		return err
 	}
 
-	// Удаляем пользователя-бота
-	botUserID := fmt.Sprintf("bot_%s", id)
-	if err := m.userRepo.Delete(botUserID); err != nil {
-		m.logger.Error("Ошибка удаления пользователя-бота", zap.String("id", botUserID), zap.Error(err))
+	// Удаляем пользователя-бота (используем тот же ID)
+	if err := m.userRepo.Delete(id); err != nil {
+		m.logger.Error("Ошибка удаления пользователя-бота", zap.Int64("id", id), zap.Error(err))
 	}
 
-	m.logger.Info("Бот удален", zap.String("id", id))
+	m.logger.Info("Бот удален", zap.Int64("id", id))
 	return nil
 }
 
 // SendBotMessage отправляет сообщение через бота
-func (m *BotManager) SendBotMessage(botID, chatID, text, parseMode string) (*models.Message, error) {
+func (m *BotManager) SendBotMessage(botID int64, chatID int64, text, parseMode string) (*models.Message, error) {
 	// Получаем бота
 	bot, err := m.GetBot(botID)
 	if err != nil {
@@ -158,22 +155,7 @@ func (m *BotManager) SendBotMessage(botID, chatID, text, parseMode string) (*mod
 		return nil, fmt.Errorf("бот неактивен")
 	}
 
-	// Проверяем, является ли chatID Telegram chat_id (число)
-	// Если да, то конвертируем в внутренний chat_id
-	internalChatID := chatID
-	if telegramChatID, err := strconv.ParseInt(chatID, 10, 64); err == nil {
-		// Это Telegram chat_id, ищем внутренний chat_id
-		if internalID, exists := m.chatIDMap[telegramChatID]; exists {
-			internalChatID = internalID
-			m.logger.Info("Найден маппинг chat_id", 
-				zap.Int64("telegram_chat_id", telegramChatID),
-				zap.String("internal_chat_id", internalID))
-		} else {
-			m.logger.Error("Маппинг chat_id не найден", 
-				zap.Int64("telegram_chat_id", telegramChatID))
-			return nil, fmt.Errorf("чат с Telegram ID %d не найден", telegramChatID)
-		}
-	}
+
 
 	// Получаем пользователя-бота
 	botUser, err := m.userRepo.GetByUsername(bot.Username)
@@ -191,7 +173,7 @@ func (m *BotManager) SendBotMessage(botID, chatID, text, parseMode string) (*mod
 
 	message := &models.Message{
 		ID:        messageID,
-		ChatID:    internalChatID,
+		ChatID:    chatID, // Используем chatID напрямую, так как он уже int64
 		FromID:    botUser.ID,
 		From:      *botUser,
 		Text:      text,
@@ -208,15 +190,15 @@ func (m *BotManager) SendBotMessage(botID, chatID, text, parseMode string) (*mod
 	}
 
 	m.logger.Info("Сообщение бота отправлено", 
-		zap.String("bot_id", botID),
-		zap.String("chat_id", internalChatID),
-		zap.String("message_id", messageID))
+		zap.Int64("bot_id", botID),
+		zap.Int64("chat_id", chatID),
+		zap.Int64("message_id", messageID))
 
 	return message, nil
 }
 
 // GetBotUpdates возвращает обновления для бота
-func (m *BotManager) GetBotUpdates(botID string, offset, limit int) ([]models.Update, error) {
+func (m *BotManager) GetBotUpdates(botID int64, offset, limit int) ([]models.Update, error) {
 	// Получаем бота
 	bot, err := m.GetBot(botID)
 	if err != nil {
@@ -235,12 +217,12 @@ func (m *BotManager) GetBotUpdates(botID string, offset, limit int) ([]models.Up
 	// Получаем обновления из очереди
 	queue, exists := m.updateQueue[botID]
 	if !exists {
-		m.logger.Debug("Очередь обновлений пуста для бота", zap.String("bot_id", botID))
+		m.logger.Debug("Очередь обновлений пуста для бота", zap.Int64("bot_id", botID))
 		return []models.Update{}, nil
 	}
 
 	m.logger.Debug("Получена очередь обновлений", 
-		zap.String("bot_id", botID),
+		zap.Int64("bot_id", botID),
 		zap.Int("queue_size", len(queue)),
 		zap.Int("offset", offset))
 
@@ -255,7 +237,7 @@ func (m *BotManager) GetBotUpdates(botID string, offset, limit int) ([]models.Up
 	// Если offset больше максимального update_id, возвращаем пустой список
 	if int64(offset) > maxUpdateID && maxUpdateID > 0 {
 		m.logger.Info("Offset больше максимального update_id, возвращаем пустой список", 
-			zap.String("bot_id", botID),
+			zap.Int64("bot_id", botID),
 			zap.Int("offset", offset),
 			zap.Int64("max_update_id", maxUpdateID))
 		return []models.Update{}, nil
@@ -269,7 +251,7 @@ func (m *BotManager) GetBotUpdates(botID string, offset, limit int) ([]models.Up
 			// Логируем информацию о callback query
 			if update.CallbackQuery != nil {
 				m.logger.Debug("Найден callback query в обновлении", 
-					zap.String("bot_id", botID),
+					zap.Int64("bot_id", botID),
 					zap.Int64("update_id", update.UpdateID),
 					zap.String("callback_data", update.CallbackQuery.Data))
 			}
@@ -285,7 +267,7 @@ func (m *BotManager) GetBotUpdates(botID string, offset, limit int) ([]models.Up
 	// Это стандартное поведение Telegram Bot API
 
 	m.logger.Info("Получены обновления для бота", 
-		zap.String("bot_id", botID),
+		zap.Int64("bot_id", botID),
 		zap.Int("count", len(filteredUpdates)),
 		zap.Int("offset", offset),
 		zap.Int("limit", limit),
@@ -295,7 +277,7 @@ func (m *BotManager) GetBotUpdates(botID string, offset, limit int) ([]models.Up
 }
 
 // ProcessWebhook обрабатывает webhook от бота
-func (m *BotManager) ProcessWebhook(botID string, update *models.Update) error {
+func (m *BotManager) ProcessWebhook(botID int64, update *models.Update) error {
 	// Получаем бота
 	bot, err := m.GetBot(botID)
 	if err != nil {
@@ -315,26 +297,26 @@ func (m *BotManager) ProcessWebhook(botID string, update *models.Update) error {
 		}
 
 		m.logger.Info("Webhook сообщение обработано", 
-			zap.String("bot_id", botID),
-			zap.String("message_id", update.Message.ID))
+			zap.Int64("bot_id", botID),
+			zap.Int64("message_id", update.Message.ID))
 	}
 
 	return nil
 }
 
 // AddUpdate добавляет обновление в очередь для бота
-func (m *BotManager) AddUpdate(botID string, update *models.Update) error {
+func (m *BotManager) AddUpdate(botID int64, update *models.Update) error {
 	// Получаем бота
 	bot, err := m.GetBot(botID)
 	if err != nil {
 		m.logger.Error("Ошибка получения бота в AddUpdate", 
-			zap.String("bot_id", botID), 
+			zap.Int64("bot_id", botID), 
 			zap.Error(err))
 		return err
 	}
 
 	if !bot.IsActive {
-		m.logger.Error("Бот неактивен в AddUpdate", zap.String("bot_id", botID))
+		m.logger.Error("Бот неактивен в AddUpdate", zap.Int64("bot_id", botID))
 		return fmt.Errorf("бот неактивен")
 	}
 
@@ -351,16 +333,8 @@ func (m *BotManager) AddUpdate(botID string, update *models.Update) error {
 
 	// Сохраняем маппинг chat_id если есть сообщение
 	if update.Message != nil {
-		// Конвертируем строковый chat_id в int64 для Telegram API
-		telegramChatID := int64(0)
-		if len(update.Message.ChatID) > 0 {
-			for i, char := range update.Message.ChatID {
-				if i < 8 { // Ограничиваем длину
-					telegramChatID = telegramChatID*31 + int64(char)
-				}
-			}
-		}
-		m.chatIDMap[telegramChatID] = update.Message.ChatID
+		// ChatID уже int64, сохраняем маппинг
+		m.chatIDMap[update.Message.ChatID] = strconv.FormatInt(update.Message.ChatID, 10)
 	}
 
 	// Добавляем в очередь
@@ -376,7 +350,7 @@ func (m *BotManager) AddUpdate(botID string, update *models.Update) error {
 	}
 
 	m.logger.Info("Обновление добавлено в очередь", 
-		zap.String("bot_id", botID),
+		zap.Int64("bot_id", botID),
 		zap.Int64("update_id", update.UpdateID))
 
 	return nil
@@ -436,7 +410,7 @@ func (m *BotManager) AddCallbackQuery(botToken string, callbackQuery *models.Cal
 	}
 	
 	m.logger.Info("Callback query добавлен в очередь", 
-		zap.String("bot_id", bot.ID),
+		zap.Int64("bot_id", bot.ID),
 		zap.String("bot_token", botToken),
 		zap.Int64("update_id", update.UpdateID),
 		zap.String("callback_data", callbackQuery.Data))
@@ -445,9 +419,9 @@ func (m *BotManager) AddCallbackQuery(botToken string, callbackQuery *models.Cal
 }
 
 // ClearUpdates очищает очередь обновлений для бота
-func (m *BotManager) ClearUpdates(botID string) error {
+func (m *BotManager) ClearUpdates(botID int64) error {
 	delete(m.updateQueue, botID)
-	m.logger.Info("Очередь обновлений очищена", zap.String("bot_id", botID))
+	m.logger.Info("Очередь обновлений очищена", zap.Int64("bot_id", botID))
 	return nil
 }
 
@@ -457,23 +431,19 @@ func (m *BotManager) GetLogger() *zap.Logger {
 }
 
 // generateID генерирует уникальный ID
-func (m *BotManager) generateID() (string, error) {
-	bytes := make([]byte, 16)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
+func (m *BotManager) generateID() (int64, error) {
+	return time.Now().UnixNano(), nil
 }
 
 // sendWebhookUpdate отправляет обновление через webhook
 func (m *BotManager) sendWebhookUpdate(bot *models.Bot, update *models.Update) {
 	m.logger.Info("Начинаем отправку webhook", 
-		zap.String("bot_id", bot.ID),
+		zap.Int64("bot_id", bot.ID),
 		zap.String("webhook_url", bot.WebhookURL),
 		zap.Int64("update_id", update.UpdateID))
 	
 	if bot.WebhookURL == "" {
-		m.logger.Error("Webhook URL не установлен для бота", zap.String("bot_id", bot.ID))
+		m.logger.Error("Webhook URL не установлен для бота", zap.Int64("bot_id", bot.ID))
 		return
 	}
 
@@ -484,16 +454,16 @@ func (m *BotManager) sendWebhookUpdate(bot *models.Bot, update *models.Update) {
 
 	if update.Message != nil {
 		webhookUpdate["message"] = update.Message.ToTelegramMessage()
-		m.logger.Debug("Добавлено сообщение в webhook", zap.String("bot_id", bot.ID))
+		m.logger.Debug("Добавлено сообщение в webhook", zap.Int64("bot_id", bot.ID))
 	}
 	if update.EditedMessage != nil {
 		webhookUpdate["edited_message"] = update.EditedMessage.ToTelegramMessage()
-		m.logger.Debug("Добавлено редактированное сообщение в webhook", zap.String("bot_id", bot.ID))
+		m.logger.Debug("Добавлено редактированное сообщение в webhook", zap.Int64("bot_id", bot.ID))
 	}
 	if update.CallbackQuery != nil {
-		webhookUpdate["callback_query"] = update.CallbackQuery
+		webhookUpdate["callback_query"] = update.CallbackQuery.ToTelegramCallbackQuery()
 		m.logger.Debug("Добавлен callback query в webhook", 
-			zap.String("bot_id", bot.ID),
+			zap.Int64("bot_id", bot.ID),
 			zap.String("callback_data", update.CallbackQuery.Data))
 	}
 
@@ -504,14 +474,14 @@ func (m *BotManager) sendWebhookUpdate(bot *models.Bot, update *models.Update) {
 	}
 
 	m.logger.Debug("Отправляем webhook", 
-		zap.String("bot_id", bot.ID),
+		zap.Int64("bot_id", bot.ID),
 		zap.String("webhook_url", bot.WebhookURL),
 		zap.String("json_data", string(jsonData)))
 
 	resp, err := http.Post(bot.WebhookURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		m.logger.Error("Ошибка отправки обновления через webhook", 
-			zap.String("bot_id", bot.ID),
+			zap.Int64("bot_id", bot.ID),
 			zap.String("webhook_url", bot.WebhookURL),
 			zap.Error(err))
 		return
@@ -521,13 +491,13 @@ func (m *BotManager) sendWebhookUpdate(bot *models.Bot, update *models.Update) {
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		m.logger.Error("Webhook вернул не OK статус", 
-			zap.String("bot_id", bot.ID),
+			zap.Int64("bot_id", bot.ID),
 			zap.String("webhook_url", bot.WebhookURL),
 			zap.Int("status_code", resp.StatusCode),
 			zap.String("response_body", string(body)))
 	} else {
 		m.logger.Info("Обновление успешно отправлено через webhook", 
-			zap.String("bot_id", bot.ID),
+			zap.Int64("bot_id", bot.ID),
 			zap.String("webhook_url", bot.WebhookURL),
 			zap.Int64("update_id", update.UpdateID))
 	}

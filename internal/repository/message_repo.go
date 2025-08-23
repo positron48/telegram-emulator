@@ -22,7 +22,7 @@ func (r *MessageRepository) Create(message *models.Message) error {
 }
 
 // GetByID получает сообщение по ID
-func (r *MessageRepository) GetByID(id string) (*models.Message, error) {
+func (r *MessageRepository) GetByID(id int64) (*models.Message, error) {
 	var message models.Message
 	err := r.db.Preload("From").Where("id = ?", id).First(&message).Error
 	if err != nil {
@@ -32,15 +32,31 @@ func (r *MessageRepository) GetByID(id string) (*models.Message, error) {
 }
 
 // GetByChatID получает сообщения чата
-func (r *MessageRepository) GetByChatID(chatID string, limit, offset int) ([]models.Message, error) {
+func (r *MessageRepository) GetByChatID(chatID int64, limit, offset int) ([]models.Message, error) {
 	var messages []models.Message
-	err := r.db.Preload("From").
-		Where("chat_id = ?", chatID).
-		Order("timestamp DESC").
-		Limit(limit).
-		Offset(offset).
-		Find(&messages).Error
-	return messages, err
+	
+	query := r.db.Where("chat_id = ?", chatID).Order("created_at DESC")
+	
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+	
+	if err := query.Find(&messages).Error; err != nil {
+		return nil, err
+	}
+	
+	// Загружаем связанные данные
+	for i := range messages {
+		if err := r.db.Model(&messages[i]).Association("From").Find(&messages[i].From); err != nil {
+			return nil, err
+		}
+	}
+	
+	return messages, nil
 }
 
 // Update обновляет сообщение
@@ -49,17 +65,17 @@ func (r *MessageRepository) Update(message *models.Message) error {
 }
 
 // Delete удаляет сообщение
-func (r *MessageRepository) Delete(id string) error {
+func (r *MessageRepository) Delete(id int64) error {
 	return r.db.Where("id = ?", id).Delete(&models.Message{}).Error
 }
 
 // UpdateStatus обновляет статус сообщения
-func (r *MessageRepository) UpdateStatus(id, status string) error {
+func (r *MessageRepository) UpdateStatus(id int64, status string) error {
 	return r.db.Model(&models.Message{}).Where("id = ?", id).Update("status", status).Error
 }
 
 // GetLastMessage получает последнее сообщение чата
-func (r *MessageRepository) GetLastMessage(chatID string) (*models.Message, error) {
+func (r *MessageRepository) GetLastMessage(chatID int64) (*models.Message, error) {
 	var message models.Message
 	err := r.db.Preload("From").
 		Where("chat_id = ?", chatID).
@@ -72,7 +88,7 @@ func (r *MessageRepository) GetLastMessage(chatID string) (*models.Message, erro
 }
 
 // GetUnreadCount получает количество непрочитанных сообщений в чате
-func (r *MessageRepository) GetUnreadCount(chatID string) (int64, error) {
+func (r *MessageRepository) GetUnreadCount(chatID int64) (int64, error) {
 	var count int64
 	err := r.db.Model(&models.Message{}).
 		Where("chat_id = ? AND status != ?", chatID, models.MessageStatusRead).
@@ -81,14 +97,14 @@ func (r *MessageRepository) GetUnreadCount(chatID string) (int64, error) {
 }
 
 // MarkAsRead помечает сообщения как прочитанные
-func (r *MessageRepository) MarkAsRead(chatID string) error {
+func (r *MessageRepository) MarkAsRead(chatID int64) error {
 	return r.db.Model(&models.Message{}).
 		Where("chat_id = ? AND status != ?", chatID, models.MessageStatusRead).
 		Update("status", models.MessageStatusRead).Error
 }
 
 // GetByType получает сообщения определенного типа
-func (r *MessageRepository) GetByType(chatID, messageType string) ([]models.Message, error) {
+func (r *MessageRepository) GetByType(chatID int64, messageType string) ([]models.Message, error) {
 	var messages []models.Message
 	err := r.db.Preload("From").
 		Where("chat_id = ? AND type = ?", chatID, messageType).
@@ -98,7 +114,7 @@ func (r *MessageRepository) GetByType(chatID, messageType string) ([]models.Mess
 }
 
 // SearchByText ищет сообщения по тексту
-func (r *MessageRepository) SearchByText(chatID, text string) ([]models.Message, error) {
+func (r *MessageRepository) SearchByText(chatID int64, text string) ([]models.Message, error) {
 	var messages []models.Message
 	err := r.db.Preload("From").
 		Where("chat_id = ? AND text LIKE ?", chatID, "%"+text+"%").

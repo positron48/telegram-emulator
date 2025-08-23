@@ -22,7 +22,7 @@ func (r *UserRepository) Create(user *models.User) error {
 }
 
 // GetByID получает пользователя по ID
-func (r *UserRepository) GetByID(id string) (*models.User, error) {
+func (r *UserRepository) GetByID(id int64) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("id = ?", id).First(&user).Error
 	if err != nil {
@@ -54,12 +54,12 @@ func (r *UserRepository) Update(user *models.User) error {
 }
 
 // Delete удаляет пользователя
-func (r *UserRepository) Delete(id string) error {
+func (r *UserRepository) Delete(id int64) error {
 	return r.db.Where("id = ?", id).Delete(&models.User{}).Error
 }
 
 // SetOnlineStatus устанавливает статус онлайн для пользователя
-func (r *UserRepository) SetOnlineStatus(id string, isOnline bool) error {
+func (r *UserRepository) SetOnlineStatus(id int64, isOnline bool) error {
 	return r.db.Model(&models.User{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"is_online": isOnline,
 		"last_seen": gorm.Expr("CASE WHEN ? = false THEN NOW() ELSE last_seen END", isOnline),

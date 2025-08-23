@@ -6,7 +6,7 @@ import (
 
 // User представляет пользователя в эмуляторе
 type User struct {
-	ID        string    `json:"id" gorm:"primaryKey"`
+	ID        int64     `json:"id" gorm:"primaryKey"`
 	Username  string    `json:"username" gorm:"uniqueIndex"`
 	FirstName string    `json:"first_name"`
 	LastName  string    `json:"last_name"`

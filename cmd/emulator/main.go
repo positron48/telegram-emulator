@@ -165,7 +165,7 @@ func createTestData(userManager *emulator.UserManager, chatManager *emulator.Cha
 			continue
 		}
 		log.Info("Создан тестовый пользователь", 
-			zap.String("id", user.ID),
+			zap.Int64("id", user.ID),
 			zap.String("username", user.Username),
 			zap.Bool("is_bot", user.IsBot))
 	}
@@ -183,7 +183,7 @@ func createTestData(userManager *emulator.UserManager, chatManager *emulator.Cha
 			log.Error("Ошибка создания приватного чата", zap.Error(err))
 		} else {
 			log.Info("Создан приватный чат", 
-				zap.String("id", chat.ID),
+				zap.Int64("id", chat.ID),
 				zap.String("title", chat.Title),
 				zap.String("type", chat.Type))
 		}

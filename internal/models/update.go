@@ -1,7 +1,6 @@
 package models
 
 import (
-	"strconv"
 	"time"
 )
 
@@ -27,7 +26,7 @@ type Update struct {
 
 // CallbackQuery представляет callback query от inline кнопок
 type CallbackQuery struct {
-	ID              string   `json:"id"`
+	ID              int64    `json:"id"`
 	From            User     `json:"from"`
 	Message         *Message `json:"message,omitempty"`
 	InlineMessageID string   `json:"inline_message_id,omitempty"`
@@ -346,45 +345,18 @@ type ChatLocation struct {
 
 // ToTelegramMessage конвертирует внутреннее сообщение в формат Telegram Bot API
 func (m *Message) ToTelegramMessage() TelegramMessage {
-	// Конвертируем строковые ID в int64 (используем хеш для уникальности)
-	messageID := int64(0)
-	if len(m.ID) > 0 {
-		for i, char := range m.ID {
-			if i < 8 { // Ограничиваем длину
-				messageID = messageID*31 + int64(char)
-			}
-		}
-	}
-
-	fromID := int64(0)
-	if len(m.FromID) > 0 {
-		for i, char := range m.FromID {
-			if i < 8 { // Ограничиваем длину
-				fromID = fromID*31 + int64(char)
-			}
-		}
-	}
-
-	chatID := int64(0)
-	if len(m.ChatID) > 0 {
-		for i, char := range m.ChatID {
-			if i < 8 { // Ограничиваем длину
-				chatID = chatID*31 + int64(char)
-			}
-		}
-	}
-
+	// Все ID уже int64, конвертация не нужна
 	telegramMessage := TelegramMessage{
-		MessageID: messageID,
+		MessageID: m.ID,
 		From: TelegramUser{
-			ID:        fromID,
+			ID:        m.FromID,
 			IsBot:     m.From.IsBot,
 			FirstName: m.From.FirstName,
 			LastName:  m.From.LastName,
 			Username:  m.From.Username,
 		},
 		Chat: TelegramChat{
-			ID:       chatID,
+			ID:       m.ChatID,
 			Type:     "private", // TODO: получить тип чата
 			Title:    m.From.GetFullName(),
 			Username: m.From.Username,
@@ -406,16 +378,56 @@ func (m *Message) ToTelegramMessage() TelegramMessage {
 	return telegramMessage
 }
 
+
+
 // FromTelegramMessage конвертирует сообщение из формата Telegram Bot API во внутренний формат
-func FromTelegramMessage(tgMsg TelegramMessage, chatID string) *Message {
+func FromTelegramMessage(tgMsg TelegramMessage, chatID int64) *Message {
 	return &Message{
-		ID:        strconv.FormatInt(tgMsg.MessageID, 10),
+		ID:        tgMsg.MessageID, // Все ID уже int64
 		ChatID:    chatID,
-		FromID:    strconv.FormatInt(tgMsg.From.ID, 10),
+		FromID:    tgMsg.From.ID,
 		Text:      tgMsg.Text,
 		Type:      MessageTypeText,
 		Status:    MessageStatusSent,
 		Timestamp: time.Unix(tgMsg.Date, 0),
 		CreatedAt: time.Now(),
 	}
+}
+
+// ToTelegramCallbackQuery конвертирует внутренний CallbackQuery в формат Telegram Bot API
+func (cq *CallbackQuery) ToTelegramCallbackQuery() map[string]interface{} {
+	// Все ID уже int64, конвертация не нужна
+	telegramCallbackQuery := map[string]interface{}{
+		"id": cq.ID,
+		"from": map[string]interface{}{
+			"id":         cq.From.ID, // Уже int64
+			"is_bot":     cq.From.IsBot,
+			"first_name": cq.From.FirstName,
+			"last_name":  cq.From.LastName,
+			"username":   cq.From.Username,
+		},
+		"chat_instance": cq.ChatInstance,
+	}
+
+	// Добавляем данные, если они есть
+	if cq.Data != "" {
+		telegramCallbackQuery["data"] = cq.Data
+	}
+
+	// Добавляем сообщение, если оно есть
+	if cq.Message != nil {
+		telegramCallbackQuery["message"] = cq.Message.ToTelegramMessage()
+	}
+
+	// Добавляем inline_message_id, если он есть
+	if cq.InlineMessageID != "" {
+		telegramCallbackQuery["inline_message_id"] = cq.InlineMessageID
+	}
+
+	// Добавляем game_short_name, если он есть
+	if cq.GameShortName != "" {
+		telegramCallbackQuery["game_short_name"] = cq.GameShortName
+	}
+
+	return telegramCallbackQuery
 }

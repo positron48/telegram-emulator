@@ -79,8 +79,13 @@ func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatMana
 			wsServer.HandleWebSocket(c.Writer, c.Request)
 		})
 
-		// Главная страница
-		router.GET("/", func(c *gin.Context) {
+		// Статические файлы для веб-интерфейса
+		router.Static("/web", "./web/dist")
+		router.StaticFile("/", "./web/dist/index.html")
+		router.StaticFile("/index.html", "./web/dist/index.html")
+		
+		// Главная страница (fallback)
+		router.GET("/api", func(c *gin.Context) {
 			c.Header("Content-Type", "application/json; charset=utf-8")
 			c.JSON(200, gin.H{
 				"message": "Telegram Emulator API",

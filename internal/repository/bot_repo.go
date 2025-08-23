@@ -22,7 +22,7 @@ func (r *BotRepository) Create(bot *models.Bot) error {
 }
 
 // GetByID получает бота по ID
-func (r *BotRepository) GetByID(id string) (*models.Bot, error) {
+func (r *BotRepository) GetByID(id int64) (*models.Bot, error) {
 	var bot models.Bot
 	err := r.db.Where("id = ?", id).First(&bot).Error
 	if err != nil {
@@ -61,21 +61,21 @@ func (r *BotRepository) Update(bot *models.Bot) error {
 }
 
 // Delete удаляет бота
-func (r *BotRepository) Delete(id string) error {
+func (r *BotRepository) Delete(id int64) error {
 	return r.db.Where("id = ?", id).Delete(&models.Bot{}).Error
 }
 
 // SetActiveStatus устанавливает статус активности бота
-func (r *BotRepository) SetActiveStatus(id string, isActive bool) error {
+func (r *BotRepository) SetActiveStatus(id int64, isActive bool) error {
 	return r.db.Model(&models.Bot{}).Where("id = ?", id).Update("is_active", isActive).Error
 }
 
 // SetWebhookURL устанавливает webhook URL для бота
-func (r *BotRepository) SetWebhookURL(id, webhookURL string) error {
+func (r *BotRepository) SetWebhookURL(id int64, webhookURL string) error {
 	return r.db.Model(&models.Bot{}).Where("id = ?", id).Update("webhook_url", webhookURL).Error
 }
 
 // UpdateToken обновляет токен бота
-func (r *BotRepository) UpdateToken(id, token string) error {
+func (r *BotRepository) UpdateToken(id int64, token string) error {
 	return r.db.Model(&models.Bot{}).Where("id = ?", id).Update("token", token).Error
 }

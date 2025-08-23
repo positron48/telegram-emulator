@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+
+
 // ChatHandler обрабатывает запросы к API чатов
 type ChatHandler struct {
 	chatManager *emulator.ChatManager
@@ -28,7 +30,7 @@ type CreateChatRequest struct {
 	Title       string   `json:"title" binding:"required"`
 	Username    string   `json:"username"`
 	Description string   `json:"description"`
-	UserIDs     []string `json:"user_ids" binding:"required"`
+	UserIDs     []int64  `json:"user_ids" binding:"required"`
 }
 
 // UpdateChatRequest представляет запрос на обновление чата
@@ -41,12 +43,18 @@ type UpdateChatRequest struct {
 // GetAll получает все чаты
 func (h *ChatHandler) GetAll(c *gin.Context) {
 	// Получаем user_id из query параметра
-	userID := c.Query("user_id")
+	userIDStr := c.Query("user_id")
 	
 	var chats []models.Chat
 	var err error
 	
-	if userID != "" {
+	if userIDStr != "" {
+		// Парсим userID
+		userID, parseErr := ParseUserID(userIDStr)
+		if parseErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
+			return
+		}
 		// Возвращаем только чаты пользователя
 		chats, err = h.chatManager.GetUserChats(userID)
 	} else {
@@ -84,11 +92,27 @@ func (h *ChatHandler) Create(c *gin.Context) {
 	})
 }
 
+// ParseChatID конвертирует строковый ID чата в int64
+func (h *ChatHandler) ParseChatID(c *gin.Context) (int64, bool) {
+	idStr := c.Param("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+		return 0, false
+	}
+
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
+		return 0, false
+	}
+
+	return id, true
+}
+
 // GetByID получает чат по ID
 func (h *ChatHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+	id, ok := h.ParseChatID(c)
+	if !ok {
 		return
 	}
 
@@ -105,9 +129,8 @@ func (h *ChatHandler) GetByID(c *gin.Context) {
 
 // Update обновляет чат
 func (h *ChatHandler) Update(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+	id, ok := h.ParseChatID(c)
+	if !ok {
 		return
 	}
 
@@ -148,9 +171,8 @@ func (h *ChatHandler) Update(c *gin.Context) {
 
 // Delete удаляет чат
 func (h *ChatHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+	id, ok := h.ParseChatID(c)
+	if !ok {
 		return
 	}
 
@@ -202,14 +224,13 @@ func (h *ChatHandler) GetMessages(c *gin.Context) {
 
 // AddMember добавляет участника в чат
 func (h *ChatHandler) AddMember(c *gin.Context) {
-	chatID := c.Param("id")
-	if chatID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+	chatID, ok := h.ParseChatID(c)
+	if !ok {
 		return
 	}
 
 	var req struct {
-		UserID string `json:"user_id" binding:"required"`
+		UserID int64 `json:"user_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -228,9 +249,8 @@ func (h *ChatHandler) AddMember(c *gin.Context) {
 
 // GetMembers получает участников чата
 func (h *ChatHandler) GetMembers(c *gin.Context) {
-	chatID := c.Param("id")
-	if chatID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+	chatID, ok := h.ParseChatID(c)
+	if !ok {
 		return
 	}
 
@@ -248,11 +268,20 @@ func (h *ChatHandler) GetMembers(c *gin.Context) {
 
 // RemoveMember удаляет участника из чата
 func (h *ChatHandler) RemoveMember(c *gin.Context) {
-	chatID := c.Param("id")
-	userID := c.Param("userID")
+	chatID, ok := h.ParseChatID(c)
+	if !ok {
+		return
+	}
 	
-	if chatID == "" || userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата и ID пользователя обязательны"})
+	userIDStr := c.Param("userID")
+	if userIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID пользователя обязателен"})
+		return
+	}
+
+	userID, err := ParseUserID(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
 		return
 	}
 

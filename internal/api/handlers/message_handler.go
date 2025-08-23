@@ -9,6 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+
+
 // MessageHandler обрабатывает запросы к API сообщений
 type MessageHandler struct {
 	messageManager *emulator.MessageManager
@@ -21,9 +23,26 @@ func NewMessageHandler(messageManager *emulator.MessageManager) *MessageHandler 
 	}
 }
 
+// parseChatID конвертирует строковый ID чата в int64
+func (h *MessageHandler) parseChatID(c *gin.Context) (int64, bool) {
+	idStr := c.Param("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+		return 0, false
+	}
+
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
+		return 0, false
+	}
+
+	return id, true
+}
+
 // SendMessageRequest представляет запрос на отправку сообщения
 type SendMessageRequest struct {
-	FromUserID string `json:"from_user_id" binding:"required"`
+	FromUserID int64  `json:"from_user_id" binding:"required"`
 	Text       string `json:"text" binding:"required"`
 	Type       string `json:"type"` // text, file, voice, photo
 }
@@ -35,9 +54,15 @@ type UpdateMessageStatusRequest struct {
 
 // GetByID получает сообщение по ID
 func (h *MessageHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
+	idStr := c.Param("id")
+	if idStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID сообщения обязателен"})
+		return
+	}
+
+	id, err := ParseMessageID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID сообщения"})
 		return
 	}
 
@@ -54,9 +79,8 @@ func (h *MessageHandler) GetByID(c *gin.Context) {
 
 // SendMessage отправляет сообщение в чат
 func (h *MessageHandler) SendMessage(c *gin.Context) {
-	chatID := c.Param("id")
-	if chatID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+	chatID, ok := h.parseChatID(c)
+	if !ok {
 		return
 	}
 
@@ -84,9 +108,8 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 
 // GetChatMessages получает сообщения чата
 func (h *MessageHandler) GetChatMessages(c *gin.Context) {
-	chatID := c.Param("id")
-	if chatID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+	chatID, ok := h.parseChatID(c)
+	if !ok {
 		return
 	}
 
@@ -119,9 +142,15 @@ func (h *MessageHandler) GetChatMessages(c *gin.Context) {
 
 // UpdateStatus обновляет статус сообщения
 func (h *MessageHandler) UpdateStatus(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
+	idStr := c.Param("id")
+	if idStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID сообщения обязателен"})
+		return
+	}
+
+	id, err := ParseMessageID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID сообщения"})
 		return
 	}
 
@@ -143,11 +172,20 @@ func (h *MessageHandler) UpdateStatus(c *gin.Context) {
 
 // MarkChatAsRead помечает чат как прочитанный
 func (h *MessageHandler) MarkChatAsRead(c *gin.Context) {
-	chatID := c.Param("id")
-	userID := c.Query("user_id")
+	chatID, ok := h.parseChatID(c)
+	if !ok {
+		return
+	}
 	
-	if chatID == "" || userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата и ID пользователя обязательны"})
+	userIDStr := c.Query("user_id")
+	if userIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID пользователя обязателен"})
+		return
+	}
+
+	userID, err := ParseUserID(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
 		return
 	}
 
@@ -163,9 +201,15 @@ func (h *MessageHandler) MarkChatAsRead(c *gin.Context) {
 
 // DeleteMessage удаляет сообщение
 func (h *MessageHandler) DeleteMessage(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
+	idStr := c.Param("id")
+	if idStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID сообщения обязателен"})
+		return
+	}
+
+	id, err := ParseMessageID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID сообщения"})
 		return
 	}
 
@@ -181,11 +225,14 @@ func (h *MessageHandler) DeleteMessage(c *gin.Context) {
 
 // SearchMessages ищет сообщения по тексту
 func (h *MessageHandler) SearchMessages(c *gin.Context) {
-	chatID := c.Param("id")
-	query := c.Query("q")
+	chatID, ok := h.parseChatID(c)
+	if !ok {
+		return
+	}
 	
-	if chatID == "" || query == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата и поисковый запрос обязательны"})
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Поисковый запрос обязателен"})
 		return
 	}
 
@@ -203,15 +250,21 @@ func (h *MessageHandler) SearchMessages(c *gin.Context) {
 
 // HandleCallbackQueryRequest представляет запрос на обработку callback query
 type HandleCallbackQueryRequest struct {
-	UserID       string `json:"user_id" binding:"required"`
+	UserID       int64  `json:"user_id" binding:"required"`
 	CallbackData string `json:"callback_data" binding:"required"`
 }
 
 // HandleCallbackQuery обрабатывает callback query от inline кнопки
 func (h *MessageHandler) HandleCallbackQuery(c *gin.Context) {
-	messageID := c.Param("id")
-	if messageID == "" {
+	messageIDStr := c.Param("id")
+	if messageIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID сообщения обязателен"})
+		return
+	}
+
+	messageID, err := ParseMessageID(messageIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID сообщения"})
 		return
 	}
 

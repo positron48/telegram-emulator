@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+
+
 // UserHandler обрабатывает запросы к API пользователей
 type UserHandler struct {
 	userManager *emulator.UserManager
@@ -72,9 +74,15 @@ func (h *UserHandler) Create(c *gin.Context) {
 
 // GetByID получает пользователя по ID
 func (h *UserHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
+	idStr := c.Param("id")
+	if idStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID пользователя обязателен"})
+		return
+	}
+
+	id, err := ParseUserID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
 		return
 	}
 
@@ -91,9 +99,15 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 
 // Update обновляет пользователя
 func (h *UserHandler) Update(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
+	idStr := c.Param("id")
+	if idStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID пользователя обязателен"})
+		return
+	}
+
+	id, err := ParseUserID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
 		return
 	}
 
@@ -134,9 +148,15 @@ func (h *UserHandler) Update(c *gin.Context) {
 
 // Delete удаляет пользователя
 func (h *UserHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-	if id == "" {
+	idStr := c.Param("id")
+	if idStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID пользователя обязателен"})
+		return
+	}
+
+	id, err := ParseUserID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID пользователя"})
 		return
 	}
 
