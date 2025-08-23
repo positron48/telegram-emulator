@@ -56,22 +56,29 @@ dev: ## Запустить backend и frontend в режиме разработ�
 	@echo "   Запуск на порту 3000..."
 	@echo "   Web UI: http://localhost:3000"
 	@echo ""
-	@echo "$(GRAY)⏳ Запуск сервисов в screen сессиях...$(RESET)"
+	@echo "$(GRAY)⏳ Запуск сервисов в screen сессиях с логированием...$(RESET)"
 	@echo ""
 	@echo "$(BOLD)Запуск backend в screen сессии 'telegram-backend'...$(RESET)"
-	@screen -dmS telegram-backend bash -c "cd $(CURDIR) && go run cmd/emulator/main.go; exec bash"
+	@screen -dmS telegram-backend -L -Logfile /tmp/telegram-backend.log bash -c "cd $(CURDIR) && go run cmd/emulator/main.go; exec bash"
 	@echo "$(GREEN)✅ Backend запущен на http://localhost:3001$(RESET)"
 	@echo ""
 	@echo "$(BOLD)Запуск frontend в screen сессии 'telegram-frontend'...$(RESET)"
-	@screen -dmS telegram-frontend bash -c "cd $(WEB_DIR) && npm run dev; exec bash"
+	@screen -dmS telegram-frontend -L -Logfile /tmp/telegram-frontend.log bash -c "cd $(WEB_DIR) && npm run dev; exec bash"
 	@echo "$(GREEN)✅ Frontend запущен на http://localhost:3000$(RESET)"
 	@echo ""
 	@echo "$(BOLD)🎉 Telegram Emulator готов к работе!$(RESET)"
 	@echo "$(GRAY)Откройте http://localhost:3000 в браузере$(RESET)"
 	@echo ""
+	@echo "$(GREEN)📺 Управление логами:$(RESET)"
+	@echo "   make logs-backend-follow    # Следить за backend логами (tail -f)"
+	@echo "   make logs-frontend-follow   # Следить за frontend логами (tail -f)"
+	@echo "   make logs-backend           # Показать последние backend логи"
+	@echo "   make logs-frontend          # Показать последние frontend логи"
+	@echo "   make logs-all               # Показать все логи"
+	@echo ""
 	@echo "$(GREEN)📺 Управление screen сессиями:$(RESET)"
-	@echo "   screen -r telegram-backend    # Подключиться к backend логам"
-	@echo "   screen -r telegram-frontend   # Подключиться к frontend логам"
+	@echo "   screen -r telegram-backend    # Подключиться к backend сессии"
+	@echo "   screen -r telegram-frontend   # Подключиться к frontend сессии"
 	@echo "   screen -ls                    # Список всех сессий"
 	@echo ""
 	@echo "$(GRAY)Для остановки используйте: make stop$(RESET)"
@@ -102,6 +109,11 @@ clean: ## Очистить build директории
 	rm -rf $(BUILD_DIR)
 	go clean
 
+clean-logs: ## Очистить файлы логов
+	@echo "$(BOLD)🧹 Очистка файлов логов...$(RESET)"
+	@rm -f /tmp/telegram-backend.log /tmp/telegram-frontend.log 2>/dev/null || echo "$(GRAY)Файлы логов не найдены$(RESET)"
+	@echo "$(GREEN)✅ Логи очищены$(RESET)"
+
 stop: ## Остановить все процессы разработки
 	@echo "$(BOLD)🛑 Остановка процессов разработки...$(RESET)"
 	@echo ""
@@ -121,15 +133,82 @@ stop: ## Остановить все процессы разработки
 	@-lsof -ti:3001 | xargs kill -9 2>/dev/null || echo "$(GRAY)Процессы на порту 3001 не найдены$(RESET)"
 	@echo "$(GREEN)✅ Порт 3001 освобожден$(RESET)"
 	@echo ""
+	@echo "$(BLUE)Очистка логов...$(RESET)"
+	@rm -f /tmp/telegram-backend.log /tmp/telegram-frontend.log 2>/dev/null || echo "$(GRAY)Файлы логов не найдены$(RESET)"
+	@echo "$(GREEN)✅ Логи очищены$(RESET)"
+	@echo ""
 	@echo "$(BOLD)🎉 Telegram Emulator полностью остановлен!$(RESET)"
 
-logs-backend: ## Показать логи backend сервера
-	@echo "$(BOLD)📺 Подключение к backend логам...$(RESET)"
+logs-backend: ## Показать последние логи backend сервера
+	@echo "$(BOLD)📋 Последние логи backend сервера:$(RESET)"
+	@echo "$(GRAY)Файл: /tmp/telegram-backend.log$(RESET)"
+	@echo ""
+	@if [ -f /tmp/telegram-backend.log ]; then \
+		tail -n 50 /tmp/telegram-backend.log; \
+	else \
+		echo "$(GRAY)Файл логов не найден. Backend может быть не запущен.$(RESET)"; \
+	fi
+
+logs-frontend: ## Показать последние логи frontend сервера
+	@echo "$(BOLD)📋 Последние логи frontend сервера:$(RESET)"
+	@echo "$(GRAY)Файл: /tmp/telegram-frontend.log$(RESET)"
+	@echo ""
+	@if [ -f /tmp/telegram-frontend.log ]; then \
+		tail -n 50 /tmp/telegram-frontend.log; \
+	else \
+		echo "$(GRAY)Файл логов не найден. Frontend может быть не запущен.$(RESET)"; \
+	fi
+
+logs-backend-follow: ## Следить за логами backend сервера в реальном времени
+	@echo "$(BOLD)📺 Слежение за логами backend сервера...$(RESET)"
+	@echo "$(GRAY)Файл: /tmp/telegram-backend.log$(RESET)"
+	@echo "$(GRAY)Для выхода нажмите Ctrl+C$(RESET)"
+	@echo ""
+	@if [ -f /tmp/telegram-backend.log ]; then \
+		tail -f /tmp/telegram-backend.log; \
+	else \
+		echo "$(GRAY)Файл логов не найден. Backend может быть не запущен.$(RESET)"; \
+		echo "$(GRAY)Запустите: make dev$(RESET)"; \
+	fi
+
+logs-frontend-follow: ## Следить за логами frontend сервера в реальном времени
+	@echo "$(BOLD)📺 Слежение за логами frontend сервера...$(RESET)"
+	@echo "$(GRAY)Файл: /tmp/telegram-frontend.log$(RESET)"
+	@echo "$(GRAY)Для выхода нажмите Ctrl+C$(RESET)"
+	@echo ""
+	@if [ -f /tmp/telegram-frontend.log ]; then \
+		tail -f /tmp/telegram-frontend.log; \
+	else \
+		echo "$(GRAY)Файл логов не найден. Frontend может быть не запущен.$(RESET)"; \
+		echo "$(GRAY)Запустите: make dev$(RESET)"; \
+	fi
+
+logs-all: ## Показать все логи (backend + frontend)
+	@echo "$(BOLD)📋 Все логи системы:$(RESET)"
+	@echo ""
+	@echo "$(GREEN)=== BACKEND ЛОГИ ===$(RESET)"
+	@if [ -f /tmp/telegram-backend.log ]; then \
+		echo "$(GRAY)Последние 30 строк:$(RESET)"; \
+		tail -n 30 /tmp/telegram-backend.log; \
+	else \
+		echo "$(GRAY)Backend логи не найдены$(RESET)"; \
+	fi
+	@echo ""
+	@echo "$(GREEN)=== FRONTEND ЛОГИ ===$(RESET)"
+	@if [ -f /tmp/telegram-frontend.log ]; then \
+		echo "$(GRAY)Последние 30 строк:$(RESET)"; \
+		tail -n 30 /tmp/telegram-frontend.log; \
+	else \
+		echo "$(GRAY)Frontend логи не найдены$(RESET)"; \
+	fi
+
+logs-screen-backend: ## Подключиться к screen сессии backend
+	@echo "$(BOLD)📺 Подключение к backend screen сессии...$(RESET)"
 	@echo "$(GRAY)Для выхода из screen нажмите Ctrl+A, затем D$(RESET)"
 	@screen -r telegram-backend
 
-logs-frontend: ## Показать логи frontend сервера
-	@echo "$(BOLD)📺 Подключение к frontend логам...$(RESET)"
+logs-screen-frontend: ## Подключиться к screen сессии frontend
+	@echo "$(BOLD)📺 Подключение к frontend screen сессии...$(RESET)"
 	@echo "$(GRAY)Для выхода из screen нажмите Ctrl+A, затем D$(RESET)"
 	@screen -r telegram-frontend
 

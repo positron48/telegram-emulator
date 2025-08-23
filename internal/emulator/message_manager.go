@@ -387,6 +387,11 @@ func (m *MessageManager) simulateMessageDelivery(message *models.Message) {
 // broadcastMessage отправляет WebSocket уведомление о новом сообщении
 func (m *MessageManager) broadcastMessage(message *models.Message) {
 	if m.wsServer != nil {
+		m.logger.Info("Начинаем broadcast сообщения", 
+			zap.Int64("message_id", message.ID),
+			zap.Int64("chat_id", message.ChatID),
+			zap.String("text", message.Text))
+		
 		// Отправляем всем участникам чата
 		chat, err := m.chatRepo.GetByID(message.ChatID)
 		if err != nil {
@@ -394,8 +399,17 @@ func (m *MessageManager) broadcastMessage(message *models.Message) {
 			return
 		}
 
+		m.logger.Info("Найдены участники чата", 
+			zap.Int64("chat_id", message.ChatID),
+			zap.Int("members_count", len(chat.Members)))
+
 		// Отправляем всем участникам чата, включая отправителя
 		for _, member := range chat.Members {
+			m.logger.Info("Отправляем сообщение участнику", 
+				zap.Int64("message_id", message.ID),
+				zap.Int64("member_id", member.ID),
+				zap.String("member_username", member.Username))
+			
 			messageData := map[string]interface{}{
 				"id":        message.ID,
 				"chat_id":   message.ChatID,
@@ -413,6 +427,8 @@ func (m *MessageManager) broadcastMessage(message *models.Message) {
 			
 			m.wsServer.BroadcastToUser(member.ID, "message", messageData)
 		}
+	} else {
+		m.logger.Error("wsServer равен nil - broadcast отключен")
 	}
 }
 

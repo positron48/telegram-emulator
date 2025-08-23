@@ -117,7 +117,7 @@ function App() {
       
       // Look for temporary message by text and sender
       let tempMessageIndex = existingMessages.findIndex(msg => 
-        msg.id.startsWith('temp-') && 
+        typeof msg.id === 'string' && msg.id.startsWith('temp-') && 
         msg.text === data.text && 
         (msg.from?.id === data.from?.id || msg.from_id === data.from?.id)
       );
@@ -125,7 +125,7 @@ function App() {
       // If not found, try to find by text among messages from current user
       if (tempMessageIndex === -1 && isOwnMessage) {
         tempMessageIndex = existingMessages.findIndex(msg => 
-          msg.id.startsWith('temp-') && 
+          typeof msg.id === 'string' && msg.id.startsWith('temp-') && 
           msg.text === data.text
         );
       }
@@ -133,7 +133,7 @@ function App() {
       // If still not found, try to find the latest temporary message from current user
       if (tempMessageIndex === -1 && isOwnMessage) {
         const tempMessages = existingMessages.filter(msg => 
-          msg.id.startsWith('temp-') && 
+          typeof msg.id === 'string' && msg.id.startsWith('temp-') && 
           (msg.from?.id === currentUser?.id || msg.from_id === currentUser?.id)
         );
         if (tempMessages.length > 0) {
@@ -146,7 +146,7 @@ function App() {
       console.log('🔍 Looking for temp message:', {
         searchText: data.text,
         searchFromId: data.from?.id,
-        tempMessages: existingMessages.filter(m => m.id.startsWith('temp-')).map(m => ({
+        tempMessages: existingMessages.filter(m => typeof m.id === 'string' && m.id.startsWith('temp-')).map(m => ({
           id: m.id,
           text: m.text,
           fromId: m.from?.id || m.from_id
@@ -185,7 +185,7 @@ function App() {
           text: data.text,
           fromId: data.from?.id,
           currentUserId: currentUser?.id,
-          existingTempMessages: existingMessages.filter(m => m.id.startsWith('temp-')).map(m => ({
+          existingTempMessages: existingMessages.filter(m => typeof m.id === 'string' && m.id.startsWith('temp-')).map(m => ({
             id: m.id,
             text: m.text,
             fromId: m.from?.id || m.from_id
@@ -483,7 +483,7 @@ function App() {
       // Clean up old temporary messages (keep only last 5)
       const currentState = useStore.getState();
       const currentMessages = currentState.messages[currentChat.id] || [];
-      const tempMessages = currentMessages.filter(msg => msg.id.startsWith('temp-'));
+      const tempMessages = currentMessages.filter(msg => typeof msg.id === 'string' && msg.id.startsWith('temp-'));
       if (tempMessages.length > 5) {
         const messagesToRemove = tempMessages.slice(0, tempMessages.length - 5);
         const updatedMessages = currentMessages.filter(msg => !messagesToRemove.some(rm => rm.id === msg.id));

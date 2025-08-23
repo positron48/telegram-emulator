@@ -112,6 +112,10 @@ func (s *Server) Broadcast(messageType string, data interface{}) {
 
 // BroadcastToUser отправляет сообщение конкретному пользователю
 func (s *Server) BroadcastToUser(userID int64, messageType string, data interface{}) {
+	s.logger.Info("BroadcastToUser вызван", 
+		zap.Int64("user_id", userID),
+		zap.String("message_type", messageType))
+	
 	message := &Message{
 		Type: messageType,
 		Data: data,
@@ -122,8 +126,14 @@ func (s *Server) BroadcastToUser(userID int64, messageType string, data interfac
 	for client := range s.clients {
 		if client.userID == userID {
 			clientCount++
+			s.logger.Info("Найден клиент для отправки", 
+				zap.Int64("user_id", userID),
+				zap.String("message_type", messageType))
 			select {
 			case client.send <- s.serializeMessage(message):
+				s.logger.Info("Сообщение отправлено клиенту", 
+					zap.Int64("user_id", userID),
+					zap.String("message_type", messageType))
 			default:
 				s.logger.Warn("Канал клиента переполнен, закрываем соединение", zap.Int64("user_id", userID))
 				close(client.send)
@@ -132,6 +142,11 @@ func (s *Server) BroadcastToUser(userID int64, messageType string, data interfac
 		}
 	}
 	s.mutex.RUnlock()
+	
+	s.logger.Info("BroadcastToUser завершен", 
+		zap.Int64("user_id", userID),
+		zap.String("message_type", messageType),
+		zap.Int("clients_found", clientCount))
 }
 
 // serializeMessage сериализует сообщение в JSON
