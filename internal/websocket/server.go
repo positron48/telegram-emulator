@@ -447,13 +447,13 @@ func (c *Client) handleCallbackQuery(data interface{}) {
 	}
 	chatID := int64(chatIDFloat)
 
-	// Генерируем уникальный ID для callback query
-	callbackQueryID := time.Now().UnixNano()
+	// Генерируем уникальный ID для callback query как строку
+	callbackQueryID := fmt.Sprintf("cq_%d", time.Now().UnixNano())
 
 	c.logger.Info("Получен callback query",
 		zap.Int64("user_id", c.userID),
 		zap.Int64("chat_id", chatID),
-		zap.Int64("callback_query_id", callbackQueryID),
+		zap.String("callback_query_id", callbackQueryID),
 		zap.Any("button", buttonData))
 
 	// Создаем CallbackQuery для BotManager
@@ -539,7 +539,7 @@ func (c *Client) handleCallbackQuery(data interface{}) {
 				c.logger.Error("Ошибка добавления callback query в BotManager", zap.Error(err))
 			} else {
 							c.logger.Info("Callback query добавлен в BotManager", 
-				zap.Int64("callback_query_id", callbackQueryID),
+				zap.String("callback_query_id", callbackQueryID),
 				zap.String("callback_data", callbackData),
 					zap.String("bot_token", botToken))
 			}

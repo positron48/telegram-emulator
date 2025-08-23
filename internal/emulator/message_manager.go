@@ -3,6 +3,7 @@ package emulator
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
@@ -281,7 +282,7 @@ func (m *MessageManager) HandleCallbackQuery(userID int64, messageID int64, call
 		return nil, err
 	}
 
-	// Генерируем уникальный ID для callback query
+	// Генерируем уникальный ID для callback query как строку
 	callbackID, err := m.generateID()
 	if err != nil {
 		m.logger.Error("Ошибка генерации ID для callback query", zap.Error(err))
@@ -290,7 +291,7 @@ func (m *MessageManager) HandleCallbackQuery(userID int64, messageID int64, call
 
 	// Создаем callback query
 	callbackQuery := &models.CallbackQuery{
-		ID:       callbackID,
+		ID:       fmt.Sprintf("cq_%d", callbackID),
 		From:     *user,
 		Message:  message,
 		Data:     callbackData,
@@ -300,7 +301,7 @@ func (m *MessageManager) HandleCallbackQuery(userID int64, messageID int64, call
 	m.notifyBotsCallbackQuery(callbackQuery)
 
 	m.logger.Info("Callback query обработан", 
-		zap.Int64("callback_id", callbackID),
+		zap.String("callback_id", callbackQuery.ID),
 		zap.Int64("message_id", messageID),
 		zap.Int64("user_id", userID),
 		zap.String("callback_data", callbackData))
@@ -360,7 +361,7 @@ func (m *MessageManager) notifyBotsCallbackQuery(callbackQuery *models.CallbackQ
 	}
 
 	m.logger.Info("Боты уведомлены о callback query", 
-		zap.Int64("callback_id", callbackQuery.ID),
+		zap.String("callback_id", callbackQuery.ID),
 		zap.Int("bots_count", len(bots)))
 }
 

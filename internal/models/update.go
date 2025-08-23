@@ -26,7 +26,7 @@ type Update struct {
 
 // CallbackQuery представляет callback query от inline кнопок
 type CallbackQuery struct {
-	ID              int64    `json:"id"`
+	ID              string   `json:"id"`
 	From            User     `json:"from"`
 	Message         *Message `json:"message,omitempty"`
 	InlineMessageID string   `json:"inline_message_id,omitempty"`
