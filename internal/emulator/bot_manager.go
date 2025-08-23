@@ -357,6 +357,15 @@ func (m *BotManager) AddUpdate(botID int64, update *models.Update) error {
 		zap.Int64("bot_id", botID),
 		zap.Int64("update_id", update.UpdateID))
 
+	// Обрабатываем команды автоматически
+	if update.Message != nil && update.Message.IsCommand() {
+		m.logger.Info("Найдена команда, запускаем обработку", 
+			zap.Int64("bot_id", botID),
+			zap.String("command", update.Message.GetCommand()),
+			zap.Int64("message_id", update.Message.ID))
+		go m.handleCommand(botID, update.Message)
+	}
+
 	return nil
 }
 
@@ -507,5 +516,65 @@ func (m *BotManager) sendWebhookUpdate(bot *models.Bot, update *models.Update) {
 			zap.Int64("bot_id", bot.ID),
 			zap.String("webhook_url", bot.WebhookURL),
 			zap.Int64("update_id", update.UpdateID))
+	}
+}
+
+// handleCommand обрабатывает команды бота
+func (m *BotManager) handleCommand(botID int64, message *models.Message) {
+	// Получаем бота
+	bot, err := m.GetBot(botID)
+	if err != nil {
+		m.logger.Error("Ошибка получения бота для обработки команды", 
+			zap.Int64("bot_id", botID), 
+			zap.Error(err))
+		return
+	}
+
+	// Получаем пользователя-бота
+	botUser, err := m.userRepo.GetByUsername(bot.Username)
+	if err != nil {
+		m.logger.Error("Ошибка получения пользователя-бота", 
+			zap.Int64("bot_id", botID),
+			zap.String("bot_username", bot.Username),
+			zap.Error(err))
+		return
+	}
+
+	// Получаем команду
+	command := message.GetCommand()
+	m.logger.Info("Обрабатываем команду", 
+		zap.Int64("bot_id", botID),
+		zap.String("command", command),
+		zap.Int64("chat_id", message.ChatID))
+
+	// Обрабатываем команду /start
+	if command == "/start" {
+		responseText := fmt.Sprintf("Привет! Я бот %s. Добро пожаловать!", bot.Name)
+		
+		// Отправляем ответное сообщение
+		responseMessage := &models.Message{
+			ID:        time.Now().UnixNano(),
+			ChatID:    message.ChatID,
+			FromID:    botUser.ID,
+			Text:      responseText,
+			Type:      "text",
+			Status:    "sending",
+			IsOutgoing: true,
+			Timestamp: time.Now(),
+			CreatedAt: time.Now(),
+		}
+
+		// Сохраняем сообщение в базе данных
+		if err := m.messageRepo.Create(responseMessage); err != nil {
+			m.logger.Error("Ошибка сохранения ответного сообщения", 
+				zap.Int64("bot_id", botID),
+				zap.Error(err))
+			return
+		}
+
+		m.logger.Info("Ответ на команду /start отправлен", 
+			zap.Int64("bot_id", botID),
+			zap.Int64("message_id", responseMessage.ID),
+			zap.Int64("chat_id", message.ChatID))
 	}
 }

@@ -394,25 +394,25 @@ func (m *MessageManager) broadcastMessage(message *models.Message) {
 			return
 		}
 
-			// Отправляем всем участникам чата, включая отправителя
-	for _, member := range chat.Members {
-		messageData := map[string]interface{}{
-			"id":        message.ID,
-			"chat_id":   message.ChatID,
-			"from":      message.From,
-			"text":      message.Text,
-			"type":      message.Type,
-			"timestamp": message.Timestamp,
-			"status":    message.Status,
+		// Отправляем всем участникам чата, включая отправителя
+		for _, member := range chat.Members {
+			messageData := map[string]interface{}{
+				"id":        message.ID,
+				"chat_id":   message.ChatID,
+				"from":      message.From,
+				"text":      message.Text,
+				"type":      message.Type,
+				"timestamp": message.Timestamp,
+				"status":    message.Status,
+			}
+			
+			// Добавляем клавиатуру, если она есть
+			if replyMarkup := message.GetReplyMarkup(); replyMarkup != nil {
+				messageData["reply_markup"] = replyMarkup
+			}
+			
+			m.wsServer.BroadcastToUser(member.ID, "message", messageData)
 		}
-		
-		// Добавляем клавиатуру, если она есть
-		if replyMarkup := message.GetReplyMarkup(); replyMarkup != nil {
-			messageData["reply_markup"] = replyMarkup
-		}
-		
-		m.wsServer.BroadcastToUser(member.ID, "message", messageData)
-	}
 	}
 }
 
@@ -507,10 +507,17 @@ func (m *MessageManager) notifyBots(message *models.Message) {
 		// Для виртуальных чатов считаем что бот является участником
 		if chat.Title == "Virtual Chat" {
 			isBotMember = true
+			m.logger.Debug("Виртуальный чат, бот считается участником", 
+				zap.Int64("bot_id", bot.ID),
+				zap.Int64("chat_id", message.ChatID))
 		} else {
 			for _, member := range chat.Members {
 				if member.Username == bot.Username || member.ID == botUser.ID {
 					isBotMember = true
+					m.logger.Debug("Бот найден в участниках чата", 
+						zap.Int64("bot_id", bot.ID),
+						zap.Int64("chat_id", message.ChatID),
+						zap.String("member_username", member.Username))
 					break
 				}
 			}

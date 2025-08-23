@@ -338,12 +338,21 @@ func (c *Client) handleSendMessage(data interface{}) {
 		return
 	}
 
-	chatIDFloat, ok := dataMap["chat_id"].(float64)
-	if !ok {
-		c.logger.Error("Отсутствует chat_id в send_message")
+	// Обрабатываем chat_id как float64 или строку
+	var chatID int64
+	if chatIDFloat, ok := dataMap["chat_id"].(float64); ok {
+		chatID = int64(chatIDFloat)
+	} else if chatIDStr, ok := dataMap["chat_id"].(string); ok {
+		chatIDParsed, err := strconv.ParseInt(chatIDStr, 10, 64)
+		if err != nil {
+			c.logger.Error("Неверный формат chat_id", zap.Error(err))
+			return
+		}
+		chatID = chatIDParsed
+	} else {
+		c.logger.Error("Отсутствует или неверный формат chat_id в send_message")
 		return
 	}
-	chatID := int64(chatIDFloat)
 
 	text, ok := dataMap["text"].(string)
 	if !ok {
@@ -351,29 +360,38 @@ func (c *Client) handleSendMessage(data interface{}) {
 		return
 	}
 
-	fromUserIDStr, ok := dataMap["from_user_id"].(string)
-	if !ok {
-		c.logger.Error("Отсутствует from_user_id в send_message")
-		return
-	}
-	
-	// Конвертируем fromUserID в int64
-	fromUserID, err := strconv.ParseInt(fromUserIDStr, 10, 64)
-	if err != nil {
-		c.logger.Error("Неверный формат from_user_id", zap.Error(err))
-		return
-	}
-
-	// Проверяем, что отправитель совпадает с текущим пользователем
-	if fromUserID != c.userID {
-		c.logger.Warn("Попытка отправить сообщение от имени другого пользователя", 
-			zap.Int64("from_user_id", fromUserID), 
-			zap.Int64("current_user_id", c.userID))
-		return
+	// Получаем from_user_id, если не передан - используем текущего пользователя
+	var fromUserID int64
+	if fromUserIDStr, ok := dataMap["from_user_id"].(string); ok {
+		// Конвертируем fromUserID в int64
+		parsedUserID, err := strconv.ParseInt(fromUserIDStr, 10, 64)
+		if err != nil {
+			c.logger.Error("Неверный формат from_user_id", zap.Error(err))
+			return
+		}
+		fromUserID = parsedUserID
+		
+		// Проверяем, что отправитель совпадает с текущим пользователем
+		if fromUserID != c.userID {
+			c.logger.Warn("Попытка отправить сообщение от имени другого пользователя", 
+				zap.Int64("from_user_id", fromUserID), 
+				zap.Int64("current_user_id", c.userID))
+			return
+		}
+	} else {
+		// Если from_user_id не передан, используем текущего пользователя
+		fromUserID = c.userID
+		c.logger.Debug("from_user_id не передан, используем текущего пользователя", 
+			zap.Int64("user_id", c.userID))
 	}
 
 	// Используем MessageManager для отправки сообщения
 	if c.server.messageManager != nil {
+		c.logger.Info("Отправляем сообщение через MessageManager", 
+			zap.Int64("chat_id", chatID),
+			zap.Int64("from_user_id", fromUserID),
+			zap.String("text", text))
+		
 		// Вызываем метод SendMessage напрямую через интерфейс
 		message, err := c.server.messageManager.SendMessage(chatID, fromUserID, text, "text", nil)
 		
