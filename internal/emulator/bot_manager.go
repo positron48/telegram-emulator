@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
@@ -31,6 +32,9 @@ type BotManager struct {
 
 // NewBotManager создает новый экземпляр BotManager
 func NewBotManager(botRepo *repository.BotRepository, userRepo *repository.UserRepository, messageRepo *repository.MessageRepository, chatRepo *repository.ChatRepository) *BotManager {
+	// Инициализируем генератор случайных чисел
+	rand.Seed(time.Now().UnixNano())
+	
 	return &BotManager{
 		botRepo:     botRepo,
 		userRepo:    userRepo,
@@ -432,7 +436,10 @@ func (m *BotManager) GetLogger() *zap.Logger {
 
 // generateID генерирует уникальный ID
 func (m *BotManager) generateID() (int64, error) {
-	return time.Now().UnixNano(), nil
+	// Используем Unix timestamp в миллисекундах + случайное число для уникальности
+	timestamp := time.Now().UnixMilli()
+	random := rand.Int63n(1000) // случайное число от 0 до 999
+	return timestamp*1000 + random, nil
 }
 
 // sendWebhookUpdate отправляет обновление через webhook

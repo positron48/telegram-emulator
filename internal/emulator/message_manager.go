@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -446,8 +447,10 @@ func (m *MessageManager) broadcastChatRead(chatID int64, userID int64) {
 
 // generateID генерирует уникальный ID
 func (m *MessageManager) generateID() (int64, error) {
-	// Генерируем int64 ID на основе времени и случайного числа
-	return time.Now().UnixNano(), nil
+	// Используем Unix timestamp в миллисекундах + случайное число для уникальности
+	timestamp := time.Now().UnixMilli()
+	random := rand.Int63n(1000) // случайное число от 0 до 999
+	return timestamp*1000 + random, nil
 }
 
 // notifyBots уведомляет всех активных ботов о новом сообщении

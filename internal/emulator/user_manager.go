@@ -1,6 +1,7 @@
 package emulator
 
 import (
+	"math/rand"
 	"time"
 
 	"telegram-emulator/internal/models"
@@ -189,5 +190,8 @@ func (m *UserManager) GetBots() ([]models.User, error) {
 
 // generateID генерирует уникальный ID
 func (m *UserManager) generateID() (int64, error) {
-	return time.Now().UnixNano(), nil
+	// Используем Unix timestamp в миллисекундах + случайное число для уникальности
+	timestamp := time.Now().UnixMilli()
+	random := rand.Int63n(1000) // случайное число от 0 до 999
+	return timestamp*1000 + random, nil
 }

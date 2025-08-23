@@ -92,27 +92,19 @@ func (h *ChatHandler) Create(c *gin.Context) {
 	})
 }
 
-// ParseChatID конвертирует строковый ID чата в int64
-func (h *ChatHandler) ParseChatID(c *gin.Context) (int64, bool) {
-	idStr := c.Param("id")
-	if idStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
-		return 0, false
-	}
 
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
-		return 0, false
-	}
-
-	return id, true
-}
 
 // GetByID получает чат по ID
 func (h *ChatHandler) GetByID(c *gin.Context) {
-	id, ok := h.ParseChatID(c)
-	if !ok {
+	idStr := c.Param("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+		return
+	}
+	
+	id, err := ParseChatID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
 		return
 	}
 
@@ -129,8 +121,15 @@ func (h *ChatHandler) GetByID(c *gin.Context) {
 
 // Update обновляет чат
 func (h *ChatHandler) Update(c *gin.Context) {
-	id, ok := h.ParseChatID(c)
-	if !ok {
+	idStr := c.Param("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+		return
+	}
+	
+	id, err := ParseChatID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
 		return
 	}
 
@@ -171,8 +170,15 @@ func (h *ChatHandler) Update(c *gin.Context) {
 
 // Delete удаляет чат
 func (h *ChatHandler) Delete(c *gin.Context) {
-	id, ok := h.ParseChatID(c)
-	if !ok {
+	idStr := c.Param("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+		return
+	}
+	
+	id, err := ParseChatID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
 		return
 	}
 
@@ -224,8 +230,15 @@ func (h *ChatHandler) GetMessages(c *gin.Context) {
 
 // AddMember добавляет участника в чат
 func (h *ChatHandler) AddMember(c *gin.Context) {
-	chatID, ok := h.ParseChatID(c)
-	if !ok {
+	idStr := c.Param("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+		return
+	}
+	
+	chatID, err := ParseChatID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
 		return
 	}
 
@@ -249,8 +262,15 @@ func (h *ChatHandler) AddMember(c *gin.Context) {
 
 // GetMembers получает участников чата
 func (h *ChatHandler) GetMembers(c *gin.Context) {
-	chatID, ok := h.ParseChatID(c)
-	if !ok {
+	idStr := c.Param("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+		return
+	}
+	
+	chatID, err := ParseChatID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
 		return
 	}
 
@@ -268,8 +288,15 @@ func (h *ChatHandler) GetMembers(c *gin.Context) {
 
 // RemoveMember удаляет участника из чата
 func (h *ChatHandler) RemoveMember(c *gin.Context) {
-	chatID, ok := h.ParseChatID(c)
-	if !ok {
+	idStr := c.Param("id")
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
+		return
+	}
+	
+	chatID, err := ParseChatID(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
 		return
 	}
 	
