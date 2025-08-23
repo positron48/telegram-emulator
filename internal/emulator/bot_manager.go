@@ -1,9 +1,13 @@
 package emulator
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -231,8 +235,14 @@ func (m *BotManager) GetBotUpdates(botID string, offset, limit int) ([]models.Up
 	// Получаем обновления из очереди
 	queue, exists := m.updateQueue[botID]
 	if !exists {
+		m.logger.Debug("Очередь обновлений пуста для бота", zap.String("bot_id", botID))
 		return []models.Update{}, nil
 	}
+
+	m.logger.Debug("Получена очередь обновлений", 
+		zap.String("bot_id", botID),
+		zap.Int("queue_size", len(queue)),
+		zap.Int("offset", offset))
 
 	// Проверяем, есть ли обновления с update_id больше offset
 	maxUpdateID := int64(0)
@@ -256,6 +266,13 @@ func (m *BotManager) GetBotUpdates(botID string, offset, limit int) ([]models.Up
 	for _, update := range queue {
 		if update.UpdateID >= int64(offset) {
 			filteredUpdates = append(filteredUpdates, update)
+			// Логируем информацию о callback query
+			if update.CallbackQuery != nil {
+				m.logger.Debug("Найден callback query в обновлении", 
+					zap.String("bot_id", botID),
+					zap.Int64("update_id", update.UpdateID),
+					zap.String("callback_data", update.CallbackQuery.Data))
+			}
 		}
 	}
 
@@ -413,6 +430,11 @@ func (m *BotManager) AddCallbackQuery(botToken string, callbackQuery *models.Cal
 		m.updateQueue[bot.ID] = m.updateQueue[bot.ID][len(m.updateQueue[bot.ID])-1000:]
 	}
 	
+	// Если у бота есть webhook URL, отправляем обновление в webhook
+	if bot.WebhookURL != "" {
+		go m.sendWebhookUpdate(bot, update)
+	}
+	
 	m.logger.Info("Callback query добавлен в очередь", 
 		zap.String("bot_id", bot.ID),
 		zap.String("bot_token", botToken),
@@ -441,4 +463,72 @@ func (m *BotManager) generateID() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(bytes), nil
+}
+
+// sendWebhookUpdate отправляет обновление через webhook
+func (m *BotManager) sendWebhookUpdate(bot *models.Bot, update *models.Update) {
+	m.logger.Info("Начинаем отправку webhook", 
+		zap.String("bot_id", bot.ID),
+		zap.String("webhook_url", bot.WebhookURL),
+		zap.Int64("update_id", update.UpdateID))
+	
+	if bot.WebhookURL == "" {
+		m.logger.Error("Webhook URL не установлен для бота", zap.String("bot_id", bot.ID))
+		return
+	}
+
+	// Конвертируем обновление в формат Telegram Bot API
+	webhookUpdate := map[string]interface{}{
+		"update_id": update.UpdateID,
+	}
+
+	if update.Message != nil {
+		webhookUpdate["message"] = update.Message.ToTelegramMessage()
+		m.logger.Debug("Добавлено сообщение в webhook", zap.String("bot_id", bot.ID))
+	}
+	if update.EditedMessage != nil {
+		webhookUpdate["edited_message"] = update.EditedMessage.ToTelegramMessage()
+		m.logger.Debug("Добавлено редактированное сообщение в webhook", zap.String("bot_id", bot.ID))
+	}
+	if update.CallbackQuery != nil {
+		webhookUpdate["callback_query"] = update.CallbackQuery
+		m.logger.Debug("Добавлен callback query в webhook", 
+			zap.String("bot_id", bot.ID),
+			zap.String("callback_data", update.CallbackQuery.Data))
+	}
+
+	jsonData, err := json.Marshal(webhookUpdate)
+	if err != nil {
+		m.logger.Error("Ошибка маршалинга обновления для webhook", zap.Error(err))
+		return
+	}
+
+	m.logger.Debug("Отправляем webhook", 
+		zap.String("bot_id", bot.ID),
+		zap.String("webhook_url", bot.WebhookURL),
+		zap.String("json_data", string(jsonData)))
+
+	resp, err := http.Post(bot.WebhookURL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		m.logger.Error("Ошибка отправки обновления через webhook", 
+			zap.String("bot_id", bot.ID),
+			zap.String("webhook_url", bot.WebhookURL),
+			zap.Error(err))
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		m.logger.Error("Webhook вернул не OK статус", 
+			zap.String("bot_id", bot.ID),
+			zap.String("webhook_url", bot.WebhookURL),
+			zap.Int("status_code", resp.StatusCode),
+			zap.String("response_body", string(body)))
+	} else {
+		m.logger.Info("Обновление успешно отправлено через webhook", 
+			zap.String("bot_id", bot.ID),
+			zap.String("webhook_url", bot.WebhookURL),
+			zap.Int64("update_id", update.UpdateID))
+	}
 }

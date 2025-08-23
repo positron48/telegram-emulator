@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -440,8 +441,33 @@ func (c *Client) handleCallbackQuery(data interface{}) {
 		addCallbackQueryMethod := botManagerValue.MethodByName("AddCallbackQuery")
 		
 		if addCallbackQueryMethod.IsValid() {
-			// Находим токен бота (пока используем дефолтный)
-			botToken := "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+			// Находим токен бота - пробуем несколько способов
+			var botToken string
+			
+			// Способ 1: Пытаемся извлечь из callback_data (если это формат cat:message_id)
+			if strings.HasPrefix(callbackData, "cat:") {
+				// Здесь можно попробовать найти сообщение по ID и определить бота
+				// Пока используем дефолтный токен
+				botToken = "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+			} else {
+				// Способ 2: Используем дефолтный токен для всех callback query
+				botToken = "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+			}
+			
+			// Способ 3: Получаем всех ботов и используем первого активного
+			getAllBotsMethod := botManagerValue.MethodByName("GetAllBots")
+			if getAllBotsMethod.IsValid() {
+				results := getAllBotsMethod.Call(nil)
+				if len(results) > 0 && !results[0].IsNil() {
+					bots := results[0].Interface().([]models.Bot)
+					for _, bot := range bots {
+						if bot.IsActive {
+							botToken = bot.Token
+							break
+						}
+					}
+				}
+			}
 			
 			args := []reflect.Value{
 				reflect.ValueOf(botToken),
@@ -456,7 +482,8 @@ func (c *Client) handleCallbackQuery(data interface{}) {
 			} else {
 				c.logger.Info("Callback query добавлен в BotManager", 
 					zap.String("callback_query_id", callbackQueryID),
-					zap.String("callback_data", callbackData))
+					zap.String("callback_data", callbackData),
+					zap.String("bot_token", botToken))
 			}
 		}
 	}

@@ -61,6 +61,7 @@ func (api *TelegramBotAPI) SetupTelegramBotRoutes(router *gin.Engine) {
 	router.GET("/bot:token/getUpdates", api.GetUpdates)
 	router.POST("/bot:token/getUpdates", api.GetUpdates)
 	router.POST("/bot:token/sendMessage", api.SendMessage)
+	router.GET("/bot:token/setWebhook", api.SetWebhook)
 	router.POST("/bot:token/setWebhook", api.SetWebhook)
 	router.GET("/bot:token/deleteWebhook", api.DeleteWebhook)
 	router.POST("/bot:token/deleteWebhook", api.DeleteWebhook)
@@ -76,6 +77,7 @@ func (api *TelegramBotAPI) SetupTelegramBotRoutes(router *gin.Engine) {
 	router.GET("/bot/:token2/getUpdates", api.GetUpdates)
 	router.POST("/bot/:token2/getUpdates", api.GetUpdates)
 	router.POST("/bot/:token2/sendMessage", api.SendMessage)
+	router.GET("/bot/:token2/setWebhook", api.SetWebhook)
 	router.POST("/bot/:token2/setWebhook", api.SetWebhook)
 	router.GET("/bot/:token2/deleteWebhook", api.DeleteWebhook)
 	router.POST("/bot/:token2/deleteWebhook", api.DeleteWebhook)
@@ -401,16 +403,17 @@ func (api *TelegramBotAPI) SetWebhook(c *gin.Context) {
 	}
 
 	var request struct {
-		URL                string   `json:"url" binding:"required"`
-		Certificate        string   `json:"certificate"`
-		IPAddress          string   `json:"ip_address"`
-		MaxConnections     int      `json:"max_connections"`
-		AllowedUpdates     []string `json:"allowed_updates"`
-		DropPendingUpdates bool     `json:"drop_pending_updates"`
-		SecretToken        string   `json:"secret_token"`
+		URL                string   `json:"url" form:"url" binding:"required"`
+		Certificate        string   `json:"certificate" form:"certificate"`
+		IPAddress          string   `json:"ip_address" form:"ip_address"`
+		MaxConnections     int      `json:"max_connections" form:"max_connections"`
+		AllowedUpdates     []string `json:"allowed_updates" form:"allowed_updates"`
+		DropPendingUpdates bool     `json:"drop_pending_updates" form:"drop_pending_updates"`
+		SecretToken        string   `json:"secret_token" form:"secret_token"`
 	}
 
-	if err := c.ShouldBindJSON(&request); err != nil {
+	// Унифицированный биндинг: поддерживает GET query, POST form, POST JSON
+	if err := c.ShouldBind(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: " + err.Error()})
 		return
 	}

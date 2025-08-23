@@ -9,6 +9,8 @@ import logging
 import json
 import os
 import time
+import urllib.request
+import urllib.parse
 from typing import Dict, Any, List
 from flask import Flask, request, jsonify
 
@@ -453,6 +455,109 @@ class TelegramEmulatorBot:
         """Gets the current offset"""
         return self.offset
 
+    def test_webhook_setup(self, webhook_url: str = "http://127.0.0.1:8080/tg") -> Dict[str, Any]:
+        """
+        Test webhook setup using standard library (urllib)
+        This reproduces the bug with invalid character 'a' looking for beginning of value
+        """
+        print(f"🔧 Testing webhook setup with standard library...")
+        print(f"📡 Webhook URL: {webhook_url}")
+        print(f"🌐 Emulator URL: {self.base_url}")
+        
+        # Prepare the request
+        set_webhook_url = f"{self.base_url}/bot{self.token}/setWebhook"
+        
+        # Prepare parameters
+        params = {
+            'url': webhook_url,
+            'allowed_updates': None
+        }
+        
+        print(f"🔗 Request URL: {set_webhook_url}")
+        print(f"📋 Parameters: {params}")
+        
+        try:
+            # Convert parameters to query string
+            query_string = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
+            full_url = f"{set_webhook_url}?{query_string}"
+            
+            print(f"🌐 Full URL: {full_url}")
+            
+            # Make the request
+            req = urllib.request.Request(full_url, method='GET')
+            
+            with urllib.request.urlopen(req) as response:
+                response_data = response.read().decode('utf-8')
+                print(f"📥 Response status: {response.status}")
+                print(f"📥 Response data: {response_data}")
+                
+                try:
+                    json_response = json.loads(response_data)
+                    return json_response
+                except json.JSONDecodeError as e:
+                    print(f"❌ JSON decode error: {e}")
+                    return {"ok": False, "error": f"JSON decode error: {e}", "raw_response": response_data}
+                    
+        except urllib.error.HTTPError as e:
+            error_data = e.read().decode('utf-8') if e.read() else "No error details"
+            print(f"❌ HTTP Error {e.code}: {error_data}")
+            return {"ok": False, "error_code": e.code, "description": error_data}
+        except Exception as e:
+            print(f"❌ Request error: {e}")
+            return {"ok": False, "error": str(e)}
+
+    def test_webhook_setup_post(self, webhook_url: str = "http://127.0.0.1:8080/tg") -> Dict[str, Any]:
+        """
+        Test webhook setup using POST method with standard library
+        """
+        print(f"🔧 Testing webhook setup with POST method...")
+        print(f"📡 Webhook URL: {webhook_url}")
+        print(f"🌐 Emulator URL: {self.base_url}")
+        
+        # Prepare the request
+        set_webhook_url = f"{self.base_url}/bot{self.token}/setWebhook"
+        
+        # Prepare parameters
+        params = {
+            'url': webhook_url,
+            'allowed_updates': None
+        }
+        
+        print(f"🔗 Request URL: {set_webhook_url}")
+        print(f"📋 Parameters: {params}")
+        
+        try:
+            # Convert parameters to JSON
+            data = json.dumps({k: v for k, v in params.items() if v is not None}).encode('utf-8')
+            
+            # Make the request
+            req = urllib.request.Request(
+                set_webhook_url,
+                data=data,
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+            
+            with urllib.request.urlopen(req) as response:
+                response_data = response.read().decode('utf-8')
+                print(f"📥 Response status: {response.status}")
+                print(f"📥 Response data: {response_data}")
+                
+                try:
+                    json_response = json.loads(response_data)
+                    return json_response
+                except json.JSONDecodeError as e:
+                    print(f"❌ JSON decode error: {e}")
+                    return {"ok": False, "error": f"JSON decode error: {e}", "raw_response": response_data}
+                    
+        except urllib.error.HTTPError as e:
+            error_data = e.read().decode('utf-8') if e.read() else "No error details"
+            print(f"❌ HTTP Error {e.code}: {error_data}")
+            return {"ok": False, "error_code": e.code, "description": error_data}
+        except Exception as e:
+            print(f"❌ Request error: {e}")
+            return {"ok": False, "error": str(e)}
+
 async def main():
     """Main function"""
     # Bot token (replace with a real token from the emulator)
@@ -467,11 +572,12 @@ async def main():
     print("1. Polling (regular)")
     print("2. Long Polling (30s)")
     print("3. Webhook")
-    print("4. Exit")
+    print("4. Test Webhook Setup (reproduce bug)")
+    print("5. Exit")
     
     while True:
         try:
-            choice = input("\nEnter mode number (1-4): ").strip()
+            choice = input("\nEnter mode number (1-5): ").strip()
             
             if choice == "1":
                 print("\n🚀 Starting in Polling mode...")
@@ -491,10 +597,51 @@ async def main():
                 await bot.run_webhook_server(port=port)
                 break
             elif choice == "4":
+                print("\n🔧 Testing webhook setup to reproduce bug...")
+                webhook_url = input("Enter webhook URL (default: http://127.0.0.1:8080/tg): ").strip()
+                if not webhook_url:
+                    webhook_url = "http://127.0.0.1:8080/tg"
+                
+                print("\n" + "="*50)
+                print("🧪 TESTING GET METHOD")
+                print("="*50)
+                result_get = bot.test_webhook_setup(webhook_url)
+                print(f"✅ GET Result: {result_get}")
+                
+                print("\n" + "="*50)
+                print("🧪 TESTING POST METHOD")
+                print("="*50)
+                result_post = bot.test_webhook_setup_post(webhook_url)
+                print(f"✅ POST Result: {result_post}")
+                
+                print("\n" + "="*50)
+                print("📊 SUMMARY")
+                print("="*50)
+                print(f"GET method success: {result_get.get('ok', False)}")
+                print(f"POST method success: {result_post.get('ok', False)}")
+                
+                if not result_get.get('ok', False):
+                    print(f"❌ GET Error: {result_get.get('description', result_get.get('error', 'Unknown error'))}")
+                if not result_post.get('ok', False):
+                    print(f"❌ POST Error: {result_post.get('description', result_post.get('error', 'Unknown error'))}")
+                
+                # Test with the original bug URL
+                print("\n" + "="*50)
+                print("🧪 TESTING ORIGINAL BUG URL (http://127.0.0.1:/tg)")
+                print("="*50)
+                bug_url = "http://127.0.0.1:/tg"
+                result_bug_get = bot.test_webhook_setup(bug_url)
+                print(f"✅ GET Result with bug URL: {result_bug_get}")
+                
+                result_bug_post = bot.test_webhook_setup_post(bug_url)
+                print(f"✅ POST Result with bug URL: {result_bug_post}")
+                
+                break
+            elif choice == "5":
                 print("👋 Goodbye!")
                 break
             else:
-                print("❌ Invalid choice. Enter a number from 1 to 4.")
+                print("❌ Invalid choice. Enter a number from 1 to 5.")
                 
         except KeyboardInterrupt:
             print("\n👋 Goodbye!")
