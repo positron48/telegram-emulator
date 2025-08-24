@@ -4,6 +4,7 @@ import { ru, enUS } from 'date-fns/locale';
 import { Check, CheckCheck } from 'lucide-react';
 import clsx from 'clsx';
 import { t, getCurrentLanguage } from '../locales';
+import { parseTelegramText } from '../utils/textParser.jsx';
 
 const MessageBubble = ({ message, isOwn, currentUser, onSendMessage, onCallbackQuery }) => {
   const formatTime = (timestamp) => {
@@ -86,7 +87,7 @@ const MessageBubble = ({ message, isOwn, currentUser, onSendMessage, onCallbackQ
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     let parts = text.split(urlRegex);
     
-    // Обрабатываем каждую часть на предмет команд
+    // Обрабатываем каждую часть на предмет команд и форматирования
     parts = parts.map((part, index) => {
       // Если это URL, делаем его кликабельным
       if (urlRegex.test(part)) {
@@ -146,7 +147,9 @@ const MessageBubble = ({ message, isOwn, currentUser, onSendMessage, onCallbackQ
             </React.Fragment>
           );
         }
-        return commandPart;
+        
+        // Применяем Telegram форматирование к обычному тексту
+        return parseTelegramText(commandPart);
       });
     });
     
