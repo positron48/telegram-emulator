@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Bot, Save, Copy } from 'lucide-react';
+import { X, Bot, Copy } from 'lucide-react';
 import apiService from '../services/api';
 import useStore from '../store';
 import { t, getCurrentLanguage } from '../locales';
@@ -63,7 +63,7 @@ const EditBotModal = ({ isOpen, onClose, bot, onBotUpdated }) => {
         handleClose();
       }
     } catch (error) {
-      console.error('Failed to update bot:', error);
+      // console.error('Failed to update bot:', error);
       setError(error.message || t('botUpdateError', getCurrentLanguage()));
     } finally {
       setIsLoading(false);

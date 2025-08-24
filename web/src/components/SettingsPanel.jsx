@@ -20,7 +20,7 @@ const SettingsPanel = ({ isOpen, onClose }) => {
           const parsed = JSON.parse(savedSettings);
           setSettings(prev => ({ ...prev, ...parsed }));
         } catch (error) {
-          console.error('Failed to parse saved settings:', error);
+          // console.error('Failed to parse saved settings:', error);
         }
       }
       
@@ -60,7 +60,7 @@ const SettingsPanel = ({ isOpen, onClose }) => {
       
       onClose();
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      // console.error('Failed to save settings:', error);
       addDebugEvent({
         id: `settings-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: new Date().toLocaleTimeString(getCurrentLanguage() === 'ru' ? 'ru-RU' : 'en-US'),

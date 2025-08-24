@@ -51,7 +51,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
         handleClose();
       }
     } catch (error) {
-      console.error('Failed to create user:', error);
+      // console.error('Failed to create user:', error);
               setError(error.message || t('userCreationError', getCurrentLanguage()));
     } finally {
       setIsLoading(false);

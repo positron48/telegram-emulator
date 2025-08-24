@@ -186,14 +186,14 @@ export const parseTelegramText = (text) => {
           parts.push(
             <a
               key={`link-${parts.length}`}
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
-            >
-              {linkText}
-            </a>
-          );
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
+        >
+          {linkText}
+        </a>
+      );
           i++;
           continue;
         }
@@ -280,7 +280,7 @@ const processCommandsInText = (text, keyPrefix, onSendMessage) => {
   
   // Команды должны быть в начале строки или после пробела
   // Более точный regex для команд - исправлен для лучшего распознавания
-  const commandRegex = /(^|\s)(\/[a-zA-Z0-9_]+(?:\s+[a-zA-Z0-9_\-\.]+)*)(?=\s|$|\.|,|;|!|\?)/g;
+  const commandRegex = /(^|\s)(\/[a-zA-Z0-9_]+(?:\s+[a-zA-Z0-9_\-.]+)*)(?=\s|$|,|;|!|\?)/g;
   const commandParts = text.split(commandRegex);
   
   const result = [];
@@ -308,7 +308,7 @@ const processCommandsInText = (text, keyPrefix, onSendMessage) => {
               if (onSendMessage) {
                 onSendMessage(command);
               }
-              console.log('Command clicked:', command);
+              // console.log('Command clicked:', command);
             }}
             title={`Click to send: ${command}`}
           >

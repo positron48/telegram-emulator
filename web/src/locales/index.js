@@ -166,7 +166,7 @@ export const locales = {
     settingsSaved: 'Настройки сохранены',
     settingsSaveError: 'Ошибка сохранения настроек',
     clear: 'Очистить',
-    export: 'Экспорт',
+    exportData: 'Экспорт',
     noEventsToDisplay: 'Нет событий для отображения',
     botDeleted: 'Бот удален',
     botDeletionError: 'Ошибка удаления бота',
@@ -187,7 +187,7 @@ export const locales = {
     
     // Действия
     debug: 'Отладка',
-    settings: 'Настройки',
+    settingsLabel: 'Настройки',
     deleteChat: 'Удалить чат',
     deleteUser: 'Удалить пользователя',
     deleteBot: 'Удалить бота',
@@ -372,7 +372,7 @@ export const locales = {
     settingsSaved: 'Settings saved',
     settingsSaveError: 'Settings save error',
     clear: 'Clear',
-    export: 'Export',
+    exportData: 'Export',
     noEventsToDisplay: 'No events to display',
     botDeleted: 'Bot deleted',
     botDeletionError: 'Bot deletion error',
@@ -393,7 +393,7 @@ export const locales = {
     
     // Actions
     debug: 'Debug',
-    settings: 'Settings',
+    settingsLabel: 'Settings',
     deleteChat: 'Delete Chat',
     deleteUser: 'Delete User',
     deleteBot: 'Delete Bot',

@@ -51,10 +51,11 @@ const QuickStylingTest = ({ onClose }) => {
 
             {/* Поле ввода */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="test-textarea" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Введите текст для тестирования:
               </label>
               <textarea
+                id="test-textarea"
                 value={testText}
                 onChange={(e) => setTestText(e.target.value)}
                 className="w-full h-24 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -64,10 +65,10 @@ const QuickStylingTest = ({ onClose }) => {
 
             {/* Предварительный просмотр */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="result-preview" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Результат:
               </label>
-              <div className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 min-h-24">
+              <div id="result-preview" className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 min-h-24">
                 <div className="whitespace-pre-wrap break-words text-gray-900 dark:text-white">
                   {parseTelegramText(testText)}
                 </div>

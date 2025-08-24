@@ -70,10 +70,11 @@ const StylingDemoPage = () => {
               </h2>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="demo-textarea" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Введите текст с форматированием:
                 </label>
                 <textarea
+                  id="demo-textarea"
                   value={inputText}
                   onChange={handleInputChange}
                   placeholder="Попробуйте: *жирный*, _курсив_, ~зачеркнутый~, `код`, [ссылка](https://example.com)"
@@ -82,10 +83,10 @@ const StylingDemoPage = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="demo-preview" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Предварительный просмотр:
                 </label>
-                <div className="w-full min-h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+                <div id="demo-preview" className="w-full min-h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
                   <div className="whitespace-pre-wrap break-words">
                     {parseTelegramText(previewText)}
                   </div>
@@ -104,6 +105,15 @@ const StylingDemoPage = () => {
                     key={index} 
                     className="p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     onClick={() => handleExampleClick(example.text)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleExampleClick(example.text);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Use example: ${example.title}`}
                   >
                     <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
                       {example.title}

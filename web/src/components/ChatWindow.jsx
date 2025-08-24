@@ -1,14 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Mic, Smile, Users } from 'lucide-react';
-import { format } from 'date-fns';
-import { ru, enUS } from 'date-fns/locale';
+
 import clsx from 'clsx';
 import MessageBubble from './MessageBubble';
 import { t, getCurrentLanguage } from '../locales';
 
 const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers, onCallbackQuery }) => {
   const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+
   const [currentKeyboard, setCurrentKeyboard] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -54,7 +53,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers,
     
     onSendMessage(inputText);
     setInputText('');
-    setIsTyping(false);
+    // setIsTyping(false);
     
     // Если клавиатура одноразовая, убираем её
     if (currentKeyboard && currentKeyboard.one_time_keyboard) {
@@ -71,7 +70,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers,
 
   const handleInputChange = (e) => {
     setInputText(e.target.value);
-    setIsTyping(e.target.value.length > 0);
+    // setIsTyping(e.target.value.length > 0);
   };
 
   const renderKeyboard = () => {
@@ -90,7 +89,7 @@ const ChatWindow = ({ chat, messages, currentUser, onSendMessage, onShowMembers,
                     if (onSendMessage) {
                       onSendMessage(button.text);
                     }
-                    console.log('Keyboard button clicked:', button.text);
+                    // console.log('Keyboard button clicked:', button.text);
                     
                     // Если клавиатура одноразовая, убираем её
                     if (currentKeyboard && currentKeyboard.one_time_keyboard) {

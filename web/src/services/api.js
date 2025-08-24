@@ -15,18 +15,13 @@ class ApiService {
       ...options,
     };
 
-    try {
-      const response = await fetch(url, config);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('API request failed:', error);
-      throw error;
+    const response = await fetch(url, config);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+    
+    return await response.json();
   }
 
   // Users API
@@ -58,22 +53,7 @@ class ApiService {
     });
   }
 
-  async getUserById(userId) {
-    return this.request(`/users/${userId}`);
-  }
 
-  async updateUser(userId, userData) {
-    return this.request(`/users/${userId}`, {
-      method: 'PUT',
-      body: JSON.stringify(userData),
-    });
-  }
-
-  async deleteUser(userId) {
-    return this.request(`/users/${userId}`, {
-      method: 'DELETE',
-    });
-  }
 
   async getUserChats(userId) {
     return this.request(`/users/${userId}/chats`);

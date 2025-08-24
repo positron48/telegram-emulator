@@ -6,7 +6,7 @@ import clsx from 'clsx';
 import { t, getCurrentLanguage } from '../locales';
 import { parseTelegramText, processCommandsInFormattedText } from '../utils/textParser.jsx';
 
-const MessageBubble = ({ message, isOwn, currentUser, onSendMessage, onCallbackQuery }) => {
+const MessageBubble = ({ message, isOwn, onSendMessage, onCallbackQuery }) => {
   const formatTime = (timestamp) => {
     try {
       const language = getCurrentLanguage();
@@ -130,7 +130,7 @@ const MessageBubble = ({ message, isOwn, currentUser, onSendMessage, onCallbackQ
                   if (onCallbackQuery) {
                     onCallbackQuery(button);
                   }
-                  console.log('Inline button clicked:', button);
+                  // console.log('Inline button clicked:', button);
                 }}
               >
                 {button.text}

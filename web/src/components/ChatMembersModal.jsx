@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, UserMinus, Users, User } from 'lucide-react';
+import { X, UserPlus, UserMinus, Users } from 'lucide-react';
 import apiService from '../services/api';
 import useStore from '../store';
 import { t, getCurrentLanguage } from '../locales';
@@ -39,7 +39,7 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
       const response = await apiService.getChatMembers(chat.id);
       setMembers(response.members || []);
     } catch (error) {
-      console.error('Failed to load chat members:', error);
+      // console.error('Failed to load chat members:', error);
       setError(t('failedToLoadMembers', getCurrentLanguage()));
     } finally {
       setIsLoading(false);
@@ -54,7 +54,7 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
       const available = users.filter(user => !chatMemberIds.includes(user.id));
       setAvailableUsers(available);
     } catch (error) {
-      console.error('Failed to load available users:', error);
+      // console.error('Failed to load available users:', error);
     }
   };
 
@@ -83,7 +83,7 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
       // Clear notification after 3 seconds
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
-      console.error('Failed to add member:', error);
+      // console.error('Failed to add member:', error);
       setError(t('failedToAddMember', getCurrentLanguage()));
     } finally {
       setIsAddingMember(false);
@@ -120,7 +120,7 @@ const ChatMembersModal = ({ isOpen, onClose, chat }) => {
       // Clear notification after 3 seconds
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
-      console.error('Failed to remove member:', error);
+      // console.error('Failed to remove member:', error);
       setError(t('failedToRemoveMember', language));
     } finally {
       setIsRemovingMember(false);

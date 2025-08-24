@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Users, MessageCircle, Hash } from 'lucide-react';
+import { X, Users, MessageCircle } from 'lucide-react';
 import apiService from '../services/api';
 import useStore from '../store';
 import { t, getCurrentLanguage } from '../locales';
@@ -72,7 +72,7 @@ const CreateChatModal = ({ isOpen, onClose, onChatCreated }) => {
         handleClose();
       }
     } catch (error) {
-      console.error('Failed to create chat:', error);
+      // console.error('Failed to create chat:', error);
       setError(error.message || t('chatCreationError', language));
     } finally {
       setIsLoading(false);

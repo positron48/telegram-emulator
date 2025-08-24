@@ -50,7 +50,7 @@ const CreateBotModal = ({ isOpen, onClose, onBotCreated }) => {
         handleClose();
       }
     } catch (error) {
-      console.error('Failed to create bot:', error);
+      // console.error('Failed to create bot:', error);
       setError(error.message || t('botCreationError', getCurrentLanguage()));
     } finally {
       setIsLoading(false);

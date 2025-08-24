@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Bot, Plus, Settings, Play, Pause, Trash2, Copy, Edit } from 'lucide-react';
+import { X, Bot, Plus, Play, Pause, Trash2, Copy, Edit } from 'lucide-react';
 import apiService from '../services/api';
 import useStore from '../store';
 import CreateBotModal from './CreateBotModal';

@@ -8,7 +8,7 @@ import {
   Wifi, 
   WifiOff,
   Plus,
-  User,
+
   Bot,
   Trash2
 } from 'lucide-react';
@@ -141,7 +141,16 @@ const Sidebar = ({
               >
                 <div
                   onClick={() => onChatSelect(chat)}
-                  className="flex items-center p-2 hover:bg-telegram-primary/10 transition-colors cursor-pointer"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onChatSelect(chat);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Select chat: ${getChatTitle(chat)}`}
+                  className="flex items-center p-2 hover:bg-telegram-primary/10 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-telegram-primary/50"
                 >
                 {/* Avatar */}
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-telegram-primary to-blue-600 flex items-center justify-center text-white font-medium mr-3 flex-shrink-0 shadow-sm">

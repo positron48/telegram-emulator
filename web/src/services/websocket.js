@@ -35,7 +35,7 @@ class WebSocketService {
         this.socket = new WebSocket(wsUrl);
 
         this.socket.onopen = () => {
-          console.log('WebSocket connected');
+          // console.log('WebSocket connected');
           this.isConnected = true;
           this.isReconnecting = false; // Сбрасываем состояние переподключения
           this.reconnectAttempts = 0;
@@ -44,7 +44,7 @@ class WebSocketService {
         };
 
         this.socket.onclose = (event) => {
-          console.log('WebSocket disconnected:', event.code, event.reason);
+          // console.log('WebSocket disconnected:', event.code, event.reason);
           this.isConnected = false;
           
           // Очищаем socket
@@ -61,9 +61,9 @@ class WebSocketService {
             }
             
             this.reconnectTimer = setTimeout(() => {
-              console.log(`Starting reconnection attempt ${this.reconnectAttempts}...`);
+              // console.log(`Starting reconnection attempt ${this.reconnectAttempts}...`);
               this.connect(url, this.currentUserId).catch(error => {
-                console.error('Reconnection failed:', error);
+                // console.error('Reconnection failed:', error);
                 // Триггерим ошибку переподключения только если это не первая попытка
                 if (this.reconnectAttempts > 1) {
                   this.triggerEvent('reconnect_error', { error, attempt: this.reconnectAttempts });
@@ -74,7 +74,7 @@ class WebSocketService {
             // Соединение действительно потеряно
             this.isReconnecting = false;
             if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-              console.log('Max reconnection attempts reached');
+              // console.log('Max reconnection attempts reached');
               this.triggerEvent('reconnect_failed');
             } else {
               // Намеренное отключение
@@ -84,7 +84,7 @@ class WebSocketService {
         };
 
         this.socket.onerror = (error) => {
-          console.error('WebSocket connection error:', error);
+          // console.error('WebSocket connection error:', error);
           this.isConnected = false;
           this.triggerEvent('connect_error', { error });
           reject(error);
@@ -93,7 +93,7 @@ class WebSocketService {
         this.socket.onmessage = (event) => {
           try {
             const message = JSON.parse(event.data);
-            console.log('WebSocket received:', message); // Добавляем логирование
+            // console.log('WebSocket received:', message); // Добавляем логирование
             
             // Обработка событий эмулятора
             switch (message.type) {
@@ -126,22 +126,22 @@ class WebSocketService {
                 break;
 
               default:
-                console.log('Unknown message type:', message.type);
+                // console.log('Unknown message type:', message.type);
             }
           } catch (error) {
-            console.error('Failed to parse WebSocket message:', error);
+            // console.error('Failed to parse WebSocket message:', error);
           }
         };
 
       } catch (error) {
-        console.error('Failed to create WebSocket connection:', error);
+        // console.error('Failed to create WebSocket connection:', error);
         reject(error);
       }
     });
   }
 
   disconnect() {
-    console.log('Disconnecting WebSocket...');
+    // console.log('Disconnecting WebSocket...');
     
     // Очищаем таймер переподключения
     if (this.reconnectTimer) {
@@ -164,12 +164,12 @@ class WebSocketService {
       this.socket = null;
       this.isConnected = false;
       
-      console.log('WebSocket disconnected');
+      // console.log('WebSocket disconnected');
     }
   }
 
   resetReconnectAttempts() {
-    console.log('Resetting reconnection attempts');
+    // console.log('Resetting reconnection attempts');
     this.reconnectAttempts = 0;
     this.isReconnecting = false;
     if (this.reconnectTimer) {
@@ -179,7 +179,7 @@ class WebSocketService {
   }
 
   forceReconnect(url = 'ws://localhost:3001/ws', userId = null) {
-    console.log('Force reconnecting WebSocket...');
+    // console.log('Force reconnecting WebSocket...');
     
     // Сбрасываем состояние
     this.resetReconnectAttempts();
@@ -235,7 +235,7 @@ class WebSocketService {
         try {
           handler(data);
         } catch (error) {
-          console.error(`Error in event handler for ${event}:`, error);
+          // console.error(`Error in event handler for ${event}:`, error);
         }
       });
     }

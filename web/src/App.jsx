@@ -15,7 +15,7 @@ import { ru, enUS } from 'date-fns/locale';
 import { getCurrentLanguage, setLanguage, t } from './locales';
 
 function App() {
-  const getCurrentLocale = () => getCurrentLanguage() === 'en' ? enUS : ru;
+
   
   const {
     currentUser,
@@ -33,7 +33,7 @@ function App() {
     setUsers,
     setMessages,
     addMessage,
-    updateMessage,
+
     updateMessageStatus,
     updateChat,
     addDebugEvent,
@@ -51,7 +51,7 @@ function App() {
   const [showChatMembersModal, setShowChatMembersModal] = useState(false);
 
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isWebSocketSetup, setIsWebSocketSetup] = useState(false);
+
 
   // Single useEffect for initialization
   useEffect(() => {
@@ -65,7 +65,7 @@ function App() {
         await initializeApp();
         setIsInitialized(true);
       } catch (error) {
-        console.error('Failed to initialize app:', error);
+        // // console.error('Failed to initialize app:', error);
       }
     };
 
@@ -84,9 +84,9 @@ function App() {
         }
         
         await setupWebSocket();
-        setIsWebSocketSetup(true);
+        // setIsWebSocketSetup(true);
       } catch (error) {
-        console.error('Failed to setup WebSocket:', error);
+        // // console.error('Failed to setup WebSocket:', error);
       }
     };
 
@@ -100,14 +100,14 @@ function App() {
 
     // Subscribe to events
     const handleMessage = (data) => {
-      console.log('🔍 Received message data:', {
-        id: data.id,
-        text: data.text,
-        from: data.from,
-        from_id: data.from_id,
-        chat_id: data.chat_id,
-        status: data.status
-      });
+      // // console.log('🔍 Received message data:', {
+      //   id: data.id,
+      //   text: data.text,
+      //   from: data.from,
+      //   from_id: data.from_id,
+      //   chat_id: data.chat_id,
+      //   status: data.status
+      // });
       // Check if message is from current user
       const isOwnMessage = data.from?.id === currentUser?.id;
       
@@ -143,16 +143,16 @@ function App() {
         }
       }
       
-      console.log('🔍 Looking for temp message:', {
-        searchText: data.text,
-        searchFromId: data.from?.id,
-        tempMessages: existingMessages.filter(m => typeof m.id === 'string' && m.id.startsWith('temp-')).map(m => ({
-          id: m.id,
-          text: m.text,
-          fromId: m.from?.id || m.from_id
-        })),
-        foundIndex: tempMessageIndex
-      });
+      // console.log('🔍 Looking for temp message:', {
+      //   searchText: data.text,
+      //   searchFromId: data.from?.id,
+      //   tempMessages: existingMessages.filter(m => typeof m.id === 'string' && m.id.startsWith('temp-')).map(m => ({
+      //     id: m.id,
+      //     text: m.text,
+      //     fromId: m.from?.id || m.from_id
+      //   })),
+      //   foundIndex: tempMessageIndex
+      // });
 
       if (tempMessageIndex !== -1) {
         // Replace temporary message with real one
@@ -164,7 +164,7 @@ function App() {
         };
         setMessages(data.chat_id, updatedMessages);
         
-        console.log(`✅ Temporary message replaced: ${existingMessages[tempMessageIndex].id} -> ${data.id} with status: ${data.status}`);
+        // console.log(`✅ Temporary message replaced: ${existingMessages[tempMessageIndex].id} -> ${data.id} with status: ${data.status}`);
       } else if (!isOwnMessage) {
         // Add new message only if it's not from current user
         addMessage(data.chat_id, {
@@ -180,17 +180,17 @@ function App() {
         });
       } else if (isOwnMessage) {
         // Log cases when own message didn't replace temporary one
-        console.log(`❌ Own message received but no temp message found:`, {
-          messageId: data.id,
-          text: data.text,
-          fromId: data.from?.id,
-          currentUserId: currentUser?.id,
-          existingTempMessages: existingMessages.filter(m => typeof m.id === 'string' && m.id.startsWith('temp-')).map(m => ({
-            id: m.id,
-            text: m.text,
-            fromId: m.from?.id || m.from_id
-          }))
-        });
+        // console.log(`❌ Own message received but no temp message found:`, {
+        //   messageId: data.id,
+        //   text: data.text,
+        //   fromId: data.from?.id,
+        //   currentUserId: currentUser?.id,
+        //   existingTempMessages: existingMessages.filter(m => typeof m.id === 'string' && m.id.startsWith('temp-')).map(m => ({
+        //     id: m.id,
+        //     text: m.text,
+        //     fromId: m.from?.id || m.from_id
+        //   }))
+        // });
       }
       // Ignore own messages without logging - this is normal behavior
     };
@@ -217,7 +217,7 @@ function App() {
     const handleMessageStatusUpdate = (data) => {
       updateMessageStatus(data.message_id, data.status);
       // Log for debugging status issues
-      console.log(`Status update: ${data.message_id} -> ${data.status}`);
+      // console.log(`Status update: ${data.message_id} -> ${data.status}`);
     };
 
 
@@ -236,7 +236,7 @@ function App() {
     const handleReconnecting = (data) => {
       setReconnecting(true);
       // Don't log standard reconnection to debug - this is normal behavior
-      console.log(`WebSocket reconnecting (${data.attempt}/${data.maxAttempts})`);
+      // console.log(`WebSocket reconnecting (${data.attempt}/${data.maxAttempts})`);
     };
 
     const handleReconnectError = (data) => {
@@ -332,7 +332,7 @@ function App() {
         }
       }
     } catch (error) {
-      console.error('Failed to initialize theme and language:', error);
+      // console.error('Failed to initialize theme and language:', error);
     }
   };
 
@@ -381,7 +381,7 @@ function App() {
             );
             setMessages(chat.id, sortedMessages);
           } catch (error) {
-            console.error(`Failed to load messages for chat ${chat.id}:`, error);
+            // console.error(`Failed to load messages for chat ${chat.id}:`, error);
           }
         }
       }
@@ -394,7 +394,7 @@ function App() {
       });
 
     } catch (error) {
-      console.error('Failed to initialize app:', error);
+      // console.error('Failed to initialize app:', error);
       setError(error.message);
       addDebugEvent({
         id: `init-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -422,7 +422,7 @@ function App() {
       });
 
     } catch (error) {
-      console.error('Failed to setup WebSocket:', error);
+      // console.error('Failed to setup WebSocket:', error);
       setConnected(false);
       addDebugEvent({
         id: `ws-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -435,7 +435,7 @@ function App() {
 
   const handleCallbackQuery = async (button) => {
     try {
-      console.log('Callback query:', button);
+      // console.log('Callback query:', button);
       
       // Отправляем callback query через WebSocket
       if (wsService.connected && currentChat) {
@@ -450,7 +450,7 @@ function App() {
         description: `Callback query: ${button.text} (${button.callback_data || button.url || 'no data'})`
       });
     } catch (error) {
-      console.error('Failed to handle callback query:', error);
+      // console.error('Failed to handle callback query:', error);
       addDebugEvent({
         id: `callback-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
@@ -488,7 +488,7 @@ function App() {
         const messagesToRemove = tempMessages.slice(0, tempMessages.length - 5);
         const updatedMessages = currentMessages.filter(msg => !messagesToRemove.some(rm => rm.id === msg.id));
         setMessages(currentChat.id, updatedMessages);
-        console.log(`🧹 Cleaned up ${messagesToRemove.length} old temp messages`);
+        // console.log(`🧹 Cleaned up ${messagesToRemove.length} old temp messages`);
       }
 
       // Fallback: if after 3 seconds message wasn't replaced, update status manually
@@ -502,7 +502,7 @@ function App() {
           updatedMessages[tempMsgIndex] = { ...currentMessages[tempMsgIndex], status: 'sent' };
           setMessages(currentChat.id, updatedMessages);
           
-          console.log(`⚠️ Fallback triggered: status updated to 'sent' for temp message ${tempMessage.id}`);
+          // console.log(`⚠️ Fallback triggered: status updated to 'sent' for temp message ${tempMessage.id}`);
         }
       }, 3000);
 
@@ -519,7 +519,7 @@ function App() {
       }
       
     } catch (error) {
-      console.error('Failed to send message:', error);
+      // console.error('Failed to send message:', error);
       addDebugEvent({
         id: `send-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
@@ -556,7 +556,7 @@ function App() {
         description: t('userDeleted', getCurrentLanguage())
       });
     } catch (error) {
-      console.error('Failed to delete user:', error);
+      // console.error('Failed to delete user:', error);
       addDebugEvent({
         id: `user-delete-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
@@ -586,7 +586,7 @@ function App() {
         description: t('chatDeleted', getCurrentLanguage())
       });
     } catch (error) {
-      console.error('Failed to delete chat:', error);
+      // console.error('Failed to delete chat:', error);
       addDebugEvent({
         id: `chat-delete-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),
@@ -614,7 +614,7 @@ function App() {
         description: t('websocketConnected', getCurrentLanguage())
       });
     } catch (error) {
-      console.error('Manual reconnection failed:', error);
+      // console.error('Manual reconnection failed:', error);
       addDebugEvent({
         id: `manual-reconnect-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: format(new Date(), 'HH:mm:ss', { locale: getCurrentLanguage() === 'ru' ? ru : enUS }),

@@ -50,7 +50,7 @@ const DebugPanel = ({ events, onClose }) => {
 
   const clearEvents = () => {
     // TODO: Add action to clear events
-    console.log('Clear events');
+    // console.log('Clear events');
   };
 
   return (
