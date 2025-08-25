@@ -21,23 +21,20 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.23'
+        go-version: '1.24'
         cache: true
         
     - name: Install Go dependencies
       run: |
-        cd budget
         go mod download
         go mod verify
         
     - name: Run Go security audit
       run: |
-        cd budget
         go list -json -deps ./... | nancy sleuth
         
     - name: Check for Go vulnerabilities
       run: |
-        cd budget
         go list -json -deps ./... | nancy sleuth --exit-code
         
   # Node.js Security Audit

@@ -18,34 +18,29 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.23'
+        go-version: '1.24'
         cache: true
         
     - name: Install Go dependencies
       run: |
-        cd budget
         go mod download
         go mod verify
         
     - name: Run Go vet
       run: |
-        cd budget
         go vet ./...
         
     - name: Run Go fmt check
       run: |
-        cd budget
         test -z "$(gofmt -l .)"
         
     - name: Run Go imports check
       run: |
-        cd budget
         go install golang.org/x/tools/cmd/goimports@latest
         test -z "$(goimports -l .)"
         
     - name: Run Go race detector
       run: |
-        cd budget
         go test -race ./...
         
   # Frontend Code Quality
@@ -95,7 +90,6 @@ jobs:
     - name: Check README exists
       run: |
         test -f README.md || echo "Warning: README.md not found"
-        test -f budget/README.md || echo "Warning: budget/README.md not found"
         
     - name: Check for TODO comments
       run: |
