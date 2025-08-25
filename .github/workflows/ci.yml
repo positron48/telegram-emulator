@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: web/package-lock.json
+        
+    - name: Install dependencies
+      run: |
+        cd web
+        npm ci
+        
+    - name: Run ESLint
+      run: |
+        cd web
+        npm run lint
+        
+    - name: Run tests (if available)
+      run: |
+        cd web
+        npm test --if-present
+        
+    - name: Build project
+      run: |
+        cd web
+        npm run build --if-present
