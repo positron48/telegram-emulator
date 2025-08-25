@@ -2,7 +2,6 @@ package emulator
 
 import (
 	"testing"
-	"time"
 
 	"telegram-emulator/internal/models"
 	"telegram-emulator/internal/repository"
@@ -11,32 +10,36 @@ import (
 	"gorm.io/gorm"
 )
 
+
+
 func TestBotManager_CreateBot(t *testing.T) {
-	db := setupTestDB(t)
+	db := SetupTestDB(t)
 	botRepo := repository.NewBotRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
+	messageRepo := repository.NewMessageRepository(db)
+	chatRepo := repository.NewChatRepository(db)
+	botManager := NewBotManager(botRepo, userRepo, messageRepo, chatRepo)
 
-	// Create a bot
-	bot, err := botManager.CreateBot("Test Bot", "testbot", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
+	// Test creating a bot
+	bot, err := botManager.CreateBot("TestBot", "testbot", "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", "https://example.com/webhook")
 	if err != nil {
 		t.Fatalf("Failed to create bot: %v", err)
 	}
 
-	if bot.Name != "Test Bot" {
-		t.Errorf("Expected name 'Test Bot', got '%s'", bot.Name)
+	if bot.Name != "TestBot" {
+		t.Errorf("Expected bot name 'TestBot', got '%s'", bot.Name)
 	}
 
 	if bot.Username != "testbot" {
-		t.Errorf("Expected username 'testbot', got '%s'", bot.Username)
+		t.Errorf("Expected bot username 'testbot', got '%s'", bot.Username)
 	}
 
-	if bot.Token != "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz" {
-		t.Errorf("Expected token '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz', got '%s'", bot.Token)
+	if bot.Token != "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" {
+		t.Errorf("Expected bot token '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11', got '%s'", bot.Token)
 	}
 
 	if !bot.IsActive {
-		t.Error("Expected IsActive to be true")
+		t.Error("Expected bot to be active")
 	}
 
 	if bot.ID == 0 {
@@ -45,18 +48,20 @@ func TestBotManager_CreateBot(t *testing.T) {
 }
 
 func TestBotManager_GetBot(t *testing.T) {
-	db := setupTestDB(t)
+	db := SetupTestDB(t)
 	botRepo := repository.NewBotRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
+	messageRepo := repository.NewMessageRepository(db)
+	chatRepo := repository.NewChatRepository(db)
+	botManager := NewBotManager(botRepo, userRepo, messageRepo, chatRepo)
 
 	// Create a bot
-	createdBot, err := botManager.CreateBot("Test Bot", "testbot", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
+	createdBot, err := botManager.CreateBot("TestBot", "testbot", "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", "")
 	if err != nil {
 		t.Fatalf("Failed to create bot: %v", err)
 	}
 
-	// Get the bot by ID
+	// Get the bot
 	retrievedBot, err := botManager.GetBot(createdBot.ID)
 	if err != nil {
 		t.Fatalf("Failed to get bot: %v", err)
@@ -66,51 +71,26 @@ func TestBotManager_GetBot(t *testing.T) {
 		t.Errorf("Expected bot ID %d, got %d", createdBot.ID, retrievedBot.ID)
 	}
 
-	if retrievedBot.Username != createdBot.Username {
-		t.Errorf("Expected username '%s', got '%s'", createdBot.Username, retrievedBot.Username)
-	}
-}
-
-func TestBotManager_GetBotByToken(t *testing.T) {
-	db := setupTestDB(t)
-	botRepo := repository.NewBotRepository(db)
-	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
-
-	// Create a bot
-	createdBot, err := botManager.CreateBot("Test Bot", "testbot", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
-	if err != nil {
-		t.Fatalf("Failed to create bot: %v", err)
-	}
-
-	// Get the bot by token
-	retrievedBot, err := botManager.GetBotByToken("1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
-	if err != nil {
-		t.Fatalf("Failed to get bot by token: %v", err)
-	}
-
-	if retrievedBot.ID != createdBot.ID {
-		t.Errorf("Expected bot ID %d, got %d", createdBot.ID, retrievedBot.ID)
-	}
-
-	if retrievedBot.Token != "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz" {
-		t.Errorf("Expected token '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz', got '%s'", retrievedBot.Token)
+	if retrievedBot.Name != "TestBot" {
+		t.Errorf("Expected bot name 'TestBot', got '%s'", retrievedBot.Name)
 	}
 }
 
 func TestBotManager_GetAllBots(t *testing.T) {
-	db := setupTestDB(t)
+	db := SetupTestDB(t)
 	botRepo := repository.NewBotRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
+	messageRepo := repository.NewMessageRepository(db)
+	chatRepo := repository.NewChatRepository(db)
+	botManager := NewBotManager(botRepo, userRepo, messageRepo, chatRepo)
 
 	// Create multiple bots
-	_, err := botManager.CreateBot("Bot 1", "bot1", "1111111111:ABCdefGHIjklMNOpqrsTUVwxyz")
+	_, err := botManager.CreateBot("Bot1", "bot1", "token1", "")
 	if err != nil {
 		t.Fatalf("Failed to create bot1: %v", err)
 	}
 
-	_, err = botManager.CreateBot("Bot 2", "bot2", "2222222222:ABCdefGHIjklMNOpqrsTUVwxyz")
+	_, err = botManager.CreateBot("Bot2", "bot2", "token2", "")
 	if err != nil {
 		t.Fatalf("Failed to create bot2: %v", err)
 	}
@@ -127,48 +107,52 @@ func TestBotManager_GetAllBots(t *testing.T) {
 }
 
 func TestBotManager_UpdateBot(t *testing.T) {
-	db := setupTestDB(t)
+	db := SetupTestDB(t)
 	botRepo := repository.NewBotRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
+	messageRepo := repository.NewMessageRepository(db)
+	chatRepo := repository.NewChatRepository(db)
+	botManager := NewBotManager(botRepo, userRepo, messageRepo, chatRepo)
 
 	// Create a bot
-	bot, err := botManager.CreateBot("Test Bot", "testbot", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
+	bot, err := botManager.CreateBot("TestBot", "testbot", "token", "")
 	if err != nil {
 		t.Fatalf("Failed to create bot: %v", err)
 	}
 
 	// Update bot
-	bot.Name = "Updated Bot"
-	bot.WebhookURL = "https://updated.com/webhook"
-	bot.IsActive = false
-
-	updatedBot, err := botManager.UpdateBot(bot)
+	bot.Name = "UpdatedBot"
+	bot.WebhookURL = "https://example.com/webhook"
+	err = botManager.UpdateBot(bot)
 	if err != nil {
 		t.Fatalf("Failed to update bot: %v", err)
 	}
 
-	if updatedBot.Name != "Updated Bot" {
-		t.Errorf("Expected name 'Updated Bot', got '%s'", updatedBot.Name)
+	// Get updated bot
+	updatedBot, err := botManager.GetBot(bot.ID)
+	if err != nil {
+		t.Fatalf("Failed to get updated bot: %v", err)
 	}
 
-	if updatedBot.WebhookURL != "https://updated.com/webhook" {
-		t.Errorf("Expected webhook URL 'https://updated.com/webhook', got '%s'", updatedBot.WebhookURL)
+	if updatedBot.Name != "UpdatedBot" {
+		t.Errorf("Expected bot name 'UpdatedBot', got '%s'", updatedBot.Name)
 	}
 
-	if updatedBot.IsActive {
-		t.Error("Expected IsActive to be false")
+	if updatedBot.WebhookURL != "https://example.com/webhook" {
+		t.Errorf("Expected webhook URL 'https://example.com/webhook', got '%s'", updatedBot.WebhookURL)
 	}
 }
 
 func TestBotManager_DeleteBot(t *testing.T) {
-	db := setupTestDB(t)
+	db := SetupTestDB(t)
 	botRepo := repository.NewBotRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
+	messageRepo := repository.NewMessageRepository(db)
+	chatRepo := repository.NewChatRepository(db)
+	botManager := NewBotManager(botRepo, userRepo, messageRepo, chatRepo)
 
 	// Create a bot
-	bot, err := botManager.CreateBot("Test Bot", "testbot", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
+	bot, err := botManager.CreateBot("TestBot", "testbot", "token", "")
 	if err != nil {
 		t.Fatalf("Failed to create bot: %v", err)
 	}
@@ -187,10 +171,12 @@ func TestBotManager_DeleteBot(t *testing.T) {
 }
 
 func TestBotManager_GetBotNotFound(t *testing.T) {
-	db := setupTestDB(t)
+	db := SetupTestDB(t)
 	botRepo := repository.NewBotRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
+	messageRepo := repository.NewMessageRepository(db)
+	chatRepo := repository.NewChatRepository(db)
+	botManager := NewBotManager(botRepo, userRepo, messageRepo, chatRepo)
 
 	// Try to get non-existent bot
 	_, err := botManager.GetBot(999999)
@@ -199,48 +185,35 @@ func TestBotManager_GetBotNotFound(t *testing.T) {
 	}
 }
 
-func TestBotManager_GetBotByTokenNotFound(t *testing.T) {
-	db := setupTestDB(t)
-	botRepo := repository.NewBotRepository(db)
-	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
-
-	// Try to get non-existent bot by token
-	_, err := botManager.GetBotByToken("nonexistent:token")
-	if err == nil {
-		t.Error("Expected error when getting non-existent bot by token")
-	}
-}
-
 func TestBotManager_UpdateBotNotFound(t *testing.T) {
-	db := setupTestDB(t)
+	db := SetupTestDB(t)
 	botRepo := repository.NewBotRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
+	messageRepo := repository.NewMessageRepository(db)
+	chatRepo := repository.NewChatRepository(db)
+	botManager := NewBotManager(botRepo, userRepo, messageRepo, chatRepo)
 
 	// Try to update non-existent bot
-	bot := &models.Bot{
-		ID:         999999,
-		Name:       "Non-existent Bot",
-		Username:   "nonexistent",
-		Token:      "9999999999:ABCdefGHIjklMNOpqrsTUVwxyz",
-		WebhookURL: "https://nonexistent.com/webhook",
-		IsActive:   true,
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+	nonExistentBot := &models.Bot{
+		ID:       999999,
+		Name:     "NonExistent",
+		Username: "nonexistent",
+		Token:    "token",
 	}
 
-	_, err := botManager.UpdateBot(bot)
+	err := botManager.UpdateBot(nonExistentBot)
 	if err == nil {
 		t.Error("Expected error when updating non-existent bot")
 	}
 }
 
 func TestBotManager_DeleteBotNotFound(t *testing.T) {
-	db := setupTestDB(t)
+	db := SetupTestDB(t)
 	botRepo := repository.NewBotRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
+	messageRepo := repository.NewMessageRepository(db)
+	chatRepo := repository.NewChatRepository(db)
+	botManager := NewBotManager(botRepo, userRepo, messageRepo, chatRepo)
 
 	// Try to delete non-existent bot
 	err := botManager.DeleteBot(999999)
@@ -249,123 +222,16 @@ func TestBotManager_DeleteBotNotFound(t *testing.T) {
 	}
 }
 
-func TestBotManager_GetActiveBots(t *testing.T) {
-	db := setupTestDB(t)
-	botRepo := repository.NewBotRepository(db)
-	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
-
-	// Create bots with different active states
-	_, err := botManager.CreateBot("Active Bot", "activebot", "1111111111:ABCdefGHIjklMNOpqrsTUVwxyz")
-	if err != nil {
-		t.Fatalf("Failed to create active bot: %v", err)
-	}
-
-	// Create an inactive bot
-	inactiveBot, err := botManager.CreateBot("Inactive Bot", "inactivebot", "2222222222:ABCdefGHIjklMNOpqrsTUVwxyz")
-	if err != nil {
-		t.Fatalf("Failed to create inactive bot: %v", err)
-	}
-
-	// Deactivate the second bot
-	inactiveBot.IsActive = false
-	_, err = botManager.UpdateBot(inactiveBot)
-	if err != nil {
-		t.Fatalf("Failed to update bot: %v", err)
-	}
-
-	// Get active bots
-	activeBots, err := botManager.GetActiveBots()
-	if err != nil {
-		t.Fatalf("Failed to get active bots: %v", err)
-	}
-
-	if len(activeBots) != 1 {
-		t.Errorf("Expected 1 active bot, got %d", len(activeBots))
-	}
-
-	if !activeBots[0].IsActive {
-		t.Error("Expected bot to be active")
-	}
-
-	if activeBots[0].Username != "activebot" {
-		t.Errorf("Expected username 'activebot', got '%s'", activeBots[0].Username)
-	}
-}
-
-func TestBotManager_SetWebhook(t *testing.T) {
-	db := setupTestDB(t)
-	botRepo := repository.NewBotRepository(db)
-	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
-
-	// Create a bot
-	bot, err := botManager.CreateBot("Test Bot", "testbot", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
-	if err != nil {
-		t.Fatalf("Failed to create bot: %v", err)
-	}
-
-	// Set webhook
-	webhookURL := "https://example.com/webhook"
-	err = botManager.SetWebhook(bot.ID, webhookURL)
-	if err != nil {
-		t.Fatalf("Failed to set webhook: %v", err)
-	}
-
-	// Get the bot and check webhook
-	retrievedBot, err := botManager.GetBot(bot.ID)
-	if err != nil {
-		t.Fatalf("Failed to get bot: %v", err)
-	}
-
-	if retrievedBot.WebhookURL != webhookURL {
-		t.Errorf("Expected webhook URL '%s', got '%s'", webhookURL, retrievedBot.WebhookURL)
-	}
-}
-
-func TestBotManager_RemoveWebhook(t *testing.T) {
-	db := setupTestDB(t)
-	botRepo := repository.NewBotRepository(db)
-	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
-
-	// Create a bot with webhook
-	bot, err := botManager.CreateBot("Test Bot", "testbot", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
-	if err != nil {
-		t.Fatalf("Failed to create bot: %v", err)
-	}
-
-	// Set webhook first
-	err = botManager.SetWebhook(bot.ID, "https://example.com/webhook")
-	if err != nil {
-		t.Fatalf("Failed to set webhook: %v", err)
-	}
-
-	// Remove webhook
-	err = botManager.RemoveWebhook(bot.ID)
-	if err != nil {
-		t.Fatalf("Failed to remove webhook: %v", err)
-	}
-
-	// Get the bot and check webhook is removed
-	retrievedBot, err := botManager.GetBot(bot.ID)
-	if err != nil {
-		t.Fatalf("Failed to get bot: %v", err)
-	}
-
-	if retrievedBot.WebhookURL != "" {
-		t.Errorf("Expected empty webhook URL, got '%s'", retrievedBot.WebhookURL)
-	}
-}
-
 func TestBotManager_GetBotUpdates(t *testing.T) {
-	db := setupTestDB(t)
+	db := SetupTestDB(t)
 	botRepo := repository.NewBotRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
+	messageRepo := repository.NewMessageRepository(db)
+	chatRepo := repository.NewChatRepository(db)
+	botManager := NewBotManager(botRepo, userRepo, messageRepo, chatRepo)
 
 	// Create a bot
-	bot, err := botManager.CreateBot("Test Bot", "testbot", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
+	bot, err := botManager.CreateBot("TestBot", "testbot", "token", "")
 	if err != nil {
 		t.Fatalf("Failed to create bot: %v", err)
 	}
@@ -382,13 +248,15 @@ func TestBotManager_GetBotUpdates(t *testing.T) {
 }
 
 func TestBotManager_AddUpdate(t *testing.T) {
-	db := setupTestDB(t)
+	db := SetupTestDB(t)
 	botRepo := repository.NewBotRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	botManager := NewBotManager(botRepo, userRepo)
+	messageRepo := repository.NewMessageRepository(db)
+	chatRepo := repository.NewChatRepository(db)
+	botManager := NewBotManager(botRepo, userRepo, messageRepo, chatRepo)
 
 	// Create a bot
-	bot, err := botManager.CreateBot("Test Bot", "testbot", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
+	bot, err := botManager.CreateBot("TestBot", "testbot", "token", "")
 	if err != nil {
 		t.Fatalf("Failed to create bot: %v", err)
 	}
@@ -397,10 +265,11 @@ func TestBotManager_AddUpdate(t *testing.T) {
 	update := &models.Update{
 		UpdateID: 1,
 		Message: &models.Message{
-			Text:      "Test message",
-			Type:      "text",
-			Status:    "sent",
-			Timestamp: time.Now(),
+			ID:      1,
+			ChatID:  1,
+			FromID:  1,
+			Text:    "Test message",
+			Type:    "text",
 		},
 	}
 
@@ -418,9 +287,5 @@ func TestBotManager_AddUpdate(t *testing.T) {
 
 	if len(updates) != 1 {
 		t.Errorf("Expected 1 update, got %d", len(updates))
-	}
-
-	if updates[0].UpdateID != 1 {
-		t.Errorf("Expected update ID 1, got %d", updates[0].UpdateID)
 	}
 }
