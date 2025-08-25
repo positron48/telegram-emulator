@@ -8,18 +8,18 @@ import (
 
 // Message представляет сообщение в эмуляторе
 type Message struct {
-	ID        int64     `json:"id" gorm:"primaryKey"`
-	ChatID    int64     `json:"chat_id"`
-	FromID    int64     `json:"from_id"`
-	From      User      `json:"from" gorm:"foreignKey:FromID"`
-	Text      string    `json:"text"`
-	Type      string    `json:"type"` // text, file, voice, photo
-	Status    string    `json:"status"` // sending, sent, delivered, read
-	IsOutgoing bool     `json:"is_outgoing"`
-	Timestamp time.Time `json:"timestamp"`
-	CreatedAt time.Time `json:"created_at"`
-	ReplyMarkupJSON string `json:"reply_markup,omitempty" gorm:"column:reply_markup"` // Клавиатура в JSON формате
-	EntitiesJSON string `json:"entities,omitempty" gorm:"column:entities"` // Сущности в JSON формате
+	ID              int64     `json:"id" gorm:"primaryKey"`
+	ChatID          int64     `json:"chat_id"`
+	FromID          int64     `json:"from_id"`
+	From            User      `json:"from" gorm:"foreignKey:FromID"`
+	Text            string    `json:"text"`
+	Type            string    `json:"type"`   // text, file, voice, photo
+	Status          string    `json:"status"` // sending, sent, delivered, read
+	IsOutgoing      bool      `json:"is_outgoing"`
+	Timestamp       time.Time `json:"timestamp"`
+	CreatedAt       time.Time `json:"created_at"`
+	ReplyMarkupJSON string    `json:"reply_markup,omitempty" gorm:"column:reply_markup"` // Клавиатура в JSON формате
+	EntitiesJSON    string    `json:"entities,omitempty" gorm:"column:entities"`         // Сущности в JSON формате
 }
 
 // TableName возвращает имя таблицы для модели Message
@@ -79,13 +79,13 @@ func (m *Message) SetReplyMarkup(replyMarkup interface{}) error {
 		m.ReplyMarkupJSON = ""
 		return nil
 	}
-	
+
 	// Сериализуем клавиатуру в JSON
 	jsonData, err := json.Marshal(replyMarkup)
 	if err != nil {
 		return err
 	}
-	
+
 	m.ReplyMarkupJSON = string(jsonData)
 	return nil
 }
@@ -95,28 +95,28 @@ func (m *Message) GetReplyMarkup() interface{} {
 	if m.ReplyMarkupJSON == "" {
 		return nil
 	}
-	
+
 	var replyMarkup interface{}
 	if err := json.Unmarshal([]byte(m.ReplyMarkupJSON), &replyMarkup); err != nil {
 		return nil
 	}
-	
+
 	return replyMarkup
 }
 
 // SetEntities устанавливает сущности и сериализует их в JSON
 func (m *Message) SetEntities(entities []MessageEntity) error {
-	if entities == nil || len(entities) == 0 {
+	if len(entities) == 0 {
 		m.EntitiesJSON = ""
 		return nil
 	}
-	
+
 	// Сериализуем сущности в JSON
 	jsonData, err := json.Marshal(entities)
 	if err != nil {
 		return err
 	}
-	
+
 	m.EntitiesJSON = string(jsonData)
 	return nil
 }
@@ -126,12 +126,12 @@ func (m *Message) GetEntities() []MessageEntity {
 	if m.EntitiesJSON == "" {
 		return nil
 	}
-	
+
 	var entities []MessageEntity
 	if err := json.Unmarshal([]byte(m.EntitiesJSON), &entities); err != nil {
 		return nil
 	}
-	
+
 	return entities
 }
 
@@ -140,25 +140,25 @@ func (m *Message) ParseAndSetEntities() error {
 	if m.Text == "" {
 		return nil
 	}
-	
+
 	var entities []MessageEntity
-	
+
 	// Парсим команды
 	commandEntities := parseCommands(m.Text)
 	entities = append(entities, commandEntities...)
-	
+
 	// Парсим упоминания
 	mentionEntities := parseMentions(m.Text)
 	entities = append(entities, mentionEntities...)
-	
+
 	// Парсим URL (до хештегов, чтобы избежать конфликтов)
 	urlEntities := parseURLs(m.Text)
 	entities = append(entities, urlEntities...)
-	
+
 	// Парсим хештеги (после URL)
 	hashtagEntities := parseHashtags(m.Text)
 	entities = append(entities, hashtagEntities...)
-	
+
 	return m.SetEntities(entities)
 }
 
@@ -190,7 +190,7 @@ func (m *Message) GetCommand() string {
 func parseCommands(text string) []MessageEntity {
 	var entities []MessageEntity
 	commandRegex := regexp.MustCompile(`/([a-zA-Z0-9_]+)`)
-	
+
 	matches := commandRegex.FindAllStringIndex(text, -1)
 	for _, match := range matches {
 		entities = append(entities, MessageEntity{
@@ -199,7 +199,7 @@ func parseCommands(text string) []MessageEntity {
 			Length: match[1] - match[0],
 		})
 	}
-	
+
 	return entities
 }
 
@@ -207,7 +207,7 @@ func parseCommands(text string) []MessageEntity {
 func parseMentions(text string) []MessageEntity {
 	var entities []MessageEntity
 	mentionRegex := regexp.MustCompile(`@([a-zA-Z0-9_]{5,32})`)
-	
+
 	matches := mentionRegex.FindAllStringIndex(text, -1)
 	for _, match := range matches {
 		entities = append(entities, MessageEntity{
@@ -216,7 +216,7 @@ func parseMentions(text string) []MessageEntity {
 			Length: match[1] - match[0],
 		})
 	}
-	
+
 	return entities
 }
 
@@ -224,7 +224,7 @@ func parseMentions(text string) []MessageEntity {
 func parseHashtags(text string) []MessageEntity {
 	var entities []MessageEntity
 	hashtagRegex := regexp.MustCompile(`#([a-zA-Z0-9_]+)`)
-	
+
 	matches := hashtagRegex.FindAllStringIndex(text, -1)
 	for _, match := range matches {
 		entities = append(entities, MessageEntity{
@@ -233,7 +233,7 @@ func parseHashtags(text string) []MessageEntity {
 			Length: match[1] - match[0],
 		})
 	}
-	
+
 	return entities
 }
 
@@ -241,7 +241,7 @@ func parseHashtags(text string) []MessageEntity {
 func parseURLs(text string) []MessageEntity {
 	var entities []MessageEntity
 	urlRegex := regexp.MustCompile(`https?://[^\s]+`)
-	
+
 	matches := urlRegex.FindAllStringIndex(text, -1)
 	for _, match := range matches {
 		entities = append(entities, MessageEntity{
@@ -250,6 +250,6 @@ func parseURLs(text string) []MessageEntity {
 			Length: match[1] - match[0],
 		})
 	}
-	
+
 	return entities
 }

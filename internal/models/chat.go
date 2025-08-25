@@ -45,8 +45,6 @@ func (c *Chat) IsGroup() bool {
 	return c.Type == "group"
 }
 
-
-
 // GetChatIcon возвращает иконку для типа чата
 func (c *Chat) GetChatIcon() string {
 	switch c.Type {

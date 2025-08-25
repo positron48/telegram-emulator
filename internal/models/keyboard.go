@@ -2,11 +2,11 @@ package models
 
 // ReplyKeyboardMarkup представляет обычную клавиатуру
 type ReplyKeyboardMarkup struct {
-	Keyboard        [][]KeyboardButton `json:"keyboard"`
-	ResizeKeyboard  bool               `json:"resize_keyboard,omitempty"`
-	OneTimeKeyboard bool               `json:"one_time_keyboard,omitempty"`
-	InputFieldPlaceholder string       `json:"input_field_placeholder,omitempty"`
-	Selective       bool               `json:"selective,omitempty"`
+	Keyboard              [][]KeyboardButton `json:"keyboard"`
+	ResizeKeyboard        bool               `json:"resize_keyboard,omitempty"`
+	OneTimeKeyboard       bool               `json:"one_time_keyboard,omitempty"`
+	InputFieldPlaceholder string             `json:"input_field_placeholder,omitempty"`
+	Selective             bool               `json:"selective,omitempty"`
 }
 
 // ReplyKeyboardRemove представляет удаление клавиатуры
@@ -22,18 +22,18 @@ type InlineKeyboardMarkup struct {
 
 // KeyboardButton представляет кнопку обычной клавиатуры
 type KeyboardButton struct {
-	Text            string `json:"text"`
-	RequestContact  bool   `json:"request_contact,omitempty"`
-	RequestLocation bool   `json:"request_location,omitempty"`
+	Text            string                  `json:"text"`
+	RequestContact  bool                    `json:"request_contact,omitempty"`
+	RequestLocation bool                    `json:"request_location,omitempty"`
 	RequestPoll     *KeyboardButtonPollType `json:"request_poll,omitempty"`
 	WebApp          *WebAppInfo             `json:"web_app,omitempty"`
 }
 
 // InlineKeyboardButton представляет кнопку inline клавиатуры
 type InlineKeyboardButton struct {
-	Text                         string `json:"text"`
-	URL                          string `json:"url,omitempty"`
-	CallbackData                 string `json:"callback_data,omitempty"`
+	Text                         string      `json:"text"`
+	URL                          string      `json:"url,omitempty"`
+	CallbackData                 string      `json:"callback_data,omitempty"`
 	WebApp                       *WebAppInfo `json:"web_app,omitempty"`
 	LoginURL                     *LoginURL   `json:"login_url,omitempty"`
 	SwitchInlineQuery            string      `json:"switch_inline_query,omitempty"`

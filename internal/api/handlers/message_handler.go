@@ -9,8 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
-
 // MessageHandler обрабатывает запросы к API сообщений
 type MessageHandler struct {
 	messageManager *emulator.MessageManager
@@ -22,8 +20,6 @@ func NewMessageHandler(messageManager *emulator.MessageManager) *MessageHandler 
 		messageManager: messageManager,
 	}
 }
-
-
 
 // SendMessageRequest представляет запрос на отправку сообщения
 type SendMessageRequest struct {
@@ -69,7 +65,7 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
 		return
 	}
-	
+
 	chatID, err := ParseChatID(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
@@ -105,7 +101,7 @@ func (h *MessageHandler) GetChatMessages(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
 		return
 	}
-	
+
 	chatID, err := ParseChatID(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
@@ -176,13 +172,13 @@ func (h *MessageHandler) MarkChatAsRead(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
 		return
 	}
-	
+
 	chatID, err := ParseChatID(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
 		return
 	}
-	
+
 	userIDStr := c.Query("user_id")
 	if userIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID пользователя обязателен"})
@@ -236,13 +232,13 @@ func (h *MessageHandler) SearchMessages(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
 		return
 	}
-	
+
 	chatID, err := ParseChatID(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
 		return
 	}
-	
+
 	query := c.Query("q")
 	if query == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Поисковый запрос обязателен"})

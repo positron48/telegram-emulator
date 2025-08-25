@@ -40,7 +40,7 @@ func (m *ChatManager) CreateChat(chatType, title, username, description string, 
 
 	// Конвертируем строковый ID в int64
 	chatID := hashString(id)
-	
+
 	chat := &models.Chat{
 		ID:          chatID,
 		Type:        chatType,
@@ -73,7 +73,7 @@ func (m *ChatManager) CreateChat(chatType, title, username, description string, 
 		return nil, err
 	}
 
-	m.logger.Info("Создан новый чат", 
+	m.logger.Info("Создан новый чат",
 		zap.Int64("id", chat.ID),
 		zap.String("type", chat.Type),
 		zap.String("title", chat.Title))
@@ -199,7 +199,7 @@ func (m *ChatManager) UpdateUnreadCount(chatID int64) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Обновляем счетчик в чате
 	return m.chatRepo.UpdateUnreadCount(chatID, int(unreadCount))
 }
@@ -210,7 +210,7 @@ func (m *ChatManager) MarkChatAsRead(chatID int64) error {
 	if err := m.messageRepo.MarkAsRead(chatID); err != nil {
 		return err
 	}
-	
+
 	// Обновляем счетчик непрочитанных
 	return m.UpdateUnreadCount(chatID)
 }

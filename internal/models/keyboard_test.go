@@ -41,21 +41,21 @@ func TestKeyboardTypes(t *testing.T) {
 		OneTimeKeyboard: false,
 		Selective:       true,
 	}
-	
+
 	if !replyMarkup.IsReplyKeyboardMarkup() {
 		t.Error("Expected ReplyKeyboardMarkup to be identified correctly")
 	}
-	
+
 	// Test ReplyKeyboardRemove
 	removeMarkup := &ReplyKeyboardRemove{
 		RemoveKeyboard: true,
 		Selective:      false,
 	}
-	
+
 	if !removeMarkup.IsReplyKeyboardRemove() {
 		t.Error("Expected ReplyKeyboardRemove to be identified correctly")
 	}
-	
+
 	// Test InlineKeyboardMarkup
 	inlineMarkup := &InlineKeyboardMarkup{
 		InlineKeyboard: [][]InlineKeyboardButton{
@@ -65,7 +65,7 @@ func TestKeyboardTypes(t *testing.T) {
 			},
 		},
 	}
-	
+
 	if !inlineMarkup.IsInlineKeyboardMarkup() {
 		t.Error("Expected InlineKeyboardMarkup to be identified correctly")
 	}
@@ -76,21 +76,21 @@ func TestKeyboardButtonValidation(t *testing.T) {
 	button := KeyboardButton{
 		Text: "Test Button",
 	}
-	
+
 	if button.Text != "Test Button" {
 		t.Errorf("Expected button text 'Test Button', got '%s'", button.Text)
 	}
-	
+
 	// Test inline keyboard button
 	inlineButton := InlineKeyboardButton{
 		Text:         "Inline Test",
 		CallbackData: "test_callback",
 	}
-	
+
 	if inlineButton.Text != "Inline Test" {
 		t.Errorf("Expected inline button text 'Inline Test', got '%s'", inlineButton.Text)
 	}
-	
+
 	if inlineButton.CallbackData != "test_callback" {
 		t.Errorf("Expected callback data 'test_callback', got '%s'", inlineButton.CallbackData)
 	}
@@ -104,29 +104,29 @@ func TestKeyboardMarkupProperties(t *testing.T) {
 		OneTimeKeyboard: true,
 		Selective:       false,
 	}
-	
+
 	if !replyMarkup.ResizeKeyboard {
 		t.Error("Expected ResizeKeyboard to be true")
 	}
-	
+
 	if !replyMarkup.OneTimeKeyboard {
 		t.Error("Expected OneTimeKeyboard to be true")
 	}
-	
+
 	if replyMarkup.Selective {
 		t.Error("Expected Selective to be false")
 	}
-	
+
 	// Test ReplyKeyboardRemove properties
 	removeMarkup := &ReplyKeyboardRemove{
 		RemoveKeyboard: true,
 		Selective:      true,
 	}
-	
+
 	if !removeMarkup.RemoveKeyboard {
 		t.Error("Expected RemoveKeyboard to be true")
 	}
-	
+
 	if !removeMarkup.Selective {
 		t.Error("Expected Selective to be true")
 	}

@@ -7,8 +7,6 @@ import (
 	"telegram-emulator/internal/repository"
 )
 
-
-
 func TestBotManager_CreateBot(t *testing.T) {
 	db := SetupTestDB(t)
 	botRepo := repository.NewBotRepository(db)
@@ -264,11 +262,11 @@ func TestBotManager_AddUpdate(t *testing.T) {
 	update := &models.Update{
 		UpdateID: 1,
 		Message: &models.Message{
-			ID:      1,
-			ChatID:  1,
-			FromID:  1,
-			Text:    "Test message",
-			Type:    "text",
+			ID:     1,
+			ChatID: 1,
+			FromID: 1,
+			Text:   "Test message",
+			Type:   "text",
 		},
 	}
 

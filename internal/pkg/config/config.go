@@ -18,9 +18,9 @@ type Config struct {
 
 // EmulatorConfig конфигурация эмулятора
 type EmulatorConfig struct {
-	Port int    `mapstructure:"port"`
-	Host string `mapstructure:"host"`
-	Debug bool  `mapstructure:"debug"`
+	Port  int    `mapstructure:"port"`
+	Host  string `mapstructure:"host"`
+	Debug bool   `mapstructure:"debug"`
 }
 
 // DatabaseConfig конфигурация базы данных
@@ -37,8 +37,8 @@ type WebSocketConfig struct {
 
 // BotsConfig конфигурация ботов
 type BotsConfig struct {
-	WebhookTimeout  string `mapstructure:"webhook_timeout"`
-	MaxConnections  int    `mapstructure:"max_connections"`
+	WebhookTimeout string `mapstructure:"webhook_timeout"`
+	MaxConnections int    `mapstructure:"max_connections"`
 }
 
 // LoggingConfig конфигурация логирования

@@ -34,28 +34,28 @@ func (r *MessageRepository) GetByID(id int64) (*models.Message, error) {
 // GetByChatID получает сообщения чата
 func (r *MessageRepository) GetByChatID(chatID int64, limit, offset int) ([]models.Message, error) {
 	var messages []models.Message
-	
+
 	query := r.db.Where("chat_id = ?", chatID).Order("created_at DESC")
-	
+
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
-	
+
 	if offset > 0 {
 		query = query.Offset(offset)
 	}
-	
+
 	if err := query.Find(&messages).Error; err != nil {
 		return nil, err
 	}
-	
+
 	// Загружаем связанные данные
 	for i := range messages {
 		if err := r.db.Model(&messages[i]).Association("From").Find(&messages[i].From); err != nil {
 			return nil, err
 		}
 	}
-	
+
 	return messages, nil
 }
 

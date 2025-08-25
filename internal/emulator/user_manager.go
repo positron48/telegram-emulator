@@ -69,13 +69,13 @@ func (m *UserManager) CreateUser(username, firstName, lastName string, isBot boo
 			m.logger.Error("Ошибка создания записи бота", zap.Error(err))
 			// Не удаляем пользователя, просто логируем ошибку
 		} else {
-			m.logger.Info("Создана запись бота", 
+			m.logger.Info("Создана запись бота",
 				zap.Int64("bot_id", bot.ID),
 				zap.String("username", bot.Username))
 		}
 	}
 
-	m.logger.Info("Создан новый пользователь", 
+	m.logger.Info("Создан новый пользователь",
 		zap.Int64("id", user.ID),
 		zap.String("username", user.Username),
 		zap.Bool("is_bot", user.IsBot))

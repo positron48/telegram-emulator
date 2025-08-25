@@ -60,37 +60,37 @@ func SetupRoutes(router *gin.Engine, userManager *emulator.UserManager, chatMana
 		chats.GET("/:id/search", messageHandler.SearchMessages)
 	}
 
-		// Боты
-		bots := api.Group("/bots")
-		{
-			botHandler := handlers.NewBotHandler(botManager)
-			bots.GET("", botHandler.GetAll)
-			bots.POST("", botHandler.Create)
-			bots.GET("/:id", botHandler.GetByID)
-			bots.PUT("/:id", botHandler.Update)
-			bots.DELETE("/:id", botHandler.Delete)
-			bots.POST("/:id/sendMessage", botHandler.SendMessage)
-			bots.GET("/:id/updates", botHandler.GetUpdates)
-			bots.POST("/:id/webhook", botHandler.Webhook)
-		}
+	// Боты
+	bots := api.Group("/bots")
+	{
+		botHandler := handlers.NewBotHandler(botManager)
+		bots.GET("", botHandler.GetAll)
+		bots.POST("", botHandler.Create)
+		bots.GET("/:id", botHandler.GetByID)
+		bots.PUT("/:id", botHandler.Update)
+		bots.DELETE("/:id", botHandler.Delete)
+		bots.POST("/:id/sendMessage", botHandler.SendMessage)
+		bots.GET("/:id/updates", botHandler.GetUpdates)
+		bots.POST("/:id/webhook", botHandler.Webhook)
+	}
 
-			// WebSocket endpoint
-		router.GET("/ws", func(c *gin.Context) {
-			wsServer.HandleWebSocket(c.Writer, c.Request)
-		})
+	// WebSocket endpoint
+	router.GET("/ws", func(c *gin.Context) {
+		wsServer.HandleWebSocket(c.Writer, c.Request)
+	})
 
-		// Статические файлы для веб-интерфейса
-		router.Static("/web", "./web/dist")
-		router.StaticFile("/", "./web/dist/index.html")
-		router.StaticFile("/index.html", "./web/dist/index.html")
-		
-		// Главная страница (fallback)
-		router.GET("/api", func(c *gin.Context) {
-			c.Header("Content-Type", "application/json; charset=utf-8")
-			c.JSON(200, gin.H{
-				"message": "Telegram Emulator API",
-				"version": "1.0.0",
-				"docs": "/api",
-			})
+	// Статические файлы для веб-интерфейса
+	router.Static("/web", "./web/dist")
+	router.StaticFile("/", "./web/dist/index.html")
+	router.StaticFile("/index.html", "./web/dist/index.html")
+
+	// Главная страница (fallback)
+	router.GET("/api", func(c *gin.Context) {
+		c.Header("Content-Type", "application/json; charset=utf-8")
+		c.JSON(200, gin.H{
+			"message": "Telegram Emulator API",
+			"version": "1.0.0",
+			"docs":    "/api",
 		})
+	})
 }

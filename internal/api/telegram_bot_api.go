@@ -40,7 +40,7 @@ func NewTelegramBotAPI(botManager *emulator.BotManager, userManager *emulator.Us
 func (api *TelegramBotAPI) SetupTelegramBotRoutes(router *gin.Engine) {
 	// Telegram Bot API маршруты с правильными заголовками
 	// Используем формат /bot<token> как в официальном Telegram Bot API
-	
+
 	// Middleware для извлечения токена из пути
 	botMiddleware := func(c *gin.Context) {
 		// Устанавливаем правильные заголовки для Telegram Bot API
@@ -48,10 +48,10 @@ func (api *TelegramBotAPI) SetupTelegramBotRoutes(router *gin.Engine) {
 		c.Header("Server", "Telegram-Emulator/1.0")
 		c.Next()
 	}
-	
+
 	// Регистрируем маршруты с middleware
 	router.Use(botMiddleware)
-	
+
 	// Основные методы - поддерживаем и GET и POST для совместимости
 	// Формат 1: /bot<token>/method (без слеша)
 	router.GET("/bot:token/getMe", api.GetMe)
@@ -69,7 +69,7 @@ func (api *TelegramBotAPI) SetupTelegramBotRoutes(router *gin.Engine) {
 	router.POST("/bot:token/answerCallbackQuery", api.AnswerCallbackQuery)
 	router.POST("/bot:token/editMessageText", api.EditMessageText)
 	router.POST("/bot:token/editMessageReplyMarkup", api.EditMessageReplyMarkup)
-	
+
 	// Формат 2: /bot/<token>/method (со слешем) - для совместимости с python-telegram-bot
 	router.GET("/bot/:token2/getMe", api.GetMe)
 	router.POST("/bot/:token2/getMe", api.GetMe)
@@ -106,13 +106,13 @@ func (api *TelegramBotAPI) GetMe(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"ok": true,
 		"result": gin.H{
-			"id":         bot.ID,
-			"is_bot":     true,
-			"first_name": bot.Name,
-			"username":   bot.Username,
-			"can_join_groups": true,
+			"id":                          bot.ID,
+			"is_bot":                      true,
+			"first_name":                  bot.Name,
+			"username":                    bot.Username,
+			"can_join_groups":             true,
 			"can_read_all_group_messages": false,
-			"supports_inline_queries": false,
+			"supports_inline_queries":     false,
 		},
 	})
 }
@@ -168,24 +168,24 @@ func (api *TelegramBotAPI) GetUpdates(c *gin.Context) {
 
 	// Если нет обновлений и указан timeout, ждем новые обновления
 	if len(updates) == 0 && timeout > 0 {
-		api.logger.Info("Long polling: ожидаем новые обновления", 
+		api.logger.Info("Long polling: ожидаем новые обновления",
 			zap.Int64("bot_id", bot.ID),
 			zap.Int("timeout", timeout))
-		
+
 		// Ждем новые обновления в течение timeout секунд
 		startTime := time.Now()
 		for time.Since(startTime) < time.Duration(timeout)*time.Second {
 			// Проверяем новые обновления каждые 1 секунду (увеличено с 100ms для снижения нагрузки на БД)
 			time.Sleep(1 * time.Second)
-			
+
 			updates, err = api.botManager.GetBotUpdates(bot.ID, offset, limit)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"ok": false, "error_code": 500, "description": "Internal Server Error"})
 				return
 			}
-			
+
 			if len(updates) > 0 {
-				api.logger.Info("Long polling: получены новые обновления", 
+				api.logger.Info("Long polling: получены новые обновления",
 					zap.Int64("bot_id", bot.ID),
 					zap.Int("count", len(updates)),
 					zap.Duration("wait_time", time.Since(startTime)))
@@ -236,16 +236,16 @@ func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
 	}
 
 	var request struct {
-		ChatID                string      `json:"chat_id" form:"chat_id" binding:"required"`
-		Text                  string      `json:"text" form:"text" binding:"required"`
-		ParseMode             string      `json:"parse_mode" form:"parse_mode"`
-		DisableWebPagePreview bool        `json:"disable_web_page_preview" form:"disable_web_page_preview"`
-		DisableNotification   bool        `json:"disable_notification" form:"disable_notification"`
-		ProtectContent        bool        `json:"protect_content" form:"protect_content"`
-		ReplyToMessageID      int64       `json:"reply_to_message_id" form:"reply_to_message_id"`
-		AllowSendingWithoutReply bool     `json:"allow_sending_without_reply" form:"allow_sending_without_reply"`
-		ReplyMarkup           interface{} `json:"reply_markup"`
-		ReplyMarkupString     string      `form:"reply_markup"`
+		ChatID                   string      `json:"chat_id" form:"chat_id" binding:"required"`
+		Text                     string      `json:"text" form:"text" binding:"required"`
+		ParseMode                string      `json:"parse_mode" form:"parse_mode"`
+		DisableWebPagePreview    bool        `json:"disable_web_page_preview" form:"disable_web_page_preview"`
+		DisableNotification      bool        `json:"disable_notification" form:"disable_notification"`
+		ProtectContent           bool        `json:"protect_content" form:"protect_content"`
+		ReplyToMessageID         int64       `json:"reply_to_message_id" form:"reply_to_message_id"`
+		AllowSendingWithoutReply bool        `json:"allow_sending_without_reply" form:"allow_sending_without_reply"`
+		ReplyMarkup              interface{} `json:"reply_markup"`
+		ReplyMarkupString        string      `form:"reply_markup"`
 	}
 
 	// Логируем входящий запрос
@@ -269,7 +269,7 @@ func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
 			return
 		}
 	}
-	
+
 	// Обрабатываем reply_markup из form data если он передан как строка
 	if request.ReplyMarkupString != "" {
 		api.logger.Info("📥 Обрабатываем reply_markup из form data", zap.String("reply_markup", request.ReplyMarkupString))
@@ -287,7 +287,7 @@ func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"ok": false, "error_code": 400, "description": "Bad Request: chat_id is required"})
 		return
 	}
-	
+
 	// Конвертируем chat_id из строки в int64
 	chatID, err := strconv.ParseInt(request.ChatID, 10, 64)
 	if err != nil {
@@ -331,7 +331,7 @@ func (api *TelegramBotAPI) SendMessage(c *gin.Context) {
 	// Конвертируем в формат Telegram Bot API
 	telegramMessage := message.ToTelegramMessage()
 
-	api.logger.Info("Сообщение успешно отправлено", 
+	api.logger.Info("Сообщение успешно отправлено",
 		zap.Int64("bot_id", bot.ID),
 		zap.Int64("chat_id", chatID),
 		zap.Int64("message_id", message.ID),
@@ -468,14 +468,14 @@ func (api *TelegramBotAPI) extractTokenFromPath(c *gin.Context) string {
 		}
 		return token
 	}
-	
+
 	if token := c.Param("token2"); token != "" {
 		if decoded, err := url.QueryUnescape(token); err == nil {
 			return decoded
 		}
 		return token
 	}
-	
+
 	// Fallback: парсим из пути вручную
 	path := c.Request.URL.Path
 	if strings.HasPrefix(path, "/bot") {
@@ -509,16 +509,16 @@ func (api *TelegramBotAPI) findBotByToken(token string) (*models.Bot, error) {
 		return nil, err
 	}
 
-	api.logger.Info("Поиск бота по токену", 
+	api.logger.Info("Поиск бота по токену",
 		zap.String("token", token),
 		zap.Int("total_bots", len(bots)))
 
 	for _, bot := range bots {
-		api.logger.Debug("Проверяем бота", 
+		api.logger.Debug("Проверяем бота",
 			zap.Int64("bot_id", bot.ID),
 			zap.String("bot_token", bot.Token),
 			zap.String("search_token", token))
-		
+
 		if bot.Token == token {
 			api.logger.Info("Бот найден", zap.Int64("bot_id", bot.ID))
 			return &bot, nil
@@ -617,7 +617,7 @@ func (api *TelegramBotAPI) EditMessageReplyMarkup(c *gin.Context) {
 	botID := bot.ID
 
 	c.JSON(http.StatusOK, gin.H{
-		"ok":     true,
+		"ok": true,
 		"result": gin.H{
 			"message_id": request.MessageID,
 			"from": gin.H{
@@ -631,7 +631,7 @@ func (api *TelegramBotAPI) EditMessageReplyMarkup(c *gin.Context) {
 				"type":  "private",
 				"title": bot.Name,
 			},
-			"date": time.Now().Unix(),
+			"date":         time.Now().Unix(),
 			"reply_markup": request.ReplyMarkup,
 		},
 	})
@@ -674,7 +674,7 @@ func (api *TelegramBotAPI) EditMessageText(c *gin.Context) {
 	botID := bot.ID
 
 	c.JSON(http.StatusOK, gin.H{
-		"ok":     true,
+		"ok": true,
 		"result": gin.H{
 			"message_id": request.MessageID,
 			"from": gin.H{
@@ -723,10 +723,18 @@ func (api *TelegramBotAPI) validateReplyMarkup(replyMarkup interface{}) error {
 
 	// Должен быть только один тип клавиатуры
 	keyboardTypes := 0
-	if hasInlineKeyboard { keyboardTypes++ }
-	if hasKeyboard { keyboardTypes++ }
-	if hasRemoveKeyboard { keyboardTypes++ }
-	if hasForceReply { keyboardTypes++ }
+	if hasInlineKeyboard {
+		keyboardTypes++
+	}
+	if hasKeyboard {
+		keyboardTypes++
+	}
+	if hasRemoveKeyboard {
+		keyboardTypes++
+	}
+	if hasForceReply {
+		keyboardTypes++
+	}
 
 	if keyboardTypes == 0 {
 		return fmt.Errorf("reply_markup must contain one of: inline_keyboard, keyboard, remove_keyboard, force_reply")
@@ -825,5 +833,3 @@ func (api *TelegramBotAPI) validateKeyboard(keyboard interface{}) error {
 
 	return nil
 }
-
-

@@ -12,14 +12,14 @@ func TestMessageRepository_Create(t *testing.T) {
 	repo := NewMessageRepository(db)
 
 	message := &models.Message{
-		ChatID:    1,
-		FromID:    1,
-		Text:      "Test message",
-		Type:      "text",
-		Status:    "sent",
+		ChatID:     1,
+		FromID:     1,
+		Text:       "Test message",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	err := repo.Create(message)
@@ -38,14 +38,14 @@ func TestMessageRepository_GetByID(t *testing.T) {
 
 	// Create a message
 	message := &models.Message{
-		ChatID:    1,
-		FromID:    1,
-		Text:      "Test message",
-		Type:      "text",
-		Status:    "sent",
+		ChatID:     1,
+		FromID:     1,
+		Text:       "Test message",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	err := repo.Create(message)
@@ -74,36 +74,36 @@ func TestMessageRepository_GetByChatID(t *testing.T) {
 
 	// Create messages for different chats
 	message1 := &models.Message{
-		ChatID:    1,
-		FromID:    1,
-		Text:      "Message in chat 1",
-		Type:      "text",
-		Status:    "sent",
+		ChatID:     1,
+		FromID:     1,
+		Text:       "Message in chat 1",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	message2 := &models.Message{
-		ChatID:    1,
-		FromID:    2,
-		Text:      "Another message in chat 1",
-		Type:      "text",
-		Status:    "sent",
+		ChatID:     1,
+		FromID:     2,
+		Text:       "Another message in chat 1",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	message3 := &models.Message{
-		ChatID:    2,
-		FromID:    1,
-		Text:      "Message in chat 2",
-		Type:      "text",
-		Status:    "sent",
+		ChatID:     2,
+		FromID:     1,
+		Text:       "Message in chat 2",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	err := repo.Create(message1)
@@ -145,14 +145,14 @@ func TestMessageRepository_Update(t *testing.T) {
 
 	// Create a message
 	message := &models.Message{
-		ChatID:    1,
-		FromID:    1,
-		Text:      "Test message",
-		Type:      "text",
-		Status:    "sent",
+		ChatID:     1,
+		FromID:     1,
+		Text:       "Test message",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	err := repo.Create(message)
@@ -190,14 +190,14 @@ func TestMessageRepository_Delete(t *testing.T) {
 
 	// Create a message
 	message := &models.Message{
-		ChatID:    1,
-		FromID:    1,
-		Text:      "Test message",
-		Type:      "text",
-		Status:    "sent",
+		ChatID:     1,
+		FromID:     1,
+		Text:       "Test message",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	err := repo.Create(message)
@@ -235,15 +235,15 @@ func TestMessageRepository_UpdateNonExistent(t *testing.T) {
 
 	// Try to update non-existent message
 	message := &models.Message{
-		ID:        999999,
-		ChatID:    1,
-		FromID:    1,
-		Text:      "Non-existent message",
-		Type:      "text",
-		Status:    "sent",
+		ID:         999999,
+		ChatID:     1,
+		FromID:     1,
+		Text:       "Non-existent message",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	err := repo.Update(message)
@@ -273,14 +273,14 @@ func TestMessageRepository_UpdateStatus(t *testing.T) {
 
 	// Create a message
 	message := &models.Message{
-		ChatID:    1,
-		FromID:    1,
-		Text:      "Test message",
-		Type:      "text",
-		Status:    "sent",
+		ChatID:     1,
+		FromID:     1,
+		Text:       "Test message",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	err := repo.Create(message)
@@ -311,25 +311,25 @@ func TestMessageRepository_GetLastMessage(t *testing.T) {
 
 	// Create messages for a chat
 	message1 := &models.Message{
-		ChatID:    1,
-		FromID:    1,
-		Text:      "First message",
-		Type:      "text",
-		Status:    "sent",
+		ChatID:     1,
+		FromID:     1,
+		Text:       "First message",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now().Add(-time.Hour),
-		CreatedAt: time.Now().Add(-time.Hour),
+		Timestamp:  time.Now().Add(-time.Hour),
+		CreatedAt:  time.Now().Add(-time.Hour),
 	}
 
 	message2 := &models.Message{
-		ChatID:    1,
-		FromID:    2,
-		Text:      "Last message",
-		Type:      "text",
-		Status:    "sent",
+		ChatID:     1,
+		FromID:     2,
+		Text:       "Last message",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	err := repo.Create(message1)
@@ -359,36 +359,36 @@ func TestMessageRepository_GetUnreadCount(t *testing.T) {
 
 	// Create messages with different statuses
 	message1 := &models.Message{
-		ChatID:    1,
-		FromID:    1,
-		Text:      "Unread message 1",
-		Type:      "text",
-		Status:    "sent",
+		ChatID:     1,
+		FromID:     1,
+		Text:       "Unread message 1",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	message2 := &models.Message{
-		ChatID:    1,
-		FromID:    2,
-		Text:      "Unread message 2",
-		Type:      "text",
-		Status:    "delivered",
+		ChatID:     1,
+		FromID:     2,
+		Text:       "Unread message 2",
+		Type:       "text",
+		Status:     "delivered",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	message3 := &models.Message{
-		ChatID:    1,
-		FromID:    3,
-		Text:      "Read message",
-		Type:      "text",
-		Status:    "read",
+		ChatID:     1,
+		FromID:     3,
+		Text:       "Read message",
+		Type:       "text",
+		Status:     "read",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	err := repo.Create(message1)
@@ -423,25 +423,25 @@ func TestMessageRepository_MarkAsRead(t *testing.T) {
 
 	// Create unread messages
 	message1 := &models.Message{
-		ChatID:    1,
-		FromID:    1,
-		Text:      "Unread message 1",
-		Type:      "text",
-		Status:    "sent",
+		ChatID:     1,
+		FromID:     1,
+		Text:       "Unread message 1",
+		Type:       "text",
+		Status:     "sent",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	message2 := &models.Message{
-		ChatID:    1,
-		FromID:    2,
-		Text:      "Unread message 2",
-		Type:      "text",
-		Status:    "delivered",
+		ChatID:     1,
+		FromID:     2,
+		Text:       "Unread message 2",
+		Type:       "text",
+		Status:     "delivered",
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	err := repo.Create(message1)

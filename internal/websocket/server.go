@@ -19,23 +19,23 @@ import (
 
 // Server представляет WebSocket сервер
 type Server struct {
-	clients    map[*Client]bool
-	broadcast  chan *Message
-	register   chan *Client
-	unregister chan *Client
-	mutex      sync.RWMutex
-	logger     *zap.Logger
+	clients        map[*Client]bool
+	broadcast      chan *Message
+	register       chan *Client
+	unregister     chan *Client
+	mutex          sync.RWMutex
+	logger         *zap.Logger
 	messageManager MessageManagerInterface // MessageManager для обработки сообщений
-	botManager interface{} // BotManager для обработки callback query
+	botManager     interface{}             // BotManager для обработки callback query
 }
 
 // Client представляет WebSocket клиента
 type Client struct {
-	server  *Server
-	conn    *websocket.Conn
-	send    chan []byte
-	userID  int64
-	logger  *zap.Logger
+	server *Server
+	conn   *websocket.Conn
+	send   chan []byte
+	userID int64
+	logger *zap.Logger
 }
 
 // Message представляет сообщение WebSocket
@@ -68,7 +68,7 @@ func (s *Server) SetBotManager(botManager interface{}) {
 // Start запускает WebSocket сервер
 func (s *Server) Start() {
 	s.logger.Info("WebSocket сервер запущен")
-	
+
 	for {
 		select {
 		case client := <-s.register:
@@ -112,26 +112,26 @@ func (s *Server) Broadcast(messageType string, data interface{}) {
 
 // BroadcastToUser отправляет сообщение конкретному пользователю
 func (s *Server) BroadcastToUser(userID int64, messageType string, data interface{}) {
-	s.logger.Info("BroadcastToUser вызван", 
+	s.logger.Info("BroadcastToUser вызван",
 		zap.Int64("user_id", userID),
 		zap.String("message_type", messageType))
-	
+
 	message := &Message{
 		Type: messageType,
 		Data: data,
 	}
-	
+
 	s.mutex.RLock()
 	clientCount := 0
 	for client := range s.clients {
 		if client.userID == userID {
 			clientCount++
-			s.logger.Info("Найден клиент для отправки", 
+			s.logger.Info("Найден клиент для отправки",
 				zap.Int64("user_id", userID),
 				zap.String("message_type", messageType))
 			select {
 			case client.send <- s.serializeMessage(message):
-				s.logger.Info("Сообщение отправлено клиенту", 
+				s.logger.Info("Сообщение отправлено клиенту",
 					zap.Int64("user_id", userID),
 					zap.String("message_type", messageType))
 			default:
@@ -142,8 +142,8 @@ func (s *Server) BroadcastToUser(userID int64, messageType string, data interfac
 		}
 	}
 	s.mutex.RUnlock()
-	
-	s.logger.Info("BroadcastToUser завершен", 
+
+	s.logger.Info("BroadcastToUser завершен",
 		zap.Int64("user_id", userID),
 		zap.String("message_type", messageType),
 		zap.Int("clients_found", clientCount))
@@ -167,7 +167,7 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "user_id обязателен", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Конвертируем userID в int64
 	userID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
@@ -214,9 +214,13 @@ func (c *Client) readPump() {
 	}()
 
 	c.conn.SetReadLimit(512)
-	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	if err := c.conn.SetReadDeadline(time.Now().Add(60 * time.Second)); err != nil {
+		c.logger.Error("Ошибка установки read deadline", zap.Error(err))
+	}
 	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		if err := c.conn.SetReadDeadline(time.Now().Add(60 * time.Second)); err != nil {
+			c.logger.Error("Ошибка установки read deadline", zap.Error(err))
+		}
 		return nil
 	})
 
@@ -245,27 +249,34 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
+				c.logger.Error("Ошибка установки write deadline", zap.Error(err))
+			}
 			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				if err := c.conn.WriteMessage(websocket.CloseMessage, []byte{}); err != nil {
+					c.logger.Error("Ошибка отправки close message", zap.Error(err))
+				}
 				return
 			}
-
-
 
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				c.logger.Error("Ошибка получения writer", zap.Error(err))
 				return
 			}
-			w.Write(message)
+			if _, err := w.Write(message); err != nil {
+				c.logger.Error("Ошибка записи сообщения", zap.Error(err))
+				return
+			}
 
 			if err := w.Close(); err != nil {
 				c.logger.Error("Ошибка закрытия writer", zap.Error(err))
 				return
 			}
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
+				c.logger.Error("Ошибка установки write deadline", zap.Error(err))
+			}
 			if err := c.conn.WriteMessage(websocket.PongMessage, nil); err != nil {
 				return
 			}
@@ -299,10 +310,10 @@ func (c *Client) handleMessage(message []byte) {
 
 // handleSubscribe обрабатывает подписку на события
 func (c *Client) handleSubscribe(data interface{}) {
-	c.logger.Info("Клиент подписался на события", 
+	c.logger.Info("Клиент подписался на события",
 		zap.Int64("user_id", c.userID),
 		zap.Any("events", data))
-	
+
 	// Отправляем подтверждение подписки
 	response := &Message{
 		Type: "subscribed",
@@ -311,7 +322,7 @@ func (c *Client) handleSubscribe(data interface{}) {
 			"events":  data,
 		},
 	}
-	
+
 	select {
 	case c.send <- c.server.serializeMessage(response):
 	default:
@@ -336,7 +347,7 @@ func (c *Client) handlePing() {
 			"timestamp": time.Now().Unix(),
 		},
 	}
-	
+
 	select {
 	case c.send <- c.server.serializeMessage(response):
 	default:
@@ -385,35 +396,35 @@ func (c *Client) handleSendMessage(data interface{}) {
 			return
 		}
 		fromUserID = parsedUserID
-		
+
 		// Проверяем, что отправитель совпадает с текущим пользователем
 		if fromUserID != c.userID {
-			c.logger.Warn("Попытка отправить сообщение от имени другого пользователя", 
-				zap.Int64("from_user_id", fromUserID), 
+			c.logger.Warn("Попытка отправить сообщение от имени другого пользователя",
+				zap.Int64("from_user_id", fromUserID),
 				zap.Int64("current_user_id", c.userID))
 			return
 		}
 	} else {
 		// Если from_user_id не передан, используем текущего пользователя
 		fromUserID = c.userID
-		c.logger.Debug("from_user_id не передан, используем текущего пользователя", 
+		c.logger.Debug("from_user_id не передан, используем текущего пользователя",
 			zap.Int64("user_id", c.userID))
 	}
 
 	// Используем MessageManager для отправки сообщения
 	if c.server.messageManager != nil {
-		c.logger.Info("Отправляем сообщение через MessageManager", 
+		c.logger.Info("Отправляем сообщение через MessageManager",
 			zap.Int64("chat_id", chatID),
 			zap.Int64("from_user_id", fromUserID),
 			zap.String("text", text))
-		
+
 		// Вызываем метод SendMessage напрямую через интерфейс
 		message, err := c.server.messageManager.SendMessage(chatID, fromUserID, text, "text", nil)
-		
+
 		if err != nil {
 			c.logger.Error("Ошибка отправки сообщения", zap.Error(err))
 		} else if message != nil {
-			c.logger.Info("Сообщение успешно отправлено", 
+			c.logger.Info("Сообщение успешно отправлено",
 				zap.Int64("message_id", message.ID),
 				zap.Int64("chat_id", chatID),
 				zap.Int64("from_user_id", fromUserID),
@@ -462,17 +473,17 @@ func (c *Client) handleCallbackQuery(data interface{}) {
 		c.logger.Error("Не удалось получить callback_data из button", zap.Any("button", buttonData))
 		return
 	}
-	
+
 	if callbackData == "" {
 		c.logger.Error("callback_data пустой", zap.Any("button", buttonData))
 		return
 	}
-	
+
 	// Создаем сообщение для callback query
 	// Используем переданный chat_id
 	message := &models.Message{
 		ID:     time.Now().UnixNano(), // Генерируем int64 ID
-		ChatID: chatID, // Используем переданный chat_id
+		ChatID: chatID,                // Используем переданный chat_id
 		From: models.User{
 			ID: c.userID,
 		},
@@ -497,11 +508,11 @@ func (c *Client) handleCallbackQuery(data interface{}) {
 		// Используем reflection для вызова метода AddCallbackQuery
 		botManagerValue := reflect.ValueOf(c.server.botManager)
 		addCallbackQueryMethod := botManagerValue.MethodByName("AddCallbackQuery")
-		
+
 		if addCallbackQueryMethod.IsValid() {
 			// Находим токен бота - пробуем несколько способов
 			var botToken string
-			
+
 			// Способ 1: Пытаемся извлечь из callback_data (если это формат cat:message_id)
 			if strings.HasPrefix(callbackData, "cat:") {
 				// Здесь можно попробовать найти сообщение по ID и определить бота
@@ -511,7 +522,7 @@ func (c *Client) handleCallbackQuery(data interface{}) {
 				// Способ 2: Используем дефолтный токен для всех callback query
 				botToken = "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
 			}
-			
+
 			// Способ 3: Получаем всех ботов и используем первого активного
 			getAllBotsMethod := botManagerValue.MethodByName("GetAllBots")
 			if getAllBotsMethod.IsValid() {
@@ -526,21 +537,21 @@ func (c *Client) handleCallbackQuery(data interface{}) {
 					}
 				}
 			}
-			
+
 			args := []reflect.Value{
 				reflect.ValueOf(botToken),
 				reflect.ValueOf(callbackQuery),
 			}
-			
+
 			results := addCallbackQueryMethod.Call(args)
-			
+
 			if len(results) > 0 && !results[0].IsNil() {
 				err := results[0].Interface().(error)
 				c.logger.Error("Ошибка добавления callback query в BotManager", zap.Error(err))
 			} else {
-							c.logger.Info("Callback query добавлен в BotManager", 
-				zap.String("callback_query_id", callbackQueryID),
-				zap.String("callback_data", callbackData),
+				c.logger.Info("Callback query добавлен в BotManager",
+					zap.String("callback_query_id", callbackQueryID),
+					zap.String("callback_data", callbackData),
 					zap.String("bot_token", botToken))
 			}
 		}
@@ -548,10 +559,10 @@ func (c *Client) handleCallbackQuery(data interface{}) {
 
 	// Отправляем callback query всем участникам чата
 	c.server.Broadcast("callback_query", map[string]interface{}{
-		"id":       callbackQueryID,
-		"user_id":  c.userID,
-		"button":   buttonData,
-		"data":     buttonData["callback_data"],
+		"id":      callbackQueryID,
+		"user_id": c.userID,
+		"button":  buttonData,
+		"data":    buttonData["callback_data"],
 		"message": map[string]interface{}{
 			"message_id": "msg_" + fmt.Sprintf("%d", time.Now().UnixNano()),
 			"chat": map[string]interface{}{
@@ -565,12 +576,12 @@ func (c *Client) handleCallbackQuery(data interface{}) {
 func (s *Server) GetConnectedUsers() []int64 {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	
+
 	users := make([]int64, 0, len(s.clients))
 	for client := range s.clients {
 		users = append(users, client.userID)
 	}
-	
+
 	return users
 }
 
@@ -578,12 +589,12 @@ func (s *Server) GetConnectedUsers() []int64 {
 func (s *Server) IsUserConnected(userID int64) bool {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	
+
 	for client := range s.clients {
 		if client.userID == userID {
 			return true
 		}
 	}
-	
+
 	return false
 }

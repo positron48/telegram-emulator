@@ -10,8 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
-
 // UserHandler обрабатывает запросы к API пользователей
 type UserHandler struct {
 	userManager *emulator.UserManager
@@ -200,8 +198,8 @@ func (h *UserHandler) GetChats(c *gin.Context) {
 	// }
 
 	c.JSON(http.StatusOK, gin.H{
-		"chats": []models.Chat{},
-		"limit": limit,
+		"chats":  []models.Chat{},
+		"limit":  limit,
 		"offset": offset,
 	})
 }

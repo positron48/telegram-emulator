@@ -177,7 +177,7 @@ func TestMessage_ParseAndSetEntities(t *testing.T) {
 			}
 
 			entities := message.GetEntities()
-			
+
 			// For complex cases, just check that entities were found
 			if tt.name == "URL" {
 				if len(entities) == 0 {
@@ -185,7 +185,7 @@ func TestMessage_ParseAndSetEntities(t *testing.T) {
 				}
 				return
 			}
-			
+
 			if tt.name == "Смешанный текст" {
 				if len(entities) == 0 {
 					t.Errorf("Expected at least 1 entity for mixed text, got %d", len(entities))
@@ -411,9 +411,9 @@ func TestMessage_Entities(t *testing.T) {
 
 func TestMessage_IsOutgoing(t *testing.T) {
 	message := &Message{
-		ID:        1,
-		Text:      "Test message",
-		Timestamp: time.Now(),
+		ID:         1,
+		Text:       "Test message",
+		Timestamp:  time.Now(),
 		IsOutgoing: true,
 	}
 

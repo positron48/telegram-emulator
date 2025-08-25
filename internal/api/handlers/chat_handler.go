@@ -10,8 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
-
 // ChatHandler обрабатывает запросы к API чатов
 type ChatHandler struct {
 	chatManager *emulator.ChatManager
@@ -26,11 +24,11 @@ func NewChatHandler(chatManager *emulator.ChatManager) *ChatHandler {
 
 // CreateChatRequest представляет запрос на создание чата
 type CreateChatRequest struct {
-	Type        string   `json:"type" binding:"required"` // private, group
-	Title       string   `json:"title" binding:"required"`
-	Username    string   `json:"username"`
-	Description string   `json:"description"`
-	UserIDs     []int64  `json:"user_ids" binding:"required"`
+	Type        string  `json:"type" binding:"required"` // private, group
+	Title       string  `json:"title" binding:"required"`
+	Username    string  `json:"username"`
+	Description string  `json:"description"`
+	UserIDs     []int64 `json:"user_ids" binding:"required"`
 }
 
 // UpdateChatRequest представляет запрос на обновление чата
@@ -44,10 +42,10 @@ type UpdateChatRequest struct {
 func (h *ChatHandler) GetAll(c *gin.Context) {
 	// Получаем user_id из query параметра
 	userIDStr := c.Query("user_id")
-	
+
 	var chats []models.Chat
 	var err error
-	
+
 	if userIDStr != "" {
 		// Парсим userID
 		userID, parseErr := ParseUserID(userIDStr)
@@ -61,7 +59,7 @@ func (h *ChatHandler) GetAll(c *gin.Context) {
 		// Возвращаем все чаты (для совместимости)
 		chats, err = h.chatManager.GetAllChats()
 	}
-	
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -92,8 +90,6 @@ func (h *ChatHandler) Create(c *gin.Context) {
 	})
 }
 
-
-
 // GetByID получает чат по ID
 func (h *ChatHandler) GetByID(c *gin.Context) {
 	idStr := c.Param("id")
@@ -101,7 +97,7 @@ func (h *ChatHandler) GetByID(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
 		return
 	}
-	
+
 	id, err := ParseChatID(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
@@ -126,7 +122,7 @@ func (h *ChatHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
 		return
 	}
-	
+
 	id, err := ParseChatID(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
@@ -175,7 +171,7 @@ func (h *ChatHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
 		return
 	}
-	
+
 	id, err := ParseChatID(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
@@ -223,8 +219,8 @@ func (h *ChatHandler) GetMessages(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"messages": []models.Message{},
-		"limit": limit,
-		"offset": offset,
+		"limit":    limit,
+		"offset":   offset,
 	})
 }
 
@@ -235,7 +231,7 @@ func (h *ChatHandler) AddMember(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
 		return
 	}
-	
+
 	chatID, err := ParseChatID(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
@@ -267,7 +263,7 @@ func (h *ChatHandler) GetMembers(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
 		return
 	}
-	
+
 	chatID, err := ParseChatID(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
@@ -293,13 +289,13 @@ func (h *ChatHandler) RemoveMember(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID чата обязателен"})
 		return
 	}
-	
+
 	chatID, err := ParseChatID(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID чата"})
 		return
 	}
-	
+
 	userIDStr := c.Param("userID")
 	if userIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID пользователя обязателен"})

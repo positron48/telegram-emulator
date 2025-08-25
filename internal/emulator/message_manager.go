@@ -66,7 +66,7 @@ func (m *MessageManager) SendMessage(chatID int64, fromUserID int64, text, messa
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
-		
+
 		if err := m.chatRepo.Create(newChat); err != nil {
 			m.logger.Error("Ошибка создания чата в базе данных", zap.Error(err))
 			// Если не удалось создать, используем виртуальный чат
@@ -106,18 +106,18 @@ func (m *MessageManager) SendMessage(chatID int64, fromUserID int64, text, messa
 
 	// Создаем сообщение
 	message := &models.Message{
-		ID:        id,
-		ChatID:    chatID,
-		FromID:    fromUserID,
-		From:      *fromUser,
-		Text:      text,
-		Type:      messageType,
-		Status:    models.MessageStatusSending,
+		ID:         id,
+		ChatID:     chatID,
+		FromID:     fromUserID,
+		From:       *fromUser,
+		Text:       text,
+		Type:       messageType,
+		Status:     models.MessageStatusSending,
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
-	
+
 	// Устанавливаем клавиатуру, если она есть
 	if replyMarkup != nil {
 		if err := message.SetReplyMarkup(replyMarkup); err != nil {
@@ -158,7 +158,7 @@ func (m *MessageManager) SendMessage(chatID int64, fromUserID int64, text, messa
 	// Уведомляем ботов о новом сообщении
 	m.notifyBots(message)
 
-	m.logger.Info("Сообщение отправлено", 
+	m.logger.Info("Сообщение отправлено",
 		zap.Int64("message_id", message.ID),
 		zap.Int64("chat_id", chatID),
 		zap.String("from_user", fromUser.Username))
@@ -173,9 +173,9 @@ func (m *MessageManager) GetChatMessages(chatID int64, limit, offset int) ([]mod
 		m.logger.Error("Ошибка получения сообщений чата", zap.Int64("chat_id", chatID), zap.Error(err))
 		return nil, err
 	}
-	
+
 	// Клавиатуры автоматически десериализуются при обращении к GetReplyMarkup()
-	
+
 	return messages, nil
 }
 
@@ -186,9 +186,9 @@ func (m *MessageManager) GetMessage(id int64) (*models.Message, error) {
 		m.logger.Error("Ошибка получения сообщения", zap.Int64("id", id), zap.Error(err))
 		return nil, err
 	}
-	
+
 	// Клавиатура автоматически десериализуется при обращении к GetReplyMarkup()
-	
+
 	return message, nil
 }
 
@@ -229,7 +229,7 @@ func (m *MessageManager) MarkChatAsRead(chatID int64, userID int64) error {
 		m.logger.Error("Ошибка подсчета непрочитанных сообщений", zap.Int64("chat_id", chatID), zap.Error(err))
 		return err
 	}
-	
+
 	if err := m.chatRepo.UpdateUnreadCount(chatID, int(unreadCount)); err != nil {
 		m.logger.Error("Ошибка обновления счетчика непрочитанных", zap.Int64("chat_id", chatID), zap.Error(err))
 		return err
@@ -291,16 +291,16 @@ func (m *MessageManager) HandleCallbackQuery(userID int64, messageID int64, call
 
 	// Создаем callback query
 	callbackQuery := &models.CallbackQuery{
-		ID:       fmt.Sprintf("cq_%d", callbackID),
-		From:     *user,
-		Message:  message,
-		Data:     callbackData,
+		ID:      fmt.Sprintf("cq_%d", callbackID),
+		From:    *user,
+		Message: message,
+		Data:    callbackData,
 	}
 
 	// Уведомляем ботов о callback query
 	m.notifyBotsCallbackQuery(callbackQuery)
 
-	m.logger.Info("Callback query обработан", 
+	m.logger.Info("Callback query обработан",
 		zap.String("callback_id", callbackQuery.ID),
 		zap.Int64("message_id", messageID),
 		zap.Int64("user_id", userID),
@@ -332,7 +332,7 @@ func (m *MessageManager) notifyBotsCallbackQuery(callbackQuery *models.CallbackQ
 		// Проверяем, является ли сообщение от этого бота
 		botUser, err := m.userRepo.GetByUsername(bot.Username)
 		if err != nil {
-			m.logger.Error("Ошибка получения пользователя-бота", 
+			m.logger.Error("Ошибка получения пользователя-бота",
 				zap.Int64("bot_id", bot.ID),
 				zap.String("bot_username", bot.Username),
 				zap.Error(err))
@@ -348,8 +348,8 @@ func (m *MessageManager) notifyBotsCallbackQuery(callbackQuery *models.CallbackQ
 
 			// Добавляем в очередь обновлений бота
 			if err := m.botManager.AddUpdate(bot.ID, update); err != nil {
-				m.logger.Error("Ошибка добавления callback query для бота", 
-					zap.Int64("bot_id", bot.ID), 
+				m.logger.Error("Ошибка добавления callback query для бота",
+					zap.Int64("bot_id", bot.ID),
 					zap.Error(err))
 			}
 
@@ -360,7 +360,7 @@ func (m *MessageManager) notifyBotsCallbackQuery(callbackQuery *models.CallbackQ
 		}
 	}
 
-	m.logger.Info("Боты уведомлены о callback query", 
+	m.logger.Info("Боты уведомлены о callback query",
 		zap.String("callback_id", callbackQuery.ID),
 		zap.Int("bots_count", len(bots)))
 }
@@ -388,11 +388,11 @@ func (m *MessageManager) simulateMessageDelivery(message *models.Message) {
 // broadcastMessage отправляет WebSocket уведомление о новом сообщении
 func (m *MessageManager) broadcastMessage(message *models.Message) {
 	if m.wsServer != nil {
-		m.logger.Info("Начинаем broadcast сообщения", 
+		m.logger.Info("Начинаем broadcast сообщения",
 			zap.Int64("message_id", message.ID),
 			zap.Int64("chat_id", message.ChatID),
 			zap.String("text", message.Text))
-		
+
 		// Отправляем всем участникам чата
 		chat, err := m.chatRepo.GetByID(message.ChatID)
 		if err != nil {
@@ -400,17 +400,17 @@ func (m *MessageManager) broadcastMessage(message *models.Message) {
 			return
 		}
 
-		m.logger.Info("Найдены участники чата", 
+		m.logger.Info("Найдены участники чата",
 			zap.Int64("chat_id", message.ChatID),
 			zap.Int("members_count", len(chat.Members)))
 
 		// Отправляем всем участникам чата, включая отправителя
 		for _, member := range chat.Members {
-			m.logger.Info("Отправляем сообщение участнику", 
+			m.logger.Info("Отправляем сообщение участнику",
 				zap.Int64("message_id", message.ID),
 				zap.Int64("member_id", member.ID),
 				zap.String("member_username", member.Username))
-			
+
 			messageData := map[string]interface{}{
 				"id":        message.ID,
 				"chat_id":   message.ChatID,
@@ -420,12 +420,12 @@ func (m *MessageManager) broadcastMessage(message *models.Message) {
 				"timestamp": message.Timestamp,
 				"status":    message.Status,
 			}
-			
+
 			// Добавляем клавиатуру, если она есть
 			if replyMarkup := message.GetReplyMarkup(); replyMarkup != nil {
 				messageData["reply_markup"] = replyMarkup
 			}
-			
+
 			m.wsServer.BroadcastToUser(member.ID, "message", messageData)
 		}
 	} else {
@@ -494,7 +494,7 @@ func (m *MessageManager) notifyBots(message *models.Message) {
 		// Если да, то не уведомляем бота о его собственном сообщении
 		botUser, err := m.userRepo.GetByUsername(bot.Username)
 		if err != nil {
-			m.logger.Error("Ошибка получения пользователя-бота", 
+			m.logger.Error("Ошибка получения пользователя-бота",
 				zap.Int64("bot_id", bot.ID),
 				zap.String("bot_username", bot.Username),
 				zap.Error(err))
@@ -503,7 +503,7 @@ func (m *MessageManager) notifyBots(message *models.Message) {
 
 		// Если сообщение от этого бота, пропускаем
 		if message.FromID == botUser.ID {
-			m.logger.Debug("Пропускаем уведомление бота о его собственном сообщении", 
+			m.logger.Debug("Пропускаем уведомление бота о его собственном сообщении",
 				zap.Int64("bot_id", bot.ID),
 				zap.Int64("message_id", message.ID))
 			continue
@@ -524,14 +524,14 @@ func (m *MessageManager) notifyBots(message *models.Message) {
 		// Для виртуальных чатов считаем что бот является участником
 		if chat.Title == "Virtual Chat" {
 			isBotMember = true
-			m.logger.Debug("Виртуальный чат, бот считается участником", 
+			m.logger.Debug("Виртуальный чат, бот считается участником",
 				zap.Int64("bot_id", bot.ID),
 				zap.Int64("chat_id", message.ChatID))
 		} else {
 			for _, member := range chat.Members {
 				if member.Username == bot.Username || member.ID == botUser.ID {
 					isBotMember = true
-					m.logger.Debug("Бот найден в участниках чата", 
+					m.logger.Debug("Бот найден в участниках чата",
 						zap.Int64("bot_id", bot.ID),
 						zap.Int64("chat_id", message.ChatID),
 						zap.String("member_username", member.Username))
@@ -541,7 +541,7 @@ func (m *MessageManager) notifyBots(message *models.Message) {
 		}
 		if !isBotMember {
 			// Бот не состоит в этом чате — пропускаем уведомление
-			m.logger.Debug("Бот не является участником чата, уведомление пропущено", 
+			m.logger.Debug("Бот не является участником чата, уведомление пропущено",
 				zap.Int64("bot_id", bot.ID),
 				zap.Int64("chat_id", message.ChatID))
 			continue
@@ -554,8 +554,8 @@ func (m *MessageManager) notifyBots(message *models.Message) {
 
 		// Добавляем в очередь обновлений бота
 		if err := m.botManager.AddUpdate(bot.ID, update); err != nil {
-			m.logger.Error("Ошибка добавления обновления для бота", 
-				zap.Int64("bot_id", bot.ID), 
+			m.logger.Error("Ошибка добавления обновления для бота",
+				zap.Int64("bot_id", bot.ID),
 				zap.Error(err))
 		}
 
@@ -565,7 +565,7 @@ func (m *MessageManager) notifyBots(message *models.Message) {
 		}
 	}
 
-	m.logger.Info("Боты уведомлены о новом сообщении", 
+	m.logger.Info("Боты уведомлены о новом сообщении",
 		zap.Int64("message_id", message.ID),
 		zap.Int("bots_count", len(bots)))
 }
@@ -590,7 +590,7 @@ func (m *MessageManager) sendWebhookUpdate(bot *models.Bot, update *models.Updat
 	// Отправляем POST запрос в webhook
 	jsonData, err := json.Marshal(webhookUpdate)
 	if err != nil {
-		m.logger.Error("Ошибка сериализации webhook обновления", 
+		m.logger.Error("Ошибка сериализации webhook обновления",
 			zap.Int64("bot_id", bot.ID),
 			zap.Error(err))
 		return
@@ -598,7 +598,7 @@ func (m *MessageManager) sendWebhookUpdate(bot *models.Bot, update *models.Updat
 
 	resp, err := http.Post(bot.WebhookURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		m.logger.Error("Ошибка отправки webhook", 
+		m.logger.Error("Ошибка отправки webhook",
 			zap.Int64("bot_id", bot.ID),
 			zap.String("webhook_url", bot.WebhookURL),
 			zap.Error(err))
@@ -608,7 +608,7 @@ func (m *MessageManager) sendWebhookUpdate(bot *models.Bot, update *models.Updat
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		m.logger.Error("Webhook вернул ошибку", 
+		m.logger.Error("Webhook вернул ошибку",
 			zap.Int64("bot_id", bot.ID),
 			zap.String("webhook_url", bot.WebhookURL),
 			zap.Int("status_code", resp.StatusCode),
@@ -616,7 +616,7 @@ func (m *MessageManager) sendWebhookUpdate(bot *models.Bot, update *models.Updat
 		return
 	}
 
-	m.logger.Info("Webhook обновление отправлено", 
+	m.logger.Info("Webhook обновление отправлено",
 		zap.Int64("bot_id", bot.ID),
 		zap.String("webhook_url", bot.WebhookURL),
 		zap.Int64("update_id", update.UpdateID))

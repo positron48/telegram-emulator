@@ -10,8 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
-
 // BotHandler обрабатывает запросы к API ботов
 type BotHandler struct {
 	botManager *emulator.BotManager

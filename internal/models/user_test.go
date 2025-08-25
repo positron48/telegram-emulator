@@ -24,14 +24,14 @@ func TestUser_GetFullName(t *testing.T) {
 		{"no names", "", "", ""},
 		{"with spaces", "  John  ", "  Doe  ", "  John     Doe  "},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			user := &User{
 				FirstName: tt.firstName,
 				LastName:  tt.lastName,
 			}
-			
+
 			fullName := user.GetFullName()
 			if fullName != tt.expected {
 				t.Errorf("Expected full name '%s', got '%s'", tt.expected, fullName)
@@ -46,21 +46,21 @@ func TestUser_SetOnline(t *testing.T) {
 		Username: "testuser",
 		IsOnline: false,
 	}
-	
+
 	// Set user online
 	user.SetOnline(true)
-	
+
 	if !user.IsOnline {
 		t.Error("Expected user to be online")
 	}
-	
+
 	// Set user offline
 	user.SetOnline(false)
-	
+
 	if user.IsOnline {
 		t.Error("Expected user to be offline")
 	}
-	
+
 	// Check that LastSeen is updated when going offline
 	if user.LastSeen.IsZero() {
 		t.Error("Expected LastSeen to be updated when going offline")
@@ -77,20 +77,20 @@ func TestUser_Validation(t *testing.T) {
 		IsOnline:  true,
 		IsBot:     false,
 	}
-	
+
 	// This should not panic
 	_ = validUser.GetFullName()
 	validUser.SetOnline(true)
-	
+
 	// Test user with minimal data
 	minimalUser := &User{
 		Username: "minimal",
 	}
-	
+
 	// This should not panic
 	_ = minimalUser.GetFullName()
 	minimalUser.SetOnline(false)
-	
+
 	// Test bot user
 	botUser := &User{
 		ID:        2,
@@ -99,7 +99,7 @@ func TestUser_Validation(t *testing.T) {
 		LastName:  "Bot",
 		IsBot:     true,
 	}
-	
+
 	// This should not panic
 	_ = botUser.GetFullName()
 	botUser.SetOnline(true)

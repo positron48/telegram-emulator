@@ -25,24 +25,24 @@ type BotManager struct {
 	chatRepo     *repository.ChatRepository
 	logger       *zap.Logger
 	updateQueue  map[int64][]models.Update // Очередь обновлений для каждого бота
-	updateID     int64                      // Глобальный счетчик update_id
-	chatIDMap    map[int64]string           // Маппинг Telegram chat_id -> внутренний chat_id
+	updateID     int64                     // Глобальный счетчик update_id
+	chatIDMap    map[int64]string          // Маппинг Telegram chat_id -> внутренний chat_id
 	nextUpdateID map[int64]int64           // Персональный счетчик update_id для каждого бота
 }
 
 // NewBotManager создает новый экземпляр BotManager
 func NewBotManager(botRepo *repository.BotRepository, userRepo *repository.UserRepository, messageRepo *repository.MessageRepository, chatRepo *repository.ChatRepository) *BotManager {
 	// Инициализируем генератор случайных чисел (удалено rand.Seed - deprecated)
-	
+
 	return &BotManager{
-		botRepo:     botRepo,
-		userRepo:    userRepo,
-		messageRepo: messageRepo,
-		chatRepo:    chatRepo,
-		logger:      logger.GetLogger(),
-		updateQueue: make(map[int64][]models.Update),
-		updateID:    1,
-		chatIDMap:   make(map[int64]string),
+		botRepo:      botRepo,
+		userRepo:     userRepo,
+		messageRepo:  messageRepo,
+		chatRepo:     chatRepo,
+		logger:       logger.GetLogger(),
+		updateQueue:  make(map[int64][]models.Update),
+		updateID:     1,
+		chatIDMap:    make(map[int64]string),
 		nextUpdateID: make(map[int64]int64),
 	}
 }
@@ -82,7 +82,7 @@ func (m *BotManager) CreateBot(name, username, token, webhookURL string) (*model
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	
+
 	if err := m.userRepo.Create(botUser); err != nil {
 		m.logger.Error("Ошибка создания пользователя-бота", zap.Error(err))
 		// Удаляем бота если не удалось создать пользователя
@@ -92,7 +92,7 @@ func (m *BotManager) CreateBot(name, username, token, webhookURL string) (*model
 		return nil, err
 	}
 
-	m.logger.Info("Создан новый бот", 
+	m.logger.Info("Создан новый бот",
 		zap.Int64("id", bot.ID),
 		zap.String("name", bot.Name),
 		zap.String("username", bot.Username))
@@ -160,12 +160,10 @@ func (m *BotManager) SendBotMessage(botID int64, chatID int64, text, parseMode s
 		return nil, fmt.Errorf("бот неактивен")
 	}
 
-
-
 	// Получаем пользователя-бота
 	botUser, err := m.userRepo.GetByUsername(bot.Username)
 	if err != nil {
-		m.logger.Error("Ошибка получения пользователя-бота по username", 
+		m.logger.Error("Ошибка получения пользователя-бота по username",
 			zap.String("username", bot.Username), zap.Error(err))
 		return nil, fmt.Errorf("пользователь-бот не найден")
 	}
@@ -177,16 +175,16 @@ func (m *BotManager) SendBotMessage(botID int64, chatID int64, text, parseMode s
 	}
 
 	message := &models.Message{
-		ID:        messageID,
-		ChatID:    chatID, // Используем chatID напрямую, так как он уже int64
-		FromID:    botUser.ID,
-		From:      *botUser,
-		Text:      text,
-		Type:      models.MessageTypeText,
-		Status:    models.MessageStatusSent,
+		ID:         messageID,
+		ChatID:     chatID, // Используем chatID напрямую, так как он уже int64
+		FromID:     botUser.ID,
+		From:       *botUser,
+		Text:       text,
+		Type:       models.MessageTypeText,
+		Status:     models.MessageStatusSent,
 		IsOutgoing: false,
-		Timestamp: time.Now(),
-		CreatedAt: time.Now(),
+		Timestamp:  time.Now(),
+		CreatedAt:  time.Now(),
 	}
 
 	if err := m.messageRepo.Create(message); err != nil {
@@ -194,7 +192,7 @@ func (m *BotManager) SendBotMessage(botID int64, chatID int64, text, parseMode s
 		return nil, err
 	}
 
-	m.logger.Info("Сообщение бота отправлено", 
+	m.logger.Info("Сообщение бота отправлено",
 		zap.Int64("bot_id", botID),
 		zap.Int64("chat_id", chatID),
 		zap.Int64("message_id", messageID))
@@ -226,7 +224,7 @@ func (m *BotManager) GetBotUpdates(botID int64, offset, limit int) ([]models.Upd
 		return []models.Update{}, nil
 	}
 
-	m.logger.Debug("Получена очередь обновлений", 
+	m.logger.Debug("Получена очередь обновлений",
 		zap.Int64("bot_id", botID),
 		zap.Int("queue_size", len(queue)),
 		zap.Int("offset", offset))
@@ -241,7 +239,7 @@ func (m *BotManager) GetBotUpdates(botID int64, offset, limit int) ([]models.Upd
 
 	// Если offset больше максимального update_id, возвращаем пустой список
 	if int64(offset) > maxUpdateID && maxUpdateID > 0 {
-		m.logger.Info("Offset больше максимального update_id, возвращаем пустой список", 
+		m.logger.Info("Offset больше максимального update_id, возвращаем пустой список",
 			zap.Int64("bot_id", botID),
 			zap.Int("offset", offset),
 			zap.Int64("max_update_id", maxUpdateID))
@@ -255,7 +253,7 @@ func (m *BotManager) GetBotUpdates(botID int64, offset, limit int) ([]models.Upd
 			filteredUpdates = append(filteredUpdates, update)
 			// Логируем информацию о callback query
 			if update.CallbackQuery != nil {
-				m.logger.Debug("Найден callback query в обновлении", 
+				m.logger.Debug("Найден callback query в обновлении",
 					zap.Int64("bot_id", botID),
 					zap.Int64("update_id", update.UpdateID),
 					zap.String("callback_data", update.CallbackQuery.Data))
@@ -271,7 +269,7 @@ func (m *BotManager) GetBotUpdates(botID int64, offset, limit int) ([]models.Upd
 	// НЕ обновляем offset бота автоматически - бот должен сам управлять своим offset
 	// Это стандартное поведение Telegram Bot API
 
-	m.logger.Info("Получены обновления для бота", 
+	m.logger.Info("Получены обновления для бота",
 		zap.Int64("bot_id", botID),
 		zap.Int("count", len(filteredUpdates)),
 		zap.Int("offset", offset),
@@ -301,7 +299,7 @@ func (m *BotManager) ProcessWebhook(botID int64, update *models.Update) error {
 			return err
 		}
 
-		m.logger.Info("Webhook сообщение обработано", 
+		m.logger.Info("Webhook сообщение обработано",
 			zap.Int64("bot_id", botID),
 			zap.Int64("message_id", update.Message.ID))
 	}
@@ -314,8 +312,8 @@ func (m *BotManager) AddUpdate(botID int64, update *models.Update) error {
 	// Получаем бота
 	bot, err := m.GetBot(botID)
 	if err != nil {
-		m.logger.Error("Ошибка получения бота в AddUpdate", 
-			zap.Int64("bot_id", botID), 
+		m.logger.Error("Ошибка получения бота в AddUpdate",
+			zap.Int64("bot_id", botID),
 			zap.Error(err))
 		return err
 	}
@@ -346,7 +344,7 @@ func (m *BotManager) AddUpdate(botID int64, update *models.Update) error {
 	if m.updateQueue[botID] == nil {
 		m.updateQueue[botID] = []models.Update{}
 	}
-	
+
 	m.updateQueue[botID] = append(m.updateQueue[botID], *update)
 
 	// Ограничиваем размер очереди (максимум 1000 обновлений)
@@ -354,13 +352,13 @@ func (m *BotManager) AddUpdate(botID int64, update *models.Update) error {
 		m.updateQueue[botID] = m.updateQueue[botID][len(m.updateQueue[botID])-1000:]
 	}
 
-	m.logger.Info("Обновление добавлено в очередь", 
+	m.logger.Info("Обновление добавлено в очередь",
 		zap.Int64("bot_id", botID),
 		zap.Int64("update_id", update.UpdateID))
 
 	// Обрабатываем команды автоматически
 	if update.Message != nil && update.Message.IsCommand() {
-		m.logger.Info("Найдена команда, запускаем обработку", 
+		m.logger.Info("Найдена команда, запускаем обработку",
 			zap.Int64("bot_id", botID),
 			zap.String("command", update.Message.GetCommand()),
 			zap.Int64("message_id", update.Message.ID))
@@ -377,7 +375,7 @@ func (m *BotManager) AddCallbackQuery(botToken string, callbackQuery *models.Cal
 	if err != nil {
 		return err
 	}
-	
+
 	var bot *models.Bot
 	for _, b := range bots {
 		if b.Token == botToken {
@@ -385,15 +383,15 @@ func (m *BotManager) AddCallbackQuery(botToken string, callbackQuery *models.Cal
 			break
 		}
 	}
-	
+
 	if bot == nil {
 		return fmt.Errorf("бот с токеном %s не найден", botToken)
 	}
-	
+
 	if !bot.IsActive {
 		return fmt.Errorf("бот неактивен")
 	}
-	
+
 	// Создаем обновление с callback query с персонифицированным update_id
 	nextID := m.nextUpdateID[bot.ID]
 	if nextID == 0 {
@@ -405,30 +403,30 @@ func (m *BotManager) AddCallbackQuery(botToken string, callbackQuery *models.Cal
 		Timestamp:     time.Now(),
 	}
 	m.nextUpdateID[bot.ID] = nextID + 1
-	
+
 	// Добавляем в очередь
 	if m.updateQueue[bot.ID] == nil {
 		m.updateQueue[bot.ID] = []models.Update{}
 	}
-	
+
 	m.updateQueue[bot.ID] = append(m.updateQueue[bot.ID], *update)
-	
+
 	// Ограничиваем размер очереди
 	if len(m.updateQueue[bot.ID]) > 1000 {
 		m.updateQueue[bot.ID] = m.updateQueue[bot.ID][len(m.updateQueue[bot.ID])-1000:]
 	}
-	
+
 	// Если у бота есть webhook URL, отправляем обновление в webhook
 	if bot.WebhookURL != "" {
 		go m.sendWebhookUpdate(bot, update)
 	}
-	
-	m.logger.Info("Callback query добавлен в очередь", 
+
+	m.logger.Info("Callback query добавлен в очередь",
 		zap.Int64("bot_id", bot.ID),
 		zap.String("bot_token", botToken),
 		zap.Int64("update_id", update.UpdateID),
 		zap.String("callback_data", callbackQuery.Data))
-	
+
 	return nil
 }
 
@@ -454,11 +452,11 @@ func (m *BotManager) generateID() (int64, error) {
 
 // sendWebhookUpdate отправляет обновление через webhook
 func (m *BotManager) sendWebhookUpdate(bot *models.Bot, update *models.Update) {
-	m.logger.Info("Начинаем отправку webhook", 
+	m.logger.Info("Начинаем отправку webhook",
 		zap.Int64("bot_id", bot.ID),
 		zap.String("webhook_url", bot.WebhookURL),
 		zap.Int64("update_id", update.UpdateID))
-	
+
 	if bot.WebhookURL == "" {
 		m.logger.Error("Webhook URL не установлен для бота", zap.Int64("bot_id", bot.ID))
 		return
@@ -479,7 +477,7 @@ func (m *BotManager) sendWebhookUpdate(bot *models.Bot, update *models.Update) {
 	}
 	if update.CallbackQuery != nil {
 		webhookUpdate["callback_query"] = update.CallbackQuery.ToTelegramCallbackQuery()
-		m.logger.Debug("Добавлен callback query в webhook", 
+		m.logger.Debug("Добавлен callback query в webhook",
 			zap.Int64("bot_id", bot.ID),
 			zap.String("callback_data", update.CallbackQuery.Data))
 	}
@@ -490,14 +488,14 @@ func (m *BotManager) sendWebhookUpdate(bot *models.Bot, update *models.Update) {
 		return
 	}
 
-	m.logger.Debug("Отправляем webhook", 
+	m.logger.Debug("Отправляем webhook",
 		zap.Int64("bot_id", bot.ID),
 		zap.String("webhook_url", bot.WebhookURL),
 		zap.String("json_data", string(jsonData)))
 
 	resp, err := http.Post(bot.WebhookURL, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		m.logger.Error("Ошибка отправки обновления через webhook", 
+		m.logger.Error("Ошибка отправки обновления через webhook",
 			zap.Int64("bot_id", bot.ID),
 			zap.String("webhook_url", bot.WebhookURL),
 			zap.Error(err))
@@ -507,13 +505,13 @@ func (m *BotManager) sendWebhookUpdate(bot *models.Bot, update *models.Update) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		m.logger.Error("Webhook вернул не OK статус", 
+		m.logger.Error("Webhook вернул не OK статус",
 			zap.Int64("bot_id", bot.ID),
 			zap.String("webhook_url", bot.WebhookURL),
 			zap.Int("status_code", resp.StatusCode),
 			zap.String("response_body", string(body)))
 	} else {
-		m.logger.Info("Обновление успешно отправлено через webhook", 
+		m.logger.Info("Обновление успешно отправлено через webhook",
 			zap.Int64("bot_id", bot.ID),
 			zap.String("webhook_url", bot.WebhookURL),
 			zap.Int64("update_id", update.UpdateID))
@@ -525,8 +523,8 @@ func (m *BotManager) handleCommand(botID int64, message *models.Message) {
 	// Получаем бота
 	bot, err := m.GetBot(botID)
 	if err != nil {
-		m.logger.Error("Ошибка получения бота для обработки команды", 
-			zap.Int64("bot_id", botID), 
+		m.logger.Error("Ошибка получения бота для обработки команды",
+			zap.Int64("bot_id", botID),
 			zap.Error(err))
 		return
 	}
@@ -534,7 +532,7 @@ func (m *BotManager) handleCommand(botID int64, message *models.Message) {
 	// Получаем пользователя-бота
 	botUser, err := m.userRepo.GetByUsername(bot.Username)
 	if err != nil {
-		m.logger.Error("Ошибка получения пользователя-бота", 
+		m.logger.Error("Ошибка получения пользователя-бота",
 			zap.Int64("bot_id", botID),
 			zap.String("bot_username", bot.Username),
 			zap.Error(err))
@@ -543,7 +541,7 @@ func (m *BotManager) handleCommand(botID int64, message *models.Message) {
 
 	// Получаем команду
 	command := message.GetCommand()
-	m.logger.Info("Обрабатываем команду", 
+	m.logger.Info("Обрабатываем команду",
 		zap.Int64("bot_id", botID),
 		zap.String("command", command),
 		zap.Int64("chat_id", message.ChatID))
@@ -551,29 +549,29 @@ func (m *BotManager) handleCommand(botID int64, message *models.Message) {
 	// Обрабатываем команду /start
 	if command == "/start" {
 		responseText := fmt.Sprintf("Привет! Я бот %s. Добро пожаловать!", bot.Name)
-		
+
 		// Отправляем ответное сообщение
 		responseMessage := &models.Message{
-			ID:        time.Now().UnixNano(),
-			ChatID:    message.ChatID,
-			FromID:    botUser.ID,
-			Text:      responseText,
-			Type:      "text",
-			Status:    "sending",
+			ID:         time.Now().UnixNano(),
+			ChatID:     message.ChatID,
+			FromID:     botUser.ID,
+			Text:       responseText,
+			Type:       "text",
+			Status:     "sending",
 			IsOutgoing: true,
-			Timestamp: time.Now(),
-			CreatedAt: time.Now(),
+			Timestamp:  time.Now(),
+			CreatedAt:  time.Now(),
 		}
 
 		// Сохраняем сообщение в базе данных
 		if err := m.messageRepo.Create(responseMessage); err != nil {
-			m.logger.Error("Ошибка сохранения ответного сообщения", 
+			m.logger.Error("Ошибка сохранения ответного сообщения",
 				zap.Int64("bot_id", botID),
 				zap.Error(err))
 			return
 		}
 
-		m.logger.Info("Ответ на команду /start отправлен", 
+		m.logger.Info("Ответ на команду /start отправлен",
 			zap.Int64("bot_id", botID),
 			zap.Int64("message_id", responseMessage.ID),
 			zap.Int64("chat_id", message.ChatID))

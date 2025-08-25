@@ -55,17 +55,17 @@ func main() {
 
 	// Инициализация WebSocket сервера
 	wsServer := websocket.NewServer()
-	
+
 	// Инициализация менеджеров
 	userManager := emulator.NewUserManager(userRepo, botRepo)
 	botManager := emulator.NewBotManager(botRepo, userRepo, messageRepo, chatRepo)
 	chatManager := emulator.NewChatManager(chatRepo, messageRepo, userRepo)
 	messageManager := emulator.NewMessageManager(messageRepo, chatRepo, userRepo, botManager, wsServer)
-	
+
 	// Устанавливаем MessageManager и BotManager в WebSocket сервер
 	wsServer.SetMessageManager(messageManager)
 	wsServer.SetBotManager(botManager)
-	
+
 	go wsServer.Start()
 
 	// Создание тестовых данных
@@ -78,22 +78,22 @@ func main() {
 
 	// Настройка и запуск HTTP сервера
 	router := gin.Default()
-	
+
 	// Настройка CORS и HTTP заголовков
 	router.Use(func(c *gin.Context) {
 		// Устанавливаем HTTP/1.1
 		c.Header("Server", "Telegram-Emulator/1.0")
-		
+
 		// CORS заголовки
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, User-Agent")
-		
+
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
 			return
 		}
-		
+
 		c.Next()
 	})
 
@@ -103,13 +103,13 @@ func main() {
 	// Запуск сервера с правильными настройками HTTP
 	addr := fmt.Sprintf("%s:%d", cfg.Emulator.Host, cfg.Emulator.Port)
 	log.Info("HTTP сервер запускается", zap.String("address", addr))
-	
+
 	// Создаем HTTP сервер с правильными настройками
 	server := &http.Server{
 		Addr:    addr,
 		Handler: router,
 	}
-	
+
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal("Ошибка запуска HTTP сервера", zap.Error(err))
 	}
@@ -119,7 +119,7 @@ func main() {
 func initDatabase(dbURL string) (*gorm.DB, error) {
 	// Для SQLite используем простой путь к файлу
 	dbPath := "data/emulator.db"
-	
+
 	// Создаем директорию для базы данных
 	if err := os.MkdirAll("data", 0755); err != nil {
 		return nil, fmt.Errorf("ошибка создания директории для БД: %w", err)
@@ -168,7 +168,7 @@ func createTestData(userManager *emulator.UserManager, chatManager *emulator.Cha
 			log.Error("Ошибка создания тестового пользователя", zap.Error(err))
 			continue
 		}
-		log.Info("Создан тестовый пользователь", 
+		log.Info("Создан тестовый пользователь",
 			zap.Int64("id", user.ID),
 			zap.String("username", user.Username),
 			zap.Bool("is_bot", user.IsBot))
@@ -186,7 +186,7 @@ func createTestData(userManager *emulator.UserManager, chatManager *emulator.Cha
 		if err != nil {
 			log.Error("Ошибка создания приватного чата", zap.Error(err))
 		} else {
-			log.Info("Создан приватный чат", 
+			log.Info("Создан приватный чат",
 				zap.Int64("id", chat.ID),
 				zap.String("title", chat.Title),
 				zap.String("type", chat.Type))

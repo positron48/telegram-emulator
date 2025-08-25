@@ -23,7 +23,7 @@ func TestChat_IsPrivate(t *testing.T) {
 	if !privateChat.IsPrivate() {
 		t.Error("Expected private chat to return true")
 	}
-	
+
 	groupChat := &Chat{Type: "group"}
 	if groupChat.IsPrivate() {
 		t.Error("Expected group chat to return false")
@@ -35,7 +35,7 @@ func TestChat_IsGroup(t *testing.T) {
 	if !groupChat.IsGroup() {
 		t.Error("Expected group chat to return true")
 	}
-	
+
 	privateChat := &Chat{Type: "private"}
 	if privateChat.IsGroup() {
 		t.Error("Expected private chat to return false")
@@ -54,7 +54,7 @@ func TestChat_GetChatIcon(t *testing.T) {
 		{"channel", "channel", "💬"},
 		{"unknown", "unknown", "💬"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			chat := &Chat{Type: tt.chatType}
@@ -78,7 +78,7 @@ func TestChat_GetChatTypeLabel(t *testing.T) {
 		{"channel", "channel", "Чат"},
 		{"unknown", "unknown", "Чат"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			chat := &Chat{Type: tt.chatType}
@@ -96,13 +96,13 @@ func TestChat_CanUserJoin(t *testing.T) {
 	if privateChat.CanUserJoin() {
 		t.Error("Expected private chat to not allow joining")
 	}
-	
+
 	// Group chats can be joined
 	groupChat := &Chat{Type: "group"}
 	if !groupChat.CanUserJoin() {
 		t.Error("Expected group chat to allow joining")
 	}
-	
+
 	// Supergroups cannot be joined (not implemented)
 	supergroupChat := &Chat{Type: "supergroup"}
 	if supergroupChat.CanUserJoin() {
@@ -116,13 +116,13 @@ func TestChat_CanUserLeave(t *testing.T) {
 	if privateChat.CanUserLeave() {
 		t.Error("Expected private chat to not allow leaving")
 	}
-	
+
 	// Group chats can be left
 	groupChat := &Chat{Type: "group"}
 	if !groupChat.CanUserLeave() {
 		t.Error("Expected group chat to allow leaving")
 	}
-	
+
 	// Supergroups cannot be left (not implemented)
 	supergroupChat := &Chat{Type: "supergroup"}
 	if supergroupChat.CanUserLeave() {
@@ -138,17 +138,17 @@ func TestChat_IsUserMember(t *testing.T) {
 			{ID: 2, Username: "user2"},
 		},
 	}
-	
+
 	// Test existing member
 	if !chat.IsUserMember(1) {
 		t.Error("Expected user 1 to be a member")
 	}
-	
+
 	// Test non-existing member
 	if chat.IsUserMember(999) {
 		t.Error("Expected user 999 to not be a member")
 	}
-	
+
 	// Test empty members list
 	emptyChat := &Chat{ID: 2, Members: []User{}}
 	if emptyChat.IsUserMember(1) {
@@ -161,7 +161,7 @@ func TestChat_AddMember(t *testing.T) {
 		ID:      1,
 		Members: []User{},
 	}
-	
+
 	// Add first member
 	user1 := User{ID: 1, Username: "user1"}
 	chat.AddMember(user1)
@@ -171,14 +171,14 @@ func TestChat_AddMember(t *testing.T) {
 	if chat.Members[0].ID != 1 {
 		t.Errorf("Expected user ID 1, got %d", chat.Members[0].ID)
 	}
-	
+
 	// Add second member
 	user2 := User{ID: 2, Username: "user2"}
 	chat.AddMember(user2)
 	if len(chat.Members) != 2 {
 		t.Errorf("Expected 2 members, got %d", len(chat.Members))
 	}
-	
+
 	// Try to add duplicate member
 	chat.AddMember(user1)
 	if len(chat.Members) != 2 {
@@ -195,26 +195,26 @@ func TestChat_RemoveMember(t *testing.T) {
 			{ID: 3, Username: "user3"},
 		},
 	}
-	
+
 	// Remove existing member
 	chat.RemoveMember(2)
 	if len(chat.Members) != 2 {
 		t.Errorf("Expected 2 members after removal, got %d", len(chat.Members))
 	}
-	
+
 	// Check that user 2 is not in the list
 	for _, member := range chat.Members {
 		if member.ID == 2 {
 			t.Error("Expected user 2 to be removed")
 		}
 	}
-	
+
 	// Try to remove non-existing member
 	chat.RemoveMember(999)
 	if len(chat.Members) != 2 {
 		t.Errorf("Expected 2 members after removing non-existing user, got %d", len(chat.Members))
 	}
-	
+
 	// Remove all members
 	chat.RemoveMember(1)
 	chat.RemoveMember(3)
