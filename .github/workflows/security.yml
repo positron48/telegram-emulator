@@ -29,6 +29,10 @@ jobs:
         go mod download
         go mod verify
         
+    - name: Install Nancy
+      run: |
+        go install github.com/sonatype-nexus-community/nancy@latest
+        
     - name: Run Go security audit
       run: |
         go list -json -deps ./... | nancy sleuth

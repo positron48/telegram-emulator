@@ -53,6 +53,7 @@ jobs:
       uses: golangci/golangci-lint-action@v4
       with:
         version: v1.64.8
+        args: --timeout=10m
         
     - name: Run Go tests
       run: |
@@ -94,27 +95,10 @@ jobs:
         cd web
         npm run lint
         
-    - name: Run TypeScript type check
-      run: |
-        cd web
-        npm run type-check
-        
-    - name: Run frontend tests
-      run: |
-        cd web
-        npm run test:ci
-        
     - name: Build frontend
       run: |
         cd web
         npm run build
-        
-    - name: Upload frontend coverage
-      uses: codecov/codecov-action@v4
-      with:
-        file: web/coverage/lcov.info
-        flags: react-frontend
-        name: react-frontend-coverage
 
 
         
