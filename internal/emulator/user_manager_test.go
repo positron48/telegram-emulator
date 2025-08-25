@@ -200,9 +200,15 @@ func TestUserManager_UpdateUser(t *testing.T) {
 	// Update user
 	user.FirstName = "Updated"
 	user.LastName = "Name"
-	updatedUser, err := userManager.UpdateUser(user)
+	err = userManager.UpdateUser(user)
 	if err != nil {
 		t.Fatalf("Failed to update user: %v", err)
+	}
+
+	// Get updated user to verify changes
+	updatedUser, err := userManager.GetUser(user.ID)
+	if err != nil {
+		t.Fatalf("Failed to get updated user: %v", err)
 	}
 
 	if updatedUser.FirstName != "Updated" {
