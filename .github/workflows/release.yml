@@ -6,12 +6,19 @@ on:
       - 'v*'
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+          cache: true
+          
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -19,18 +26,34 @@ jobs:
           cache: 'npm'
           cache-dependency-path: web/package-lock.json
           
-      - name: Install dependencies
+      - name: Install Go dependencies
+        run: |
+          cd budget
+          go mod download
+          go mod verify
+          
+      - name: Install frontend dependencies
         run: |
           cd web
           npm ci
           
-      - name: Run tests
+      - name: Run all tests
         run: |
-          cd web
+          # Go tests
+          cd budget
+          go test ./... -race -coverprofile=coverage.out -covermode=atomic
+          
+          # Frontend tests
+          cd ../web
           npm run lint
           npm test --if-present
           
-      - name: Build project
+      - name: Build Go binary
+        run: |
+          cd budget
+          go build -o bin/budgetd ./cmd/budgetd
+          
+      - name: Build frontend
         run: |
           cd web
           npm run build
@@ -46,12 +69,37 @@ jobs:
           draft: false
           prerelease: false
           
-      - name: Upload build artifacts
+      - name: Upload Go binary
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./budget/bin/budgetd
+          asset_name: budgetd-${{ github.ref_name }}-linux-amd64
+          asset_content_type: application/octet-stream
+          
+      - name: Upload frontend build
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./web/dist
-          asset_name: telegram-emulator-web-${{ github.ref_name }}.zip
+          asset_name: frontend-${{ github.ref_name }}.zip
           asset_content_type: application/zip
+          
+      - name: Build Docker image
+        run: |
+          docker build -t telegram-emulator:${{ github.ref_name }} .
+          docker save telegram-emulator:${{ github.ref_name }} | gzip > telegram-emulator-${{ github.ref_name }}.tar.gz
+          
+      - name: Upload Docker image
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./telegram-emulator-${{ github.ref_name }}.tar.gz
+          asset_name: telegram-emulator-${{ github.ref_name }}.tar.gz
+          asset_content_type: application/gzip

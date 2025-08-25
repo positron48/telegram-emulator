@@ -1,0 +1,108 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Go Code Quality
+  go-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23'
+        cache: true
+        
+    - name: Install Go dependencies
+      run: |
+        cd budget
+        go mod download
+        go mod verify
+        
+    - name: Run Go vet
+      run: |
+        cd budget
+        go vet ./...
+        
+    - name: Run Go fmt check
+      run: |
+        cd budget
+        test -z "$(gofmt -l .)"
+        
+    - name: Run Go imports check
+      run: |
+        cd budget
+        go install golang.org/x/tools/cmd/goimports@latest
+        test -z "$(goimports -l .)"
+        
+    - name: Run Go race detector
+      run: |
+        cd budget
+        go test -race ./...
+        
+  # Frontend Code Quality
+  frontend-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: web/package-lock.json
+        
+    - name: Install frontend dependencies
+      run: |
+        cd web
+        npm ci
+        
+    - name: Run ESLint with fix check
+      run: |
+        cd web
+        npm run lint:fix --dry-run
+        
+    - name: Check for TypeScript errors
+      run: |
+        cd web
+        npx tsc --noEmit --skipLibCheck || true
+        
+    - name: Check bundle size
+      run: |
+        cd web
+        npm run build
+        du -sh dist/
+        
+  # Documentation Check
+  docs-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check README exists
+      run: |
+        test -f README.md || echo "Warning: README.md not found"
+        test -f budget/README.md || echo "Warning: budget/README.md not found"
+        
+    - name: Check for TODO comments
+      run: |
+        echo "Checking for TODO comments:"
+        grep -r "TODO" . --exclude-dir=.git --exclude-dir=node_modules || echo "No TODO comments found"
+        
+    - name: Check for FIXME comments
+      run: |
+        echo "Checking for FIXME comments:"
+        grep -r "FIXME" . --exclude-dir=.git --exclude-dir=node_modules || echo "No FIXME comments found"

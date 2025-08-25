@@ -10,7 +10,38 @@ on:
     - cron: '0 0 * * 0'
 
 jobs:
-  security-audit:
+  # Go Security Audit
+  go-security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23'
+        cache: true
+        
+    - name: Install Go dependencies
+      run: |
+        cd budget
+        go mod download
+        go mod verify
+        
+    - name: Run Go security audit
+      run: |
+        cd budget
+        go list -json -deps ./... | nancy sleuth
+        
+    - name: Check for Go vulnerabilities
+      run: |
+        cd budget
+        go list -json -deps ./... | nancy sleuth --exit-code
+        
+  # Node.js Security Audit
+  node-security:
     runs-on: ubuntu-latest
     
     steps:
@@ -24,12 +55,12 @@ jobs:
         cache: 'npm'
         cache-dependency-path: web/package-lock.json
         
-    - name: Install dependencies
+    - name: Install frontend dependencies
       run: |
         cd web
         npm ci
         
-    - name: Run security audit
+    - name: Run npm audit
       run: |
         cd web
         npm audit --audit-level=moderate
@@ -38,3 +69,25 @@ jobs:
       run: |
         cd web
         npm outdated || true
+        
+  # Container Security
+  container-security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Trivy vulnerability scanner on Dockerfiles
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'config'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-config-results.sarif'
+        
+    - name: Upload Trivy config scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-config-results.sarif'
