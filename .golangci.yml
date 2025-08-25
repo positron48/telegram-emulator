@@ -1,0 +1,16 @@
+run:
+  timeout: 10m
+  go: "1.24"
+
+linters:
+  enable:
+    - gofmt
+    - goimports
+    - govet
+    - errcheck
+    - gosimple
+    - staticcheck
+    - unused
+    - ineffassign
+    - typecheck
+    - misspell
