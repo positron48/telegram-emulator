@@ -32,7 +32,11 @@ func main() {
 	if err := logger.Init(cfg.Logging.Level, cfg.Logging.Format, cfg.Logging.File); err != nil {
 		log.Fatalf("Ошибка инициализации логгера: %v", err)
 	}
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			log.Printf("Ошибка синхронизации логгера: %v", err)
+		}
+	}()
 
 	log := logger.GetLogger()
 	log.Info("Запуск Telegram эмулятора...")

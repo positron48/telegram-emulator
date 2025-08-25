@@ -32,8 +32,7 @@ type BotManager struct {
 
 // NewBotManager создает новый экземпляр BotManager
 func NewBotManager(botRepo *repository.BotRepository, userRepo *repository.UserRepository, messageRepo *repository.MessageRepository, chatRepo *repository.ChatRepository) *BotManager {
-	// Инициализируем генератор случайных чисел
-	rand.Seed(time.Now().UnixNano())
+	// Инициализируем генератор случайных чисел (удалено rand.Seed - deprecated)
 	
 	return &BotManager{
 		botRepo:     botRepo,
@@ -87,7 +86,9 @@ func (m *BotManager) CreateBot(name, username, token, webhookURL string) (*model
 	if err := m.userRepo.Create(botUser); err != nil {
 		m.logger.Error("Ошибка создания пользователя-бота", zap.Error(err))
 		// Удаляем бота если не удалось создать пользователя
-		m.botRepo.Delete(id)
+		if deleteErr := m.botRepo.Delete(id); deleteErr != nil {
+			m.logger.Error("Ошибка удаления бота после неудачного создания пользователя", zap.Error(deleteErr))
+		}
 		return nil, err
 	}
 
