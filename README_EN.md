@@ -2,19 +2,19 @@
 
 English | [Русский](README.md)
 
-[![CI](https://github.com/your-username/telegram-emulator/workflows/CI/badge.svg)](https://github.com/your-username/telegram-emulator/actions)
-[![Security](https://github.com/your-username/telegram-emulator/workflows/Security%20Audit/badge.svg)](https://github.com/your-username/telegram-emulator/actions)
+[![CI](https://github.com/positron48/telegram-emulator/workflows/CI/badge.svg)](https://github.com/positron48/telegram-emulator/actions)
+[![Security](https://github.com/positron48/telegram-emulator/workflows/Security%20Audit/badge.svg)](https://github.com/positron48/telegram-emulator/actions)
 [![Go Version](https://img.shields.io/badge/Go-1.24+-blue.svg)](https://golang.org/)
 [![Node.js Version](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Go Report Card](https://goreportcard.com/badge/github.com/your-username/telegram-emulator)](https://goreportcard.com/report/github.com/your-username/telegram-emulator)
-[![Coverage](https://img.shields.io/badge/Coverage-57%25-brightgreen.svg)](https://codecov.io/gh/your-username/telegram-emulator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/positron48/telegram-emulator)](https://goreportcard.com/report/github.com/positron48/telegram-emulator)
+[![Coverage](https://img.shields.io/badge/Coverage-57%25-brightgreen.svg)](https://codecov.io/gh/positron48/telegram-emulator)
 
 A web-based Telegram emulator for local bot testing and development. The emulator provides a graphical interface that mimics Telegram and allows you to test bots without using the real Telegram API.
 
 ![](screen.png)
 
-## 🛠️ Technologies
+## Technologies
 
 ### Backend
 ![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=for-the-badge&logo=go&logoColor=white)
@@ -35,9 +35,9 @@ A web-based Telegram emulator for local bot testing and development. The emulato
 ![ESLint](https://img.shields.io/badge/ESLint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white)
 ![GolangCI-Lint](https://img.shields.io/badge/GolangCI--Lint-000000?style=for-the-badge&logo=go&logoColor=white)
 
-## 🚀 Features
+## Features
 
-### ✅ Implemented
+### Implemented
 - **Telegram Bot API** - compatible with the official API
 - **Web Interface** - similar to Telegram
 - **Bot Management** - create, edit, activate/deactivate bots
@@ -54,7 +54,7 @@ A web-based Telegram emulator for local bot testing and development. The emulato
 - **Keyboard Support** - ReplyKeyboardMarkup and InlineKeyboardMarkup
 - **Callback Queries** - full support for inline keyboard interactions
 
-### 🔧 Telegram Bot API Methods
+### Telegram Bot API Methods
 
 The emulator supports the following Telegram Bot API methods:
 
@@ -75,7 +75,7 @@ The emulator supports the following Telegram Bot API methods:
 - Inline queries (`inline_query`)
 - And other update types
 
-## 🛠️ Installation and Setup
+## Installation and Setup
 
 ### Requirements
 - Go 1.23+
@@ -115,7 +115,7 @@ The emulator supports the following Telegram Bot API methods:
    npm run dev
    ```
 
-## 🤖 Creating and Testing Bots
+## Creating and Testing Bots
 
 ### 1. Creating a Bot via Web Interface
 
@@ -236,7 +236,7 @@ For more details, see [examples/README.md](examples/README.md)
 
 4. **Check bot responses in the web interface**
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 telegram-emulator/
@@ -254,7 +254,7 @@ telegram-emulator/
 └── migrations/           # Database migrations
 ```
 
-## 🔧 Configuration
+## Configuration
 
 Main settings in `configs/config.yaml`:
 
@@ -281,7 +281,7 @@ logging:
   format: console
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Running Tests
 ```bash
@@ -304,12 +304,12 @@ curl "http://localhost:3001/bot1234567890:ABCdefGHIjklMNOpqrsTUVwxyz/getUpdates?
 curl "http://localhost:3001/bot1234567890:ABCdefGHIjklMNOpqrsTUVwxyz/getWebhookInfo"
 ```
 
-## 📚 Documentation
+## Documentation
 
 - [Specification](TELEGRAM_EMULATOR_SPECIFICATION.md) - complete technical specification
 - [Bot Example](examples/) - usage example
 
-## 📊 Project Statistics
+## Project Statistics
 
 ### Testing
 ![Tests](https://img.shields.io/badge/Tests-100%25%20Passing-brightgreen?style=for-the-badge)
@@ -329,6 +329,6 @@ curl "http://localhost:3001/bot1234567890:ABCdefGHIjklMNOpqrsTUVwxyz/getWebhookI
 
 ---
 
-**Status**: ✅ Ready to use | **Version**: v1.1
+**Status**: Ready to use | **Version**: v1.1
 
 Telegram Emulator provides a complete environment for testing and developing Telegram bots with a compatible API and convenient web interface.

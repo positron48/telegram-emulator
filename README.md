@@ -2,19 +2,19 @@
 
 [English](README_EN.md) | Русский
 
-[![CI](https://github.com/your-username/telegram-emulator/workflows/CI/badge.svg)](https://github.com/your-username/telegram-emulator/actions)
-[![Security](https://github.com/your-username/telegram-emulator/workflows/Security%20Audit/badge.svg)](https://github.com/your-username/telegram-emulator/actions)
+[![CI](https://github.com/positron48/telegram-emulator/workflows/CI/badge.svg)](https://github.com/positron48/telegram-emulator/actions)
+[![Security](https://github.com/positron48/telegram-emulator/workflows/Security%20Audit/badge.svg)](https://github.com/positron48/telegram-emulator/actions)
 [![Go Version](https://img.shields.io/badge/Go-1.24+-blue.svg)](https://golang.org/)
 [![Node.js Version](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Go Report Card](https://goreportcard.com/badge/github.com/your-username/telegram-emulator)](https://goreportcard.com/report/github.com/your-username/telegram-emulator)
-[![Coverage](https://img.shields.io/badge/Coverage-57%25-brightgreen.svg)](https://codecov.io/gh/your-username/telegram-emulator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/positron48/telegram-emulator)](https://goreportcard.com/report/github.com/positron48/telegram-emulator)
+[![Coverage](https://img.shields.io/badge/Coverage-57%25-brightgreen.svg)](https://codecov.io/gh/positron48/telegram-emulator)
 
 Веб-эмулятор Telegram для локального тестирования и разработки ботов. Эмулятор предоставляет графический интерфейс, имитирующий Telegram, и позволяет тестировать ботов без необходимости использования реального Telegram API.
 
 ![](screen.png)
 
-## 🛠️ Технологии
+## Технологии
 
 ### Backend
 ![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?style=for-the-badge&logo=go&logoColor=white)
@@ -35,9 +35,9 @@
 ![ESLint](https://img.shields.io/badge/ESLint-4B32C3?style=for-the-badge&logo=eslint&logoColor=white)
 ![GolangCI-Lint](https://img.shields.io/badge/GolangCI--Lint-000000?style=for-the-badge&logo=go&logoColor=white)
 
-## 🚀 Возможности
+## Возможности
 
-### ✅ Реализовано
+### Реализовано
 - **Telegram Bot API** - совместимый с официальным API
 - **Веб-интерфейс** - похожий на Telegram
 - **Управление ботами** - создание, редактирование, активация/деактивация
@@ -53,7 +53,7 @@
 - **Интерактивный Python бот** - с выбором режима работы (api, long polling, webhook)
 - **Панель отладки** - мониторинг событий и состояния системы
 
-### 🔧 Telegram Bot API методы
+### Telegram Bot API методы
 
 Эмулятор поддерживает следующие методы Telegram Bot API:
 
@@ -72,7 +72,7 @@
 - Inline queries (`inline_query`)
 - И другие типы обновлений
 
-## 🛠️ Установка и запуск
+## Установка и запуск
 
 ### Требования
 - Go 1.23+
@@ -112,7 +112,7 @@
    npm run dev
    ```
 
-## 🤖 Создание и тестирование ботов
+## Создание и тестирование ботов
 
 ### 1. Создание бота через веб-интерфейс
 
@@ -235,7 +235,7 @@ python simple_bot.py
 
 4. **Проверьте ответы бота в веб-интерфейсе**
 
-## 📁 Структура проекта
+## Структура проекта
 
 ```
 telegram-emulator/
@@ -253,7 +253,7 @@ telegram-emulator/
 └── migrations/           # Миграции базы данных
 ```
 
-## 🔧 Конфигурация
+## Конфигурация
 
 Основные настройки в `configs/config.yaml`:
 
@@ -280,7 +280,7 @@ logging:
   format: console
 ```
 
-## 🧪 Тестирование
+## Тестирование
 
 ### Запуск тестов
 ```bash
@@ -303,12 +303,12 @@ curl "http://localhost:3001/bot1234567890:ABCdefGHIjklMNOpqrsTUVwxyz/getUpdates?
 curl "http://localhost:3001/bot1234567890:ABCdefGHIjklMNOpqrsTUVwxyz/getWebhookInfo"
 ```
 
-## 📚 Документация
+## Документация
 
 - [Спецификация](TELEGRAM_EMULATOR_SPECIFICATION.md) - полная техническая спецификация
 - [Пример бота](examples/) - пример использования
 
-## 📊 Статистика проекта
+## Статистика проекта
 
 ### Тестирование
 ![Tests](https://img.shields.io/badge/Tests-100%25%20Passing-brightgreen?style=for-the-badge)
@@ -328,6 +328,6 @@ curl "http://localhost:3001/bot1234567890:ABCdefGHIjklMNOpqrsTUVwxyz/getWebhookI
 
 ---
 
-**Статус**: ✅ Готов к использованию | **Версия**: v1.1
+**Статус**: Готов к использованию | **Версия**: v1.1
 
 Telegram Emulator предоставляет полноценную среду для тестирования и разработки Telegram ботов с совместимым API и удобным веб-интерфейсом.
